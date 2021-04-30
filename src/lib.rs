@@ -17,7 +17,7 @@ pub use crate::octet_string::OctetString;
 
 pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 
-pub(crate) trait SmlParse
+pub trait SmlParse
 where
     Self: Sized,
 {
@@ -79,7 +79,7 @@ pub struct OpenResponse {
     client_id: Option<OctetString>,
     req_file_id: OctetString,
     server_id: OctetString,
-    ref_time: Time,
+    ref_time: Option<Time>,
     sml_version: Option<u8>,
 }
 
@@ -311,6 +311,12 @@ pub enum MessageBody {
     // AttentionResponse(AttentionResponse)
 }
 
+
+pub fn unpack_transport_v1<R: std::io::Read>(reader: &mut R) -> std::io::Result<Vec<u8>> {
+    transport::SmlReader::new(reader).read_transmission()
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -325,7 +331,7 @@ mod tests {
             client_id: None,
             req_file_id: vec![0, 33, 23, 27],
             server_id: vec![10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
-            ref_time: Time::SecIndex(2168154),
+            ref_time: Some(Time::SecIndex(2168154)),
             sml_version: Some(1),
         };
 
@@ -348,7 +354,7 @@ mod tests {
                         client_id: None,
                         req_file_id: vec![0, 33, 23, 27],
                         server_id: vec![10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
-                        ref_time: Time::SecIndex(2168154),
+                        ref_time: Some(Time::SecIndex(2168154)),
                         sml_version: Some(1),
                     }),
                 },
