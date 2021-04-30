@@ -205,14 +205,45 @@ impl SmlParse for File {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Message {
     transaction_id: OctetString,
     group_id: u8,
     abort_on_error: u8, // this should probably be an enum
     message_body: MessageBody,
-    crc: u16, // should this really be part of this type?
-    end_of_sml_msg: EndOfSmlMessage,
+}
+
+impl SmlParse for Message {
+    fn parse(input: &[u8]) -> nom::IResult<&[u8], Self> {
+        let input_orig = input.clone();
+        let (input, tlf) = tlf::TypeLengthField::parse(input)?;
+        if tlf.ty != tlf::Ty::ListOf || tlf.len != 6 {
+            return Err(error(input));
+        }
+        let (input, transaction_id) = OctetString::parse(input)?;
+        let (input, group_id) = u8::parse(input)?;
+        let (input, abort_on_error) = u8::parse(input)?;
+        let (input, message_body) = MessageBody::parse(input)?;
+        
+        let num_bytes_read = input_orig.len() - input.len();
+        
+        let (input, crc) = u16::parse(input)?;
+        let (input, _) = tag(&[0x00])(input)?;
+
+        // validate crc16
+        let digest = crc::crc16::checksum_x25(&input_orig[0..num_bytes_read]).swap_bytes();
+        if digest != crc {
+            return Err(error(input));
+        }
+
+        let val = Message {
+            transaction_id,
+            group_id,
+            abort_on_error,
+            message_body,
+        };
+        Ok((input, val))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -320,8 +351,6 @@ mod tests {
                         ref_time: Time::SecIndex(2168154),
                         sml_version: Some(1),
                     }),
-                    crc: 33422,
-                    end_of_sml_msg: EndOfSmlMessage,
                 },
                 Message {
                     transaction_id: vec![0, 99, 69, 82],
@@ -382,8 +411,6 @@ mod tests {
                         list_signature: None,
                         act_gateway_time: None,
                     }),
-                    crc: 36465,
-                    end_of_sml_msg: EndOfSmlMessage,
                 },
                 Message {
                     transaction_id: vec![0, 99, 69, 83],
@@ -392,8 +419,6 @@ mod tests {
                     message_body: MessageBody::CloseResponse(CloseResponse {
                         global_signature: None,
                     }),
-                    crc: 44373,
-                    end_of_sml_msg: EndOfSmlMessage,
                 },
             ],
         };
