@@ -10,8 +10,8 @@ use nom::{
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct TypeLengthField {
-    ty: Ty,
-    len: usize,
+    pub ty: Ty,
+    pub len: usize,
 }
 
 impl TypeLengthField {
