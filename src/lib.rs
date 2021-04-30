@@ -11,6 +11,7 @@ use sml_rs_macros::SmlParse;
 mod num;
 mod octet_string;
 mod tlf;
+mod transport;
 
 pub use crate::octet_string::OctetString;
 
