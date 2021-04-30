@@ -1,0 +1,14 @@
+[package]
+name = "sml-rs-macros"
+version = "0.1.0"
+authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+path = "sml-rs-macros.rs"
+
+[dependencies]
+quote = "1.0"
+syn = {version = "1.0", features = ["full", "extra-traits"]}
+proc-macro2 = "1.0"

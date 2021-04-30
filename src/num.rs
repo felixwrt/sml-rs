@@ -1,9 +1,9 @@
-use crate::SmlParse;
-use crate::tlf::{Ty, TypeLengthField};
 use crate::error;
+use crate::tlf::{Ty, TypeLengthField};
+use crate::SmlParse;
 
-use nom::number::complete::*;
 use nom::combinator::map;
+use nom::number::complete::*;
 use nom::IResult;
 
 macro_rules! impl_num {
@@ -19,10 +19,10 @@ macro_rules! impl_num {
                     if tlf.ty != $int_ty || tlf.len > SIZE || tlf.len == 0 {
                         return Err(error(input))
                     }
-            
+
                     // read bytes
                     let (input, bytes) = nom::bytes::complete::take(tlf.len)(input)?;
-            
+
                     // determine fill bytes depending on the type and sign of the number
                     let fill_byte = match $int_ty {
                         Ty::Unsigned => 0x00,
@@ -35,14 +35,14 @@ macro_rules! impl_num {
 
                     // initialize buffer of Self's size with fill bytes
                     let mut buffer = [fill_byte; SIZE];
-            
+
                     // copy read bytes into the buffer
                     let num_skipped_bytes = SIZE - tlf.len;
                     buffer[num_skipped_bytes..].copy_from_slice(bytes);
-            
+
                     // turn the buffer into an actual number type
                     let num = Self::from_be_bytes(buffer);
-            
+
                     Ok((input, num))
                 }
             }
@@ -53,17 +53,16 @@ macro_rules! impl_num {
 impl_num!((u8, u16, u32, u64), Ty::Unsigned);
 impl_num!((i8, i16, i32, i64), Ty::Integer);
 
-
 // Boolean
 impl SmlParse for bool {
     fn parse(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, tlf) = TypeLengthField::parse(input)?;
-        
+
         if tlf != TypeLengthField::new(Ty::Boolean, std::mem::size_of::<Self>()) {
-            return Err(error(input))
+            return Err(error(input));
         }
 
-        map(be_u8, |x:u8| x > 0)(input)
+        map(be_u8, |x: u8| x > 0)(input)
     }
 }
 
@@ -76,19 +75,30 @@ mod test {
         assert_eq!(u8::parse_complete(&[0x62, 0x05]), Ok(5));
         assert_eq!(u16::parse_complete(&[0x63, 0x01, 0x01]), Ok(257));
         assert_eq!(u32::parse_complete(&[0x65, 0x0, 0x0, 0x0, 0x1]), Ok(1));
-        assert_eq!(u64::parse_complete(&[0x69, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1]), Ok(1));
+        assert_eq!(
+            u64::parse_complete(&[0x69, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1]),
+            Ok(1)
+        );
 
         assert_eq!(i8::parse_complete(&[0x52, 0xFF]), Ok(-1));
         assert_eq!(i16::parse_complete(&[0x53, 0xEC, 0x78]), Ok(-5000));
-        assert_eq!(i32::parse_complete(&[0x55, 0xFF, 0xFF, 0xEC, 0x78]), Ok(-5000));
-        assert_eq!(i64::parse_complete(&[0x59, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), Ok(-1));
-        
+        assert_eq!(
+            i32::parse_complete(&[0x55, 0xFF, 0xFF, 0xEC, 0x78]),
+            Ok(-5000)
+        );
+        assert_eq!(
+            i64::parse_complete(&[0x59, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]),
+            Ok(-1)
+        );
     }
 
     #[test]
     fn parse_fewer_bytes() {
         assert_eq!(u32::parse_complete(&[0x64, 0x01, 0x00, 0x01]), Ok(65537));
-        assert_eq!(u64::parse_complete(&[0x67, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1]), Ok(1));
+        assert_eq!(
+            u64::parse_complete(&[0x67, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1]),
+            Ok(1)
+        );
         assert_eq!(u64::parse_complete(&[0x65, 0x0, 0x0, 0x0, 0x1]), Ok(1));
         assert_eq!(u64::parse_complete(&[0x62, 0x1]), Ok(1));
 

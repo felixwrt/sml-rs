@@ -6,9 +6,13 @@ use nom::{
     IResult,
 };
 
+use sml_rs_macros::SmlParse;
+
 mod num;
-mod tlf;
 mod octet_string;
+mod tlf;
+
+pub use crate::octet_string::OctetString;
 
 pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 
@@ -35,4 +39,45 @@ impl<T: SmlParse> SmlParse for Option<T> {
 
 pub fn error<I, E: ParseError<I>>(input: I) -> nom::Err<E> {
     nom::Err::Error(make_error(input, ErrorKind::Alt))
+}
+
+type Timestamp = u32; // unix timestamp
+
+#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+pub struct TimestampLocal {
+    // localtime = timestamp + local_offset + season_time_offset
+    timestamp: Timestamp,
+    local_offset: i16,       // in minutes
+    season_time_offset: i16, // in minutes
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+enum Time {
+    #[tag(0x01)]
+    SecIndex(u32),
+    #[tag(0x02)]
+    Timestamp(Timestamp),
+    #[tag(0x03)]
+    LocalTimestamp(TimestampLocal),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+pub struct OpenRequest {
+    codepage: Option<OctetString>,
+    client_id: OctetString,
+    req_file_id: OctetString,
+    server_id: Option<OctetString>,
+    username: Option<OctetString>,
+    password: Option<OctetString>,
+    sml_version: Option<u8>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+pub struct OpenResult {
+    codepage: Option<OctetString>,
+    client_id: Option<OctetString>,
+    req_file_id: OctetString,
+    server_id: OctetString,
+    ref_time: Time,
+    sml_version: Option<u8>,
 }
