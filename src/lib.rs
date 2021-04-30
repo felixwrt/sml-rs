@@ -8,6 +8,7 @@ use nom::{
 
 mod num;
 mod tlf;
+mod octet_string;
 
 pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 
