@@ -9,10 +9,10 @@ use nom::IResult;
 macro_rules! impl_num {
     (($($t:ty),+), $int_ty:expr) => {
         $(
-            impl SmlParse for $t {
-                fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+            impl<'i> SmlParse<'i> for $t {
+                fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
                     // size of the number type (in bytes)
-                    const SIZE: usize = std::mem::size_of::<$t>();
+                    const SIZE: usize = core::mem::size_of::<$t>();
 
                     // parse and validate type-length field
                     let (input, tlf) = TypeLengthField::parse(input)?;
@@ -54,11 +54,11 @@ impl_num!((u8, u16, u32, u64), Ty::Unsigned);
 impl_num!((i8, i16, i32, i64), Ty::Integer);
 
 // Boolean
-impl SmlParse for bool {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+impl<'i> SmlParse<'i> for bool {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
         let (input, tlf) = TypeLengthField::parse(input)?;
 
-        if tlf != TypeLengthField::new(Ty::Boolean, std::mem::size_of::<Self>()) {
+        if tlf != TypeLengthField::new(Ty::Boolean, core::mem::size_of::<Self>()) {
             return Err(error(input));
         }
 

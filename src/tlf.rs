@@ -20,8 +20,8 @@ impl TypeLengthField {
     }
 }
 
-impl SmlParse for TypeLengthField {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+impl<'i> SmlParse<'i> for TypeLengthField {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
         let (mut input, (mut has_more_bytes, ty, mut len)) = tlf_first_byte(input)?;
         let mut tlf_len = 1;
 

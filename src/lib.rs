@@ -1,3 +1,7 @@
+#![no_std]
+
+use anyhow::Result;
+
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -6,6 +10,7 @@ use nom::{
     IResult,
 };
 
+use octet_string::OctetStr;
 use sml_rs_macros::SmlParse;
 
 mod num;
@@ -13,17 +18,17 @@ mod octet_string;
 mod tlf;
 mod transport;
 
-pub use crate::octet_string::OctetString;
+//pub use crate::octet_string::OctetString;
 
 pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 
-pub trait SmlParse
+pub trait SmlParse<'i>
 where
     Self: Sized,
 {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self>;
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self>;
 
-    fn parse_complete(input: &[u8]) -> IResultComplete<&[u8], Self> {
+    fn parse_complete(input: &'i [u8]) -> IResultComplete<&[u8], Self> {
         let res = all_consuming(Self::parse)(input);
         res.map(|(rest, value)| {
             assert!(rest.is_empty());
@@ -32,8 +37,8 @@ where
     }
 }
 
-impl<T: SmlParse> SmlParse for Option<T> {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+impl<'i, T: SmlParse<'i>> SmlParse<'i> for Option<T> {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
         alt((map(tag(&[0x01u8]), |_| None), map(T::parse, |s| Some(s))))(input)
     }
 }
@@ -63,75 +68,121 @@ pub enum Time {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct OpenRequest {
-    codepage: Option<OctetString>,
-    client_id: OctetString,
-    req_file_id: OctetString,
-    server_id: Option<OctetString>,
-    username: Option<OctetString>,
-    password: Option<OctetString>,
+pub struct OpenRequest<'i> {
+    codepage: Option<OctetStr<'i>>,
+    client_id: OctetStr<'i>,
+    req_file_id: OctetStr<'i>,
+    server_id: Option<OctetStr<'i>>,
+    username: Option<OctetStr<'i>>,
+    password: Option<OctetStr<'i>>,
     sml_version: Option<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct OpenResponse {
-    codepage: Option<OctetString>,
-    client_id: Option<OctetString>,
-    req_file_id: OctetString,
-    server_id: OctetString,
+pub struct OpenResponse<'i> {
+    codepage: Option<OctetStr<'i>>,
+    client_id: Option<OctetStr<'i>>,
+    req_file_id: OctetStr<'i>,
+    server_id: OctetStr<'i>,
     ref_time: Option<Time>,
     sml_version: Option<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct CloseRequest {
-    global_signature: Option<Signature>,
+pub struct CloseRequest<'i> {
+    global_signature: Option<Signature<'i>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct CloseResponse {
-    global_signature: Option<Signature>,
+pub struct CloseResponse<'i> {
+    global_signature: Option<Signature<'i>>,
 }
 
-type Signature = OctetString;
+type Signature<'i> = OctetStr<'i>;
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct GetListResponse {
-    pub client_id: Option<OctetString>,
-    pub server_id: OctetString,
-    pub list_name: Option<OctetString>,
+pub struct GetListResponse<'i> {
+    pub client_id: Option<OctetStr<'i>>,
+    pub server_id: OctetStr<'i>,
+    pub list_name: Option<OctetStr<'i>>,
     pub act_sensor_time: Option<Time>,
-    pub val_list: List,
-    pub list_signature: Option<Signature>,
+    pub val_list: ListIter<'i>,
+    pub list_signature: Option<Signature<'i>>,
     pub act_gateway_time: Option<Time>,
 }
 
-pub type List = Vec<ListEntry>;
+// pub type List<'i> = Vec<ListEntry<'i>>;
 
-impl SmlParse for List {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, tlf) = crate::tlf::TypeLengthField::parse(input)?;
+// impl<'i> SmlParse<'i> for List<'i> {
+//     fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
+//         let (input, tlf) = crate::tlf::TypeLengthField::parse(input)?;
+
+//         if !matches!(tlf.ty, crate::tlf::Ty::ListOf) {
+//             return Err(error(input));
+//         }
+
+//         nom::multi::many_m_n(tlf.len, tlf.len, ListEntry::parse)(input)
+//     }
+// }
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct ListIter<'i> {
+    len: usize,
+    idx: usize,
+    bytes: &'i [u8],
+}
+
+impl<'i> SmlParse<'i> for ListIter<'i> {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
+        let (mut input, tlf) = crate::tlf::TypeLengthField::parse(input)?;
+        let input_orig = input;
 
         if !matches!(tlf.ty, crate::tlf::Ty::ListOf) {
             return Err(error(input));
         }
 
-        nom::multi::many_m_n(tlf.len, tlf.len, ListEntry::parse)(input)
+        for _ in 0..tlf.len {
+            input = ListEntry::parse(input)?.0;
+        }
+
+        //nom::multi::many_m_n(tlf.len, tlf.len, ListEntry::parse)(input)
+
+        Ok((input, ListIter {
+            len: tlf.len,
+            idx: 0,
+            bytes: input_orig,
+        }))
+    }
+}
+
+impl<'i> Iterator for ListIter<'i> {
+    type Item = ListEntry<'i>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.idx == self.len {
+            return None;
+        }
+        self.idx += 1;
+        
+        // unwrap is safe here as `parse` has already checked that parsing works
+        let (bytes, msg) = ListEntry::parse(self.bytes).unwrap();
+        self.bytes = bytes;
+        Some(msg)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct ListEntry {
-    pub obj_name: OctetString,
+pub struct ListEntry<'i> {
+    pub obj_name: OctetStr<'i>,
     pub status: Option<Status>,
     pub val_time: Option<Time>,
     pub unit: Option<Unit>,
     pub scaler: Option<i8>,
-    pub value: Value,
-    pub value_signature: Option<Signature>,
+    pub value: Value<'i>,
+    pub value_signature: Option<Signature<'i>>,
 }
 
-impl ListEntry {
+impl<'i> ListEntry<'i> {
     pub fn value_as_usize(&self) -> usize {
         let val = self.value.as_usize().unwrap();
         match self.scaler {
@@ -154,8 +205,8 @@ pub enum Status {
     Status64(u64),
 }
 
-impl SmlParse for Status {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+impl<'i> SmlParse<'i> for Status {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
         nom::branch::alt((
             map(u8::parse, |n| Status::Status8(n)),
             map(u16::parse, |n| Status::Status16(n)),
@@ -169,9 +220,9 @@ impl SmlParse for Status {
 pub type Unit = u8; // proper enum?
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Value {
+pub enum Value<'i> {
     Bool(bool),
-    Bytes(OctetString),
+    Bytes(OctetStr<'i>),
     I8(i8),
     I16(i16),
     I32(i32),
@@ -183,7 +234,7 @@ pub enum Value {
     List(ListType),
 }
 
-impl Value {
+impl<'i> Value<'i> {
     pub fn as_usize(&self) -> Option<usize> {
         match self {
             Value::U8(n) => Some(*n as usize),
@@ -200,11 +251,11 @@ impl Value {
     }
 }
 
-impl SmlParse for Value {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+impl<'i> SmlParse<'i> for Value<'i> {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
         nom::branch::alt((
             map(bool::parse, |x| Value::Bool(x)),
-            map(OctetString::parse, |x| Value::Bytes(x)),
+            map(OctetStr::parse, |x| Value::Bytes(x)),
             map(i8::parse, |x| Value::I8(x)),
             map(i16::parse, |x| Value::I16(x)),
             map(i32::parse, |x| Value::I32(x)),
@@ -224,35 +275,68 @@ pub enum ListType {
     Time(Time),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct File {
-    pub messages: Vec<Message>,
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// pub struct File<'i> {
+//     pub messages: Vec<Message<'i>>,
+// }
+
+// impl<'i> SmlParse<'i> for File<'i> {
+//     fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
+//         map(nom::multi::many1(Message::parse), |msgs| File {
+//             messages: msgs,
+//         })(input)
+//     }
+// }
+
+pub struct FileIter<'a> {
+    bytes: &'a [u8]
 }
 
-impl SmlParse for File {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        map(nom::multi::many1(Message::parse), |msgs| File {
-            messages: msgs,
-        })(input)
+impl<'a> FileIter<'a> {
+    pub fn new(bytes: &'a [u8]) -> Self {
+        FileIter {
+            bytes
+        }
+    }
+}
+
+impl<'i> Iterator for FileIter<'i> {
+    type Item = Result<Message<'i>, nom::Err<nom::error::Error<&'i [u8]>>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.bytes.is_empty() {
+            return None;
+        }
+        match Message::parse(self.bytes) {
+            Ok((bytes, msg)) => {
+                self.bytes = bytes;
+                return Some(Ok(msg))
+
+            }
+            Err(e) => {
+                self.bytes = &[];
+                return Some(Err(e))
+            }
+        }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Message {
-    pub transaction_id: OctetString,
+pub struct Message<'i> {
+    pub transaction_id: OctetStr<'i>,
     pub group_id: u8,
     pub abort_on_error: u8, // this should probably be an enum
-    pub message_body: MessageBody,
+    pub message_body: MessageBody<'i>,
 }
 
-impl SmlParse for Message {
-    fn parse(input: &[u8]) -> nom::IResult<&[u8], Self> {
+impl<'i> SmlParse<'i> for Message<'i> {
+    fn parse(input: &'i [u8]) -> nom::IResult<&[u8], Self> {
         let input_orig = input.clone();
         let (input, tlf) = tlf::TypeLengthField::parse(input)?;
         if tlf.ty != tlf::Ty::ListOf || tlf.len != 6 {
             return Err(error(input));
         }
-        let (input, transaction_id) = OctetString::parse(input)?;
+        let (input, transaction_id) = OctetStr::parse(input)?;
         let (input, group_id) = u8::parse(input)?;
         let (input, abort_on_error) = u8::parse(input)?;
         let (input, message_body) = MessageBody::parse(input)?;
@@ -278,26 +362,34 @@ impl SmlParse for Message {
     }
 }
 
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// pub struct Message2<'a> {
+//     pub transaction_id: OctetStr<'a>,
+//     pub group_id: u8,
+//     pub abort_on_error: u8, // this should probably be an enum
+//     //pub message_body: MessageBody2<'a>,
+// }
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EndOfSmlMessage;
 
-impl SmlParse for EndOfSmlMessage {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+impl<'i> SmlParse<'i> for EndOfSmlMessage {
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
         map(tag(&[0x00]), |_| EndOfSmlMessage)(input)
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub enum MessageBody {
+pub enum MessageBody<'i> {
     #[tag(0x00000100)]
-    OpenRequest(OpenRequest),
+    OpenRequest(OpenRequest<'i>),
     #[tag(0x00000101)]
-    OpenResponse(OpenResponse),
+    OpenResponse(OpenResponse<'i>),
 
     #[tag(0x00000200)]
-    CloseRequest(CloseRequest),
+    CloseRequest(CloseRequest<'i>),
     #[tag(0x00000201)]
-    CloseResponse(CloseResponse),
+    CloseResponse(CloseResponse<'i>),
 
     // #[tag(0x00000300)]
     // GetProfilePackRequest(GetProfilePackRequest),
@@ -322,7 +414,7 @@ pub enum MessageBody {
     // #[tag(0x00000700)]
     // GetListRequest(GetListRequest),
     #[tag(0x00000701)]
-    GetListResponse(GetListResponse),
+    GetListResponse(GetListResponse<'i>),
 
     // #[tag(0x00000800)]
     // GetCosemRequest(GetCosemRequest),
@@ -344,13 +436,15 @@ pub enum MessageBody {
 }
 
 
-pub fn unpack_transport_v1<R: std::io::Read>(reader: &mut R) -> std::io::Result<Vec<u8>> {
-    transport::SmlReader::new(reader).read_transmission()
+pub fn unpack_transport_v1<Rx: Iterator<Item=u8>, const N: usize>(rx: &mut Rx) -> Result<([u8; N], usize)> {
+    let mut reader1 = transport::PowerMeterReader::<_, N>::new(rx);
+    let (buf, len) = reader1.read_message()?;
+    let (buf, len) = transport::SmlReader::new(buf[..len].iter().cloned()).read_transmission()?;
+    Ok((buf, len))
 }
 
-pub fn parse_file(bytes: &[u8]) -> Result<File, String> {
-    File::parse_complete(bytes)
-        .map_err(|e| (format!("Error parsing File: {}", e)))
+pub fn parse_file_iter(bytes: &[u8]) -> FileIter {
+    FileIter::new(bytes)
 }
 
 
@@ -366,8 +460,8 @@ mod tests {
         let exp = OpenResponse {
             codepage: None,
             client_id: None,
-            req_file_id: vec![0, 33, 23, 27],
-            server_id: vec![10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
+            req_file_id: &[0, 33, 23, 27],
+            server_id: &[10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
             ref_time: Some(Time::SecIndex(2168154)),
             sml_version: Some(1),
         };
@@ -375,97 +469,196 @@ mod tests {
         assert_eq!(open_response, Ok(exp))
     }
 
+    // #[test]
+    // fn test_file() {
+    //     let input = hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500");
+
+    //     let f = File::parse_complete(&input);
+    //     let exp = File {
+    //         messages: vec![
+    //             Message {
+    //                 transaction_id: &[0, 99, 69, 81],
+    //                 group_id: 0,
+    //                 abort_on_error: 0,
+    //                 message_body: MessageBody::OpenResponse(OpenResponse {
+    //                     codepage: None,
+    //                     client_id: None,
+    //                     req_file_id: &[0, 33, 23, 27],
+    //                     server_id: &[10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
+    //                     ref_time: Some(Time::SecIndex(2168154)),
+    //                     sml_version: Some(1),
+    //                 }),
+    //             },
+    //             Message {
+    //                 transaction_id: &[0, 99, 69, 82],
+    //                 group_id: 0,
+    //                 abort_on_error: 0,
+    //                 message_body: MessageBody::GetListResponse(GetListResponse {
+    //                     client_id: None,
+    //                     server_id: &[10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
+    //                     list_name: Some(&[1, 0, 98, 10, 255, 255]),
+    //                     act_sensor_time: Some(Time::SecIndex(2168154)),
+    //                     val_list: vec![
+    //                         ListEntry {
+    //                             obj_name: &[1, 0, 96, 50, 1, 1],
+    //                             status: None,
+    //                             val_time: None,
+    //                             unit: None,
+    //                             scaler: None,
+    //                             value: Value::Bytes(&[73, 83, 75]),
+    //                             value_signature: None,
+    //                         },
+    //                         ListEntry {
+    //                             obj_name: &[1, 0, 96, 1, 0, 255],
+    //                             status: None,
+    //                             val_time: None,
+    //                             unit: None,
+    //                             scaler: None,
+    //                             value: Value::Bytes(&[10, 1, 73, 83, 75, 0, 4, 122, 85, 68]),
+    //                             value_signature: None,
+    //                         },
+    //                         ListEntry {
+    //                             obj_name: &[1, 0, 1, 8, 0, 255],
+    //                             status: Some(Status::Status32(1048836)),
+    //                             val_time: None,
+    //                             unit: Some(30),
+    //                             scaler: Some(-1),
+    //                             value: Value::U32(791393),
+    //                             value_signature: None,
+    //                         },
+    //                         ListEntry {
+    //                             obj_name: &[1, 0, 2, 8, 0, 255],
+    //                             status: None,
+    //                             val_time: None,
+    //                             unit: Some(30),
+    //                             scaler: Some(-1),
+    //                             value: Value::U8(0),
+    //                             value_signature: None,
+    //                         },
+    //                         ListEntry {
+    //                             obj_name: &[1, 0, 16, 7, 0, 255],
+    //                             status: None,
+    //                             val_time: None,
+    //                             unit: Some(27),
+    //                             scaler: Some(0),
+    //                             value: Value::I16(2144),
+    //                             value_signature: None,
+    //                         },
+    //                     ],
+    //                     list_signature: None,
+    //                     act_gateway_time: None,
+    //                 }),
+    //             },
+    //             Message {
+    //                 transaction_id: &[0, 99, 69, 83],
+    //                 group_id: 0,
+    //                 abort_on_error: 0,
+    //                 message_body: MessageBody::CloseResponse(CloseResponse {
+    //                     global_signature: None,
+    //                 }),
+    //             },
+    //         ],
+    //     };
+
+    //     assert_eq!(f, Ok(exp));
+    // }
+
     #[test]
-    fn test_file() {
+    fn test_file_iter() {
         let input = hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500");
 
-        let f = File::parse_complete(&input);
-        let exp = File {
-            messages: vec![
-                Message {
-                    transaction_id: vec![0, 99, 69, 81],
-                    group_id: 0,
-                    abort_on_error: 0,
-                    message_body: MessageBody::OpenResponse(OpenResponse {
-                        codepage: None,
-                        client_id: None,
-                        req_file_id: vec![0, 33, 23, 27],
-                        server_id: vec![10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
-                        ref_time: Some(Time::SecIndex(2168154)),
-                        sml_version: Some(1),
-                    }),
-                },
-                Message {
-                    transaction_id: vec![0, 99, 69, 82],
-                    group_id: 0,
-                    abort_on_error: 0,
-                    message_body: MessageBody::GetListResponse(GetListResponse {
-                        client_id: None,
-                        server_id: vec![10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
-                        list_name: Some(vec![1, 0, 98, 10, 255, 255]),
-                        act_sensor_time: Some(Time::SecIndex(2168154)),
-                        val_list: vec![
-                            ListEntry {
-                                obj_name: vec![1, 0, 96, 50, 1, 1],
-                                status: None,
-                                val_time: None,
-                                unit: None,
-                                scaler: None,
-                                value: Value::Bytes(vec![73, 83, 75]),
-                                value_signature: None,
-                            },
-                            ListEntry {
-                                obj_name: vec![1, 0, 96, 1, 0, 255],
-                                status: None,
-                                val_time: None,
-                                unit: None,
-                                scaler: None,
-                                value: Value::Bytes(vec![10, 1, 73, 83, 75, 0, 4, 122, 85, 68]),
-                                value_signature: None,
-                            },
-                            ListEntry {
-                                obj_name: vec![1, 0, 1, 8, 0, 255],
-                                status: Some(Status::Status32(1048836)),
-                                val_time: None,
-                                unit: Some(30),
-                                scaler: Some(-1),
-                                value: Value::U32(791393),
-                                value_signature: None,
-                            },
-                            ListEntry {
-                                obj_name: vec![1, 0, 2, 8, 0, 255],
-                                status: None,
-                                val_time: None,
-                                unit: Some(30),
-                                scaler: Some(-1),
-                                value: Value::U8(0),
-                                value_signature: None,
-                            },
-                            ListEntry {
-                                obj_name: vec![1, 0, 16, 7, 0, 255],
-                                status: None,
-                                val_time: None,
-                                unit: Some(27),
-                                scaler: Some(0),
-                                value: Value::I16(2144),
-                                value_signature: None,
-                            },
-                        ],
-                        list_signature: None,
-                        act_gateway_time: None,
-                    }),
-                },
-                Message {
-                    transaction_id: vec![0, 99, 69, 83],
-                    group_id: 0,
-                    abort_on_error: 0,
-                    message_body: MessageBody::CloseResponse(CloseResponse {
-                        global_signature: None,
-                    }),
-                },
-            ],
-        };
+        let mut file_iter = FileIter::new(&input);
+        // let messages: Vec<_> = file_iter.collect();
+        assert_eq!(file_iter.next(), Some(Ok(Message {
+            transaction_id: &[0, 99, 69, 81],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: MessageBody::OpenResponse(OpenResponse {
+                codepage: None,
+                client_id: None,
+                req_file_id: &[0, 33, 23, 27],
+                server_id: &[10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
+                ref_time: Some(Time::SecIndex(2168154)),
+                sml_version: Some(1),
+            }),
+        })));
+        let exp_entries = &[
+            ListEntry {
+                obj_name: &[1, 0, 96, 50, 1, 1],
+                status: None,
+                val_time: None,
+                unit: None,
+                scaler: None,
+                value: Value::Bytes(&[73, 83, 75]),
+                value_signature: None,
+            },
+            ListEntry {
+                obj_name: &[1, 0, 96, 1, 0, 255],
+                status: None,
+                val_time: None,
+                unit: None,
+                scaler: None,
+                value: Value::Bytes(&[10, 1, 73, 83, 75, 0, 4, 122, 85, 68]),
+                value_signature: None,
+            },
+            ListEntry {
+                obj_name: &[1, 0, 1, 8, 0, 255],
+                status: Some(Status::Status32(1048836)),
+                val_time: None,
+                unit: Some(30),
+                scaler: Some(-1),
+                value: Value::U32(791393),
+                value_signature: None,
+            },
+            ListEntry {
+                obj_name: &[1, 0, 2, 8, 0, 255],
+                status: None,
+                val_time: None,
+                unit: Some(30),
+                scaler: Some(-1),
+                value: Value::U8(0),
+                value_signature: None,
+            },
+            ListEntry {
+                obj_name: &[1, 0, 16, 7, 0, 255],
+                status: None,
+                val_time: None,
+                unit: Some(27),
+                scaler: Some(0),
+                value: Value::I16(2144),
+                value_signature: None,
+            },
+        ];
+        assert!(matches!(
+            file_iter.next(), 
+            Some( Ok( Message {
+                transaction_id: &[0, 99, 69, 82],
+                group_id: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::GetListResponse(GetListResponse {
+                    client_id: None,
+                    server_id: &[10, 1, 73, 83, 75, 0, 4, 122, 85, 68],
+                    list_name: Some(&[1, 0, 98, 10, 255, 255]),
+                    act_sensor_time: Some(Time::SecIndex(2168154)),
+                    val_list,
+                    list_signature: None,
+                    act_gateway_time: None,
+                }),
+            },)) 
+            if val_list.clone().count() == exp_entries.len() &&
+                val_list.clone().zip(exp_entries).all(|(x,y)| &x == y)
+                
+        ));
+        
+        assert_eq!(file_iter.next(), Some( Ok(Message {
+            transaction_id: &[0, 99, 69, 83],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: MessageBody::CloseResponse(CloseResponse {
+                global_signature: None,
+            }),
+        })));
 
-        assert_eq!(f, Ok(exp));
+        assert_eq!(file_iter.next(), None);
     }
 }

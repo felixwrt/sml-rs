@@ -15,6 +15,7 @@ edition = "2018"
 nom = "6.1.2"
 sml-rs-macros = { path = "sml-rs-macros" }
 crc = "1.8.1"
+anyhow = "1.0.48"
 
 [dev-dependencies]
 hex-literal = "0.3.1"

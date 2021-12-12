@@ -17,6 +17,7 @@ pub fn sml_parse_macro(input: TokenStream) -> TokenStream {
 
 fn struct_derive_macro(strukt: syn::ItemStruct) -> TokenStream {
     let strukt_name = strukt.ident;
+    let strukt_generics = strukt.generics;
 
     let nf = match strukt.fields {
         syn::Fields::Named(nf) => nf,
@@ -44,9 +45,10 @@ fn struct_derive_macro(strukt: syn::ItemStruct) -> TokenStream {
         field_names.push(name);
     }
 
-    quote!(
-        impl crate::SmlParse for #strukt_name {
-            fn parse(input: &[u8]) -> nom::IResult<&[u8], Self> {
+    let toks = quote!(
+        // todo: rewrite such that the lifetime parameter 'i isn't hardcoded here anymore
+        impl<'i> crate::SmlParse<'i> for #strukt_name #strukt_generics {
+            fn parse(input: &'i [u8]) -> nom::IResult<&[u8], Self> {
                 let (input, tlf) = crate::tlf::TypeLengthField::parse(input)?;
                 if tlf.ty != crate::tlf::Ty::ListOf || tlf.len != #num_fields {
                     return Err(error(input));
@@ -60,8 +62,8 @@ fn struct_derive_macro(strukt: syn::ItemStruct) -> TokenStream {
                 Ok((input, val))
             }
         }
-    )
-    .into()
+    );
+    toks.into()
 }
 
 fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
@@ -69,6 +71,7 @@ fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
     // TODO: improve error handling
 
     let name = enum_.ident;
+    let generics = enum_.generics;
 
     let mut is_u32 = false;
 
@@ -107,15 +110,15 @@ fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
         };
 
         variant_lines.push(quote!(
-            #tag => nom::combinator::map(#ty::parse, #name::#var_name)(input),
+            #tag => nom::combinator::map(<#ty>::parse, #name::#var_name)(input),
         ));
     }
 
     let tag_ty = if is_u32 { quote!(u32) } else { quote!(u8) };
 
-    quote!(
-        impl SmlParse for #name {
-            fn parse(input: &[u8]) -> nom::IResult<&[u8], Self> {
+    let toks = quote!(
+        impl<'i> SmlParse<'i> for #name #generics {
+            fn parse(input: &'i [u8]) -> nom::IResult<&[u8], Self> {
                 // ListOf(Tag(u8), Elmt)
 
                 // parse ListOf-tlf
@@ -134,6 +137,7 @@ fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
                 }
             }
         }
-    )
-    .into()
+    );
+    // println!("{}", toks.to_string());
+    toks.into()
 }
