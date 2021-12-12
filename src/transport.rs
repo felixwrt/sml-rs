@@ -50,6 +50,7 @@ impl<R: Read> SmlReader<R> {
                         let checksum = u16::from_le_bytes([bytes[2], bytes[3]]);
                         println!("calc: {:x}, exp: {:x}", self.crc.sum16(), checksum);
                         if self.crc.sum16() != checksum {
+                            //println!("Checksum doesn't match!");
                             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Checksum doesn't match"));
                         }
                         

@@ -97,13 +97,13 @@ type Signature = OctetString;
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
 pub struct GetListResponse {
-    client_id: Option<OctetString>,
-    server_id: OctetString,
-    list_name: Option<OctetString>,
-    act_sensor_time: Option<Time>,
-    val_list: List,
-    list_signature: Option<Signature>,
-    act_gateway_time: Option<Time>,
+    pub client_id: Option<OctetString>,
+    pub server_id: OctetString,
+    pub list_name: Option<OctetString>,
+    pub act_sensor_time: Option<Time>,
+    pub val_list: List,
+    pub list_signature: Option<Signature>,
+    pub act_gateway_time: Option<Time>,
 }
 
 pub type List = Vec<ListEntry>;
@@ -122,13 +122,28 @@ impl SmlParse for List {
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
 pub struct ListEntry {
-    obj_name: OctetString,
-    status: Option<Status>,
-    val_time: Option<Time>,
-    unit: Option<Unit>,
-    scaler: Option<i8>,
-    value: Value,
-    value_signature: Option<Signature>,
+    pub obj_name: OctetString,
+    pub status: Option<Status>,
+    pub val_time: Option<Time>,
+    pub unit: Option<Unit>,
+    pub scaler: Option<i8>,
+    pub value: Value,
+    pub value_signature: Option<Signature>,
+}
+
+impl ListEntry {
+    pub fn value_as_usize(&self) -> usize {
+        let val = self.value.as_usize().unwrap();
+        match self.scaler {
+            Some(x) if x > 0 => {
+                val * 10usize.pow(x as u32)
+            }
+            Some(x) if x < 0 => {
+                val / 10usize.pow((-x) as u32)
+            }
+            _ => val,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -168,6 +183,23 @@ pub enum Value {
     List(ListType),
 }
 
+impl Value {
+    pub fn as_usize(&self) -> Option<usize> {
+        match self {
+            Value::U8(n) => Some(*n as usize),
+            Value::U16(n) => Some(*n as usize),
+            Value::U32(n) => Some(*n as usize),
+            Value::U64(n) => Some(*n as usize),
+            // FIXME: converting signed ints into unsigned here doesn't look very good. 
+            Value::I8(n) => Some(*n as usize),
+            Value::I16(n) => Some(*n as usize),
+            Value::I32(n) => Some(*n as usize),
+            Value::I64(n) => Some(*n as usize),
+            _ => None
+        }
+    }
+}
+
 impl SmlParse for Value {
     fn parse(input: &[u8]) -> IResult<&[u8], Self> {
         nom::branch::alt((
@@ -194,7 +226,7 @@ pub enum ListType {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct File {
-    messages: Vec<Message>,
+    pub messages: Vec<Message>,
 }
 
 impl SmlParse for File {
@@ -207,10 +239,10 @@ impl SmlParse for File {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Message {
-    transaction_id: OctetString,
-    group_id: u8,
-    abort_on_error: u8, // this should probably be an enum
-    message_body: MessageBody,
+    pub transaction_id: OctetString,
+    pub group_id: u8,
+    pub abort_on_error: u8, // this should probably be an enum
+    pub message_body: MessageBody,
 }
 
 impl SmlParse for Message {
@@ -314,6 +346,11 @@ pub enum MessageBody {
 
 pub fn unpack_transport_v1<R: std::io::Read>(reader: &mut R) -> std::io::Result<Vec<u8>> {
     transport::SmlReader::new(reader).read_transmission()
+}
+
+pub fn parse_file(bytes: &[u8]) -> Result<File, String> {
+    File::parse_complete(bytes)
+        .map_err(|e| (format!("Error parsing File: {}", e)))
 }
 
 
