@@ -362,14 +362,6 @@ impl<'i> SmlParse<'i> for Message<'i> {
     }
 }
 
-// #[derive(Debug, PartialEq, Eq, Clone)]
-// pub struct Message2<'a> {
-//     pub transaction_id: OctetStr<'a>,
-//     pub group_id: u8,
-//     pub abort_on_error: u8, // this should probably be an enum
-//     //pub message_body: MessageBody2<'a>,
-// }
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EndOfSmlMessage;
 
@@ -436,10 +428,32 @@ pub enum MessageBody<'i> {
 }
 
 
-pub fn unpack_transport_v1<Rx: Iterator<Item=u8>, const N: usize>(rx: &mut Rx) -> Result<([u8; N], usize)> {
-    let mut reader1 = transport::PowerMeterReader::<_, N>::new(rx);
-    let (buf, len) = reader1.read_message()?;
-    let (buf, len) = transport::SmlReader::new(buf[..len].iter().cloned()).read_transmission()?;
+pub fn unpack_transport_v1<Rx: Iterator<Item=u8> + Clone, const N: usize>(rx: &mut Rx) -> Result<([u8; N], usize)> {
+    let mut reader1 = transport::PowerMeterReader::<_, N>::new(rx.clone());
+    let mut reader2 = transport::SmlReader::<_, N>::new(rx.clone());
+    for i in 0.. {
+        match reader1.read_message() {
+            Ok((buf, len)) => {
+                // println!("Iteration: {}", i);
+                // new reader using the presliced data from reader1
+                let mut reader3 = transport::SmlReader::<_, N>::new(buf[..len].iter().cloned());
+                let r1 = reader3.read_transmission_into_slice();
+                // using the same reader instance multiple times
+                let r2 = reader2.read_transmission_into_slice();
+                //dbg!(&r1);
+                //dbg!(&r2);
+                assert!(r1.is_ok() && r2.is_ok());
+            }
+            Err(_e) => {
+                //println!("PowerMeterReader failed after {} iterations. Error: {}", i, e);
+                assert!(i > 0);
+                break;
+            }
+        }
+    }
+    //println!("{:?}", rx.clone().collect::<Vec<_>>());
+    let (buf, len) = transport::SmlReader::<_, N>::new(rx).read_transmission_into_array()?;
+    //println!("Returning array: {:?}", &buf[..len]);
     Ok((buf, len))
 }
 
@@ -452,6 +466,7 @@ pub fn parse_file_iter(bytes: &[u8]) -> FileIter {
 mod tests {
     use super::*;
     use hex_literal::hex;
+
     #[test]
     fn test_open_result() {
         let input = hex!("760101050021171B0B0A0149534B00047A5544726201650021155A6201");

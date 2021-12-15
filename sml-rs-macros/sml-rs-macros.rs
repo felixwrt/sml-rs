@@ -114,6 +114,19 @@ fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
         ));
     }
 
+    let holley_workaround = if name == "Time" {
+        quote!(
+            // Workaround for Holley DTZ541:
+            // For the `Time` type, this meter doesn't respect the spec.
+            // Intead of a TLF of type ListOf and length 2, it directly sends an u32 integer,
+            // which is encoded by a TLF of Unsigned and length 4 followed by four bytes containing 
+            // the data. 
+            if tlf == crate::tlf::TypeLengthField::new(crate::tlf::Ty::Unsigned, 4) {
+                return nom::combinator::map(nom::number::complete::be_u32, Time::SecIndex)(input);
+            }
+        )
+    } else { quote!() };
+
     let tag_ty = if is_u32 { quote!(u32) } else { quote!(u8) };
 
     let toks = quote!(
@@ -124,6 +137,7 @@ fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
                 // parse ListOf-tlf
                 let (input, tlf) = crate::tlf::TypeLengthField::parse(input)?;
                 if tlf.ty != crate::tlf::Ty::ListOf || tlf.len != 2 {
+                    #holley_workaround
                     return Err(error(input));
                 }
 

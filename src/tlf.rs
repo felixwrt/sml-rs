@@ -62,10 +62,10 @@ impl<'i> SmlParse<'i> for TypeLengthField {
 }
 
 fn tlf_byte(input: &[u8]) -> IResult<&[u8], (bool, u8, usize)> {
-    let (input, (has_more_bytes, ty, len)) = bits(tuple((
-        map(take_bits::<_, _, _, Error<_>>(1usize), |x: u8| x > 0), // has_more_bytes
-        take_bits::<_, _, _, Error<_>>(3usize),                     // type
-        take_bits::<_, _, _, Error<_>>(4usize),                     // len
+    let (input, (has_more_bytes, ty, len)) = bits::<_, _, Error<_>, _, _>(tuple((
+        map(take_bits(1usize), |x: u8| x > 0),  // has_more_bytes
+        take_bits(3usize),  // type
+        take_bits(4usize),  // len
     )))(input)?;
 
     Ok((input, (has_more_bytes, ty, len)))
