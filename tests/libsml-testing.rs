@@ -53,12 +53,12 @@ fn basic_validation(path: &str) {
 }
 
 
-#[test_resources("./tests/libsml-testing/*.hex")]
-fn basic_validation_hex(path: &str) {
-    let byte_string = std::fs::read_to_string(path).expect("Couldn't read file");
-    let bytes = hex::decode(byte_string.trim()).expect("Invalid input");
-    test_bytes(&bytes)
-}
+// #[test_resources("./tests/libsml-testing/*.hex")]
+// fn basic_validation_hex(path: &str) {
+//     let byte_string = std::fs::read_to_string(path).expect("Couldn't read file");
+//     let bytes = hex::decode(byte_string.trim()).expect("Invalid input");
+//     test_bytes(&bytes)
+// }
 
 fn test_bytes(bytes: &[u8]) {
     let (buf, len) = sml_rs::unpack_transport_v1::<_, 1048>(&mut bytes.into_iter().cloned()).expect("Couldn't unpack data");
