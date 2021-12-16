@@ -16,6 +16,7 @@ nom = "7.1.0"
 sml-rs-macros = { path = "sml-rs-macros" }
 crc = "2.1.0"
 anyhow = "1.0.48"
+heapless = "0.7.8"
 
 [dev-dependencies]
 hex-literal = "0.3.1"

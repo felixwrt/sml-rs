@@ -1,5 +1,7 @@
 use anyhow::{Result, bail};
 
+extern crate alloc;
+use core::convert::TryInto;
 // first part
 // - read bytes and (possibly) produce esc seq, bytes or errors
 
@@ -236,12 +238,247 @@ where
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParseRes<'a> {
+    // None, // just read a byte, nothing to report yet
+    DiscardedBytes(usize), // just found the start of a transmission, but some previous bytes could not be parsed
+    Transmission(&'a [u8]), // a full & valid transmission has been read. These are the bytes that make the message
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParseErr {
+    InvalidEsc([u8; 4]), // an invalid escape sequence has been read
+    OutOfMemory, // the buffer used internally is full. When using vec, allocation has failed
+    InvalidMessage {
+        checksum_mismatch: (u16, u16),  // (expected, found)
+        end_esc_misaligned: bool,
+        num_padding_bytes: u8,
+    }
+}
+
+
+pub struct SmlReader2<const N: usize> {
+    buf: heapless::Vec<u8, N>,
+    // buf: [u8; N],
+    // buf_len: usize,
+    raw_msg_len: usize,
+    crc: crc::Digest<'static, u16>,
+    crc_idx: usize,
+    state: ParseState
+}
+
+impl<const N: usize> SmlReader2<N> {
+    pub fn new() -> Self {
+        SmlReader2 {
+            buf: heapless::Vec::new(),
+            // buf: [0; N],
+            // buf_len: 0,
+            raw_msg_len: 0,
+            crc: CRC_X25.digest(),
+            crc_idx: 0,
+            state: ParseState::LookingForMessageStart {
+                num_discarded_bytes: 0,
+                num_init_seq_bytes: 0,
+            }
+        }
+    }
+
+    pub fn push_byte(&mut self, b: u8) -> Result<Option<ParseRes>, ParseErr> {
+        self.raw_msg_len += 1;
+        match self.state {
+            ParseState::LookingForMessageStart {
+                ref mut num_discarded_bytes, ref mut num_init_seq_bytes
+            } => {
+                if (b == 0x1b && *num_init_seq_bytes < 4) || (b == 0x01 && *num_init_seq_bytes >= 4) {
+                    *num_init_seq_bytes += 1;
+                } else {
+                    *num_discarded_bytes += 1 + *num_init_seq_bytes as u16;
+                    *num_init_seq_bytes = 0;
+                }
+                if *num_init_seq_bytes == 8 {
+                    let num_discarded_bytes = *num_discarded_bytes;
+                    self.state = ParseState::ParsingNormal;
+                    assert_eq!(self.buf.len(), 0);
+                    assert_eq!(self.crc_idx, 0);
+                    self.crc = CRC_X25.digest();
+                    self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+                    if num_discarded_bytes > 0 {
+                        return Ok(Some(ParseRes::DiscardedBytes(num_discarded_bytes as usize)))
+                    }
+                }
+            },
+            ParseState::ParsingNormal => { 
+                if b == 0x1b {
+                    // this could be the first byte of an escape sequence
+                    self.state = ParseState::ParsingEscChars(1);
+                } else {
+                    // regular data
+                    self.push(b)?;
+                }
+            },
+            ParseState::ParsingEscChars(n) => {
+                if b != 0x1b {
+                    // push previous 0x1b bytes as they didn't belong to an escape sequence
+                    for _ in 0..n {
+                        self.push(0x1b)?;
+                    }
+                    // push current byte
+                    self.push(b)?;
+                    // continue in regular parsing state
+                    self.state = ParseState::ParsingNormal;
+                } else if n == 3 {
+                    // this is the fourth 0x1b byte, so we're seeing an escape sequence.
+                    // continue by parsing the escape sequence's payload.
+
+                    // also update the crc here. the escape bytes aren't stored in `buf`, but
+                    // still need to count for the crc calculation
+                    // (1) add everything that's in the buffer and hasn't been added to the crc previously
+                    self.crc.update(&self.buf[self.crc_idx..self.buf.len()]);
+                    // (2) add the four escape bytes
+                    self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
+                    // update crc_idx to indicate that everything that's currently in the buffer has already
+                    // been used to update the crc
+                    self.crc_idx = self.buf.len();
+
+                    self.state = ParseState::ParsingEscPayload(0);
+                } else {
+                    self.state = ParseState::ParsingEscChars(n+1);
+                }
+            },
+            ParseState::ParsingEscPayload(n) => {
+                self.push(b)?;
+                if n < 3 {
+                    self.state = ParseState::ParsingEscPayload(n+1);
+                } else {
+                    // last 4 elements in self.buf are the escape sequence payload
+                    let payload = &self.buf[self.buf.len()-4..self.buf.len()];
+                    if payload == &[0x1b, 0x1b, 0x1b, 0x1b] {
+                        // escape sequence in user data
+                        
+                        // nothing to do here as the input has already been added to the buffer (see above)
+                        self.state = ParseState::ParsingNormal;
+                    } else if payload[0] == 0x1a {
+                        // end sequence (layout: [0x1a, num_padding_bytes, crc, crc])
+                        
+                        // check number of padding bytes
+                        let num_padding_bytes = payload[1];
+
+                        // compute and compare checksum
+                        let read_crc = u16::from_le_bytes([payload[2], payload[3]]);
+                        // update the crc, but exclude the last two bytes (which contain the crc itself)
+                        self.crc.update(&self.buf[self.crc_idx..(self.buf.len()-2)]);
+                        // get the calculated crc and reset it afterwards
+                        let calculated_crc = {
+                            let mut crc = CRC_X25.digest();
+                            core::mem::swap(&mut crc, &mut self.crc);
+                            crc.finalize()
+                        };
+                        
+                        // check alignment (end marker needs to have 4-byte alignment)
+                        let misaligned = self.buf.len() % 4 != 0;
+
+                        // check if padding is larger than the message length
+                        let padding_too_large = num_padding_bytes > 3 || (num_padding_bytes as usize + 4) > self.buf.len();
+
+                        if read_crc != calculated_crc || misaligned || padding_too_large {
+                            self.set_done();
+                            return Err(ParseErr::InvalidMessage {
+                                checksum_mismatch: (read_crc, calculated_crc),
+                                end_esc_misaligned: misaligned,
+                                num_padding_bytes: num_padding_bytes,
+                            });
+                        }
+
+                        // subtract padding bytes and escape payload length from buffer length
+                        self.buf.truncate(self.buf.len() - num_padding_bytes as usize - 4);
+
+                        let len = self.buf.len();
+                        self.set_done();
+
+                        return Ok(Some(ParseRes::Transmission(&self.buf[..len])));
+                    } else {
+                        // invalid escape sequence
+                        
+                        // unwrap is safe here because payload is guaranteed to have size 4
+                        let esc_bytes: [u8; 4] = payload.try_into().unwrap();
+                        self.set_done();
+                        return Err(ParseErr::InvalidEsc(esc_bytes));
+                    }
+                }
+            }
+            ParseState::Done => {
+                // reset and let's go again
+                self.reset();
+                return self.push_byte(b);
+            }
+        }
+        Ok(None)
+    }
+
+    pub fn finalize(self) -> Option<ParseRes<'static>> {
+        match self.state {
+            ParseState::LookingForMessageStart {
+                num_discarded_bytes: 0, num_init_seq_bytes: 0
+            } => {
+                None
+            },
+            ParseState::LookingForMessageStart {
+                num_discarded_bytes, num_init_seq_bytes
+            } => {
+                Some(ParseRes::DiscardedBytes(num_discarded_bytes as usize + num_init_seq_bytes as usize))
+            }
+            ParseState::Done => {
+                None
+            }
+            _ => {
+                Some(ParseRes::DiscardedBytes(self.raw_msg_len))
+            }
+        }
+    }
+
+    fn set_done(&mut self) {
+        self.state = ParseState::Done;
+    }
+
+    fn reset(&mut self) {
+        self.state = ParseState::LookingForMessageStart {
+            num_discarded_bytes: 0,
+            num_init_seq_bytes: 0
+        };
+        self.buf.clear();
+        self.crc_idx = 0;
+        self.raw_msg_len = 0;
+    }
+
+    fn push(&mut self, b: u8) -> Result<(), ParseErr> {
+        if self.buf.push(b).is_err() {
+            self.reset();
+            return Err(ParseErr::OutOfMemory)
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum ParseState {
+    LookingForMessageStart {
+        num_discarded_bytes: u16,
+        num_init_seq_bytes: u8,
+    },
+    ParsingNormal,
+    ParsingEscChars(u8),
+    ParsingEscPayload(u8),
+    Done,
+}
+
+
 pub struct SmlReader<Rx, const N: usize> 
 where
     Rx: Iterator<Item=u8>
 {
     rx: Rx,
     init: u8,
+    num_discarded_bytes: usize,
     num_0x1b: u8,
     buf: [u8; N],
     buf_len: usize, 
@@ -256,6 +493,7 @@ where
         SmlReader {
             rx: rx,
             init: 0,
+            num_discarded_bytes: 0,
             num_0x1b: 0,
             buf: [0; N],
             buf_len: 0,
@@ -282,9 +520,12 @@ where
             let b = self.read_byte()?;
             self.parse_init_seq(b);
         }
+
+        if self.num_discarded_bytes > 0 {
+            //format!("Discarded {} bytes", self.num_discarded_bytes);
+        }
         
         // initialize crc with the start sequence that has already been read
-        // self.crc = crc16::Digest::new(crc16::USB);
         self.crc = CRC_X25.digest();
         self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
 
@@ -331,7 +572,7 @@ where
 
                         return Ok(len);
                     } else {
-                        bail!("Invalid start sequence read")
+                        bail!("Invalid escape sequence read")
                     }
                 }
             } else {
@@ -377,6 +618,7 @@ where
         if (b == 0x1b && self.init < 4) || (b == 0x01 && self.init >= 4) {
             self.init += 1;
         } else {
+            self.num_discarded_bytes += 1 + self.init as usize;
             self.init = 0;
         }
     }
@@ -394,6 +636,7 @@ where
         self.buf_len = 0;
         self.init = 0;
         self.num_0x1b = 0;
+        self.num_discarded_bytes = 0;
     }
 
     fn bail(&mut self, msg: &'static str) -> Result<()> {
@@ -408,45 +651,180 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
+    fn test_parse_input<const N: usize>(bytes: &[u8], exp: &[Result<ParseRes, ParseErr>]) {
+        let mut sml_reader = SmlReader2::<N>::new();
+        let mut exp_iter = exp.iter();
+        
+        for b in bytes {
+            let res = sml_reader.push_byte(*b);
+            match res {
+                Ok(None) => {
+                    // continue
+                },
+                Ok(Some(res)) => {
+                    match exp_iter.next() {
+                        Some(exp_res) => {
+                            assert_eq!(Ok(res), *exp_res);
+                        }
+                        None => {
+                            panic!("Additional ParseRes: {:?}", res);
+                        }
+                    }
+                }
+                Err(e) => {
+                    match exp_iter.next() {
+                        Some(exp_res) => {
+                            assert_eq!(Err(e), *exp_res);
+                        }
+                        None => {
+                            panic!("Additional Error: {:?}", e);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(final_res) = sml_reader.finalize() {
+            assert_eq!(exp_iter.next(), Some(&Ok(final_res)));
+        }
+        assert_eq!(exp_iter.next(), None);
+    }
+
     #[test]
     fn basic() {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
-        let mut sml_reader = SmlReader::<_, 128>::new(bytes.iter().cloned());
+        let exp = &[
+            Ok(ParseRes::Transmission(&hex!("12345678")))
+        ];
 
-        let bytes = sml_reader.read_transmission_into_slice().expect("Parsing failed");
+        test_parse_input::<8>(&bytes, exp);
+    }
 
-        assert_eq!(bytes, &hex!("12345678"));
+    #[test]
+    fn out_of_memory() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        let exp = &[
+            Err(ParseErr::OutOfMemory)
+        ];
+
+        test_parse_input::<7>(&bytes, exp);
+    }
+
+    #[test]
+    fn invalid_crc() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b8FF");
+        let exp = &[
+            Err(ParseErr::InvalidMessage {
+                checksum_mismatch: (0xFFb8, 0x7bb8),
+                end_esc_misaligned: false,
+                num_padding_bytes: 0
+            })
+        ];
+
+        test_parse_input::<8>(&bytes, exp);
+    }
+
+    #[test]
+    fn msg_end_misaligned() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 FF 1b1b1b1b 1a0013b6");
+        let exp = &[
+            Err(ParseErr::InvalidMessage {
+                checksum_mismatch: (0xb613, 0xb613),
+                end_esc_misaligned: true,
+                num_padding_bytes: 0,
+            })
+        ];
+
+        test_parse_input::<16>(&bytes, exp);
+    }
+
+    #[test]
+    fn padding_too_large() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12345678 1b1b1b1b 1a04f950");
+        let exp = &[
+            Err(ParseErr::InvalidMessage {
+                checksum_mismatch: (0x50f9, 0x50f9),
+                end_esc_misaligned: false,
+                num_padding_bytes: 4,
+            })
+        ];
+
+        test_parse_input::<16>(&bytes, exp);
+    }
+
+    #[test]
+    fn empty_msg_with_padding() {
+        let bytes = hex!("1b1b1b1b 01010101 1b1b1b1b 1a014FF4");
+        let exp = &[
+            Err(ParseErr::InvalidMessage {
+                checksum_mismatch: (0xf44f, 0xf44f),
+                end_esc_misaligned: false,
+                num_padding_bytes: 1,
+            })
+        ];
+
+        test_parse_input::<16>(&bytes, exp);
+    }
+
+    #[test]
+    fn additional_bytes() {
+        let bytes = hex!("000102 1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b 1234");
+
+        let exp = &[
+            Ok(ParseRes::DiscardedBytes(3)),
+            Ok(ParseRes::Transmission(&hex!("12345678"))),
+            Ok(ParseRes::DiscardedBytes(2)),
+        ];
+        
+        test_parse_input::<128>(&bytes, exp);
+    }
+
+    #[test]
+    fn incomplete_message() {
+        let bytes = hex!("1b1b1b1b 01010101 123456");
+
+        let exp = &[
+            Ok(ParseRes::DiscardedBytes(11)),
+        ];
+        
+        test_parse_input::<128>(&bytes, exp);
     }
 
     #[test]
     fn padding() {
         let bytes = hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5");
-        let mut sml_reader = SmlReader::<_, 128>::new(bytes.iter().cloned());
 
-        let bytes = sml_reader.read_transmission_into_slice().expect("Parsing failed");
-
-        assert_eq!(bytes, &hex!("123456"));
+        let exp = &[
+            Ok(ParseRes::Transmission(&hex!("123456"))),
+        ];
+        
+        test_parse_input::<128>(&bytes, exp);
     }
 
     #[test]
     fn escape_in_user_data() {
         let bytes = hex!("1b1b1b1b 01010101 12 1b1b1b1b 1b1b1b1b 000000 1b1b1b1b 1a03be25");
-        let mut sml_reader = SmlReader::<_, 128>::new(bytes.iter().cloned());
-
-        let bytes = sml_reader.read_transmission_into_slice().expect("Parsing failed");
-
-        assert_eq!(bytes, &hex!("121b1b1b1b"));
+        
+        let exp = &[
+            Ok(ParseRes::Transmission(&hex!("121b1b1b1b"))),
+        ];
+        
+        test_parse_input::<128>(&bytes, exp);
     }
 
     #[test]
     fn real_data() {
         let bytes = hex!("1B1B1B1B010101017605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD55001B1B1B1B1A00D54B");
-        let mut sml_reader = SmlReader::<_, 256>::new(bytes.iter().cloned());
-
-        let bytes = sml_reader.read_transmission_into_slice().expect("Parsing failed");
-
-        assert_eq!(bytes, &hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500"));
+        
+        let exp = &[
+            Ok(ParseRes::Transmission(&hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500"))),
+        ];
+        
+        test_parse_input::<512>(&bytes, exp);
     }
+
+    // TODO: test invalid esc sequences
+    // TODO: test consecutive start messages
+
 
     // #[test]
     // fn easymeter() {
