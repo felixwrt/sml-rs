@@ -347,7 +347,7 @@ impl<'i> SmlParse<'i> for Message<'i> {
         let (input, _) = tag(&[0x00])(input)?;
 
         // validate crc16
-        let digest = crc::crc16::checksum_x25(&input_orig[0..num_bytes_read]).swap_bytes();
+        let digest = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC).checksum(&input_orig[0..num_bytes_read]).swap_bytes();
         if digest != crc {
             return Err(error(input));
         }

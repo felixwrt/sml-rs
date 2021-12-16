@@ -1,4 +1,3 @@
-use crc::{crc16, Hasher16};
 use anyhow::{Result, bail};
 
 // first part
@@ -127,7 +126,7 @@ use anyhow::{Result, bail};
 // - Uninitialized: Start sequence hasn't been read
 //   - bytes are discarded
 
-
+static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
 pub struct PowerMeterReader<Rx, const N: usize> 
 where
@@ -245,8 +244,8 @@ where
     init: u8,
     num_0x1b: u8,
     buf: [u8; N],
-    buf_len: usize,
-    crc: crc16::Digest
+    buf_len: usize, 
+    crc: crc::Digest<'static, u16>,
 }
 
 impl<Rx, const N: usize> SmlReader<Rx, N>
@@ -260,7 +259,7 @@ where
             num_0x1b: 0,
             buf: [0; N],
             buf_len: 0,
-            crc: crc16::Digest::new(crc16::X25),
+            crc: CRC_X25.digest(),
         }
     }
 
@@ -286,8 +285,8 @@ where
         
         // initialize crc with the start sequence that has already been read
         // self.crc = crc16::Digest::new(crc16::USB);
-        self.crc = crc16::Digest::new(crc16::X25);
-        self.crc.write(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+        self.crc = CRC_X25.digest();
+        self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
 
         loop {
             let b = self.read_byte()?;
@@ -304,7 +303,7 @@ where
                             self.push(b)?;
                         }
                         self.num_0x1b = 0;
-                        self.crc.write(&bytes);
+                        self.crc.update(&bytes);
                     } else if bytes[0] == 0x1a {
                         if self.buf_len % 4 != 0 {
                             self.bail("end of transmission expected to have 4-byte alignment")?;
@@ -314,9 +313,14 @@ where
                         if num_padding_bytes > 3 {
                             self.bail("Invalid number of padding bytes")?;
                         }
-                        self.crc.write(&bytes[..2]);
+                        self.crc.update(&bytes[..2]);
                         let checksum = u16::from_le_bytes([bytes[2], bytes[3]]);
-                        let calculated_crc = self.crc.sum16();
+                        
+                        // get the calculated crc and reset it afterwards
+                        let mut crc = CRC_X25.digest();
+                        core::mem::swap(&mut crc, &mut self.crc);
+                        let calculated_crc = crc.finalize();
+                        
                         if calculated_crc != checksum {
                             self.bail("Checksum doesn't match")?;
                         }
@@ -343,7 +347,7 @@ where
 
     fn read_byte(&mut self) -> Result<u8> {
         let b = self.read_byte_no_crc()?;
-        self.crc.write(&[b]);
+        self.crc.update(&[b]);
         Ok(b)
     }
 

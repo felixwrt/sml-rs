@@ -12,9 +12,9 @@ edition = "2018"
 
 
 [dependencies]
-nom = "6.1.2"
+nom = "7.1.0"
 sml-rs-macros = { path = "sml-rs-macros" }
-crc = "1.8.1"
+crc = "2.1.0"
 anyhow = "1.0.48"
 
 [dev-dependencies]
