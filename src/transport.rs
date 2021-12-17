@@ -239,10 +239,10 @@ where
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ParseRes<'a> {
+pub enum ParseRes<T> {
     // None, // just read a byte, nothing to report yet
     DiscardedBytes(usize), // just found the start of a transmission, but some previous bytes could not be parsed
-    Transmission(&'a [u8]), // a full & valid transmission has been read. These are the bytes that make the message
+    Transmission(T), // a full & valid transmission has been read. These are the bytes that make the message
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -256,8 +256,8 @@ pub enum ParseErr {
     }
 }
 
-type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
-type VecBuf = alloc::vec::Vec<u8>;
+pub type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
+pub type VecBuf = alloc::vec::Vec<u8>;
 
 pub trait Buffer: Default + Deref<Target=[u8]> {
     fn push(&mut self, b: u8) -> Result<(), u8>;
@@ -314,14 +314,6 @@ pub struct SmlReader2<B: Buffer> {
     state: ParseState
 }
 
-fn reader_static_buf<const N: usize>() -> SmlReader2<heapless::Vec<u8, N>> {
-    SmlReader2::new()
-}
-
-fn reader_dyn_buf() -> SmlReader2<alloc::vec::Vec<u8>> {
-    SmlReader2::new()
-}
-
 impl<B: Buffer> SmlReader2<B> {
     pub fn new() -> Self {
         Self::from_buf(Default::default())
@@ -342,7 +334,7 @@ impl<B: Buffer> SmlReader2<B> {
         }
     }
 
-    pub fn push_byte(&mut self, b: u8) -> Result<Option<ParseRes>, ParseErr> {
+    pub fn push_byte(&mut self, b: u8) -> Result<Option<ParseRes<&[u8]>>, ParseErr> {
         self.raw_msg_len += 1;
         match self.state {
             ParseState::LookingForMessageStart {
@@ -357,6 +349,7 @@ impl<B: Buffer> SmlReader2<B> {
                 if *num_init_seq_bytes == 8 {
                     let num_discarded_bytes = *num_discarded_bytes;
                     self.state = ParseState::ParsingNormal;
+                    self.raw_msg_len = 8;
                     assert_eq!(self.buf.len(), 0);
                     assert_eq!(self.crc_idx, 0);
                     self.crc = CRC_X25.digest();
@@ -486,7 +479,7 @@ impl<B: Buffer> SmlReader2<B> {
         Ok(None)
     }
 
-    pub fn finalize(self) -> Option<ParseRes<'static>> {
+    pub fn finalize(self) -> Option<ParseRes<&'static [u8]>> {
         match self.state {
             ParseState::LookingForMessageStart {
                 num_discarded_bytes: 0, num_init_seq_bytes: 0
@@ -722,7 +715,7 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
-    fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<ParseRes, ParseErr>]) {
+    fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<ParseRes<&[u8]>, ParseErr>]) {
         let mut sml_reader = SmlReader2::<B>::new();
         let mut exp_iter = exp.iter();
 
@@ -764,7 +757,7 @@ mod tests {
     fn basic() {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
         let exp = &[
-            Ok(ParseRes::Transmission(&hex!("12345678")))
+            Ok(ParseRes::Transmission(hex!("12345678").as_slice()))
         ];
 
         test_parse_input::<ArrayBuf<8>>(&bytes, exp);
@@ -842,7 +835,7 @@ mod tests {
 
         let exp = &[
             Ok(ParseRes::DiscardedBytes(3)),
-            Ok(ParseRes::Transmission(&hex!("12345678"))),
+            Ok(ParseRes::Transmission(hex!("12345678").as_slice())),
             Ok(ParseRes::DiscardedBytes(2)),
         ];
         
@@ -878,7 +871,7 @@ mod tests {
         
         let exp = &[
             Ok(ParseRes::DiscardedBytes(13)),
-            Ok(ParseRes::Transmission(&hex!("12345678"))),
+            Ok(ParseRes::Transmission(hex!("12345678").as_slice())),
         ];
         
         test_parse_input::<ArrayBuf<128>>(&bytes, exp);
@@ -889,7 +882,7 @@ mod tests {
         let bytes = hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5");
 
         let exp = &[
-            Ok(ParseRes::Transmission(&hex!("123456"))),
+            Ok(ParseRes::Transmission(hex!("123456").as_slice())),
         ];
         
         test_parse_input::<ArrayBuf<128>>(&bytes, exp);
@@ -900,7 +893,7 @@ mod tests {
         let bytes = hex!("1b1b1b1b 01010101 12 1b1b1b1b 1b1b1b1b 000000 1b1b1b1b 1a03be25");
         
         let exp = &[
-            Ok(ParseRes::Transmission(&hex!("121b1b1b1b"))),
+            Ok(ParseRes::Transmission(hex!("121b1b1b1b").as_slice())),
         ];
         
         test_parse_input::<ArrayBuf<128>>(&bytes, exp);
@@ -911,7 +904,7 @@ mod tests {
         let bytes = hex!("1B1B1B1B010101017605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD55001B1B1B1B1A00D54B");
         
         let exp = &[
-            Ok(ParseRes::Transmission(&hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500"))),
+            Ok(ParseRes::Transmission(hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500").as_slice())),
         ];
         
         test_parse_input::<ArrayBuf<512>>(&bytes, exp);
@@ -964,7 +957,7 @@ mod tests {
     fn alloc_basic() {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
         let exp = &[
-            Ok(ParseRes::Transmission(&hex!("12345678")))
+            Ok(ParseRes::Transmission(hex!("12345678").as_slice()))
         ];
 
         test_parse_input::<VecBuf>(&bytes, exp);

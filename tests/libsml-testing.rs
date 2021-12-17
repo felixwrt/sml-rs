@@ -5,7 +5,9 @@ use std::iter::FromIterator;
 use anyhow::{Result, bail};
 use test_generator::test_resources;
 
-use sml_rs::parse_file_iter;
+use std::fmt::Write;
+
+use sml_rs::ParseRes;
 
 #[test]
 fn test_repo_validation() -> Result<()> {
@@ -49,7 +51,8 @@ fn test_repo_validation() -> Result<()> {
 #[test_resources("./tests/libsml-testing/*.bin")]
 fn basic_validation(path: &str) {
     let raw_bytes = std::fs::read(path).expect("Couldn't read file");
-    test_bytes(&raw_bytes)
+    
+    test_bytes(&raw_bytes, std::path::Path::new(path).file_stem().unwrap())
 }
 
 
@@ -60,10 +63,51 @@ fn basic_validation(path: &str) {
 //     test_bytes(&bytes)
 // }
 
-fn test_bytes(bytes: &[u8]) {
-    let (buf, len) = sml_rs::unpack_transport_v1::<_, 1048>(&mut bytes.into_iter().cloned()).expect("Couldn't unpack data");
-    let file = parse_file_iter(&buf[..len]);
-    for msg in file {
-        println!("{:?}", msg.expect("Couldn't parse message"));
+fn test_bytes(bytes: &[u8], filename: &OsStr) {
+
+    // let (buf, len) = sml_rs::unpack_transport_v1::<_, 1048>(&mut bytes.into_iter().cloned()).expect("Couldn't unpack data");
+    // let file = parse_file_iter(&buf[..len]);
+    // for msg in file {
+    //     println!("{:?}", msg.expect("Couldn't parse message"));
+    // }
+    let mut exp_path = std::path::Path::new("./tests/libsml-testing-expected/").join(filename);
+    exp_path.set_extension("exp");
+
+    let mut s = String::new();
+
+    let mut reader = sml_rs::SmlReader2::<sml_rs::VecBuf>::new();
+    for b in bytes {
+        let res = reader.push_byte(*b);
+        let res = match res {
+            Ok(None) => None,
+            Ok(Some(ParseRes::Transmission(msg_bytes))) => Some(Ok(ParseRes::Transmission(msg_bytes.len()))),
+            Ok(Some(ParseRes::DiscardedBytes(n))) => Some(Ok(ParseRes::DiscardedBytes(n))),
+            Err(e) => Some(Err(e))
+        };
+        match res {
+            Some(res) => {
+                writeln!(&mut s, "{:?}", res).unwrap();
+            },
+            None => {}
+        }
+    }
+    if let Some(res) = reader.finalize() {
+        writeln!(&mut s, "{:?}", res).unwrap();
+    }
+
+    // read golden file
+    if exp_path.exists() {
+        let exp_str = std::fs::read_to_string(exp_path).expect("Coudn't read golden file");
+        if exp_str.trim() != s.trim() {
+            eprintln!("Expected:\n{}\n", exp_str.trim());
+            eprintln!("Actual:\n{}\n", s.trim());
+            panic!("Output doesn't match")
+        }
+    } else {
+        eprintln!("Expected: Golden file `{}` does not exist\n", exp_path.to_string_lossy());
+        eprintln!("Actual:\n{}", s);
+
+        panic!("Golden file does not exist")
     }
 }
+
