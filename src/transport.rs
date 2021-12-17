@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
 
 extern crate alloc;
-use core::convert::TryInto;
+use core::{convert::TryInto, ops::Deref};
 // first part
 // - read bytes and (possibly) produce esc seq, bytes or errors
 
@@ -256,9 +256,56 @@ pub enum ParseErr {
     }
 }
 
+type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
+type VecBuf = alloc::vec::Vec<u8>;
 
-pub struct SmlReader2<const N: usize> {
-    buf: heapless::Vec<u8, N>,
+pub trait Buffer: Default + Deref<Target=[u8]> {
+    fn push(&mut self, b: u8) -> Result<(), u8>;
+
+    fn truncate(&mut self, len: usize);
+    
+    fn clear(&mut self);
+}
+
+impl<const N: usize> Buffer for ArrayBuf<N> {
+    fn push(&mut self, b: u8) -> Result<(), u8> {
+        ArrayBuf::push(self, b)
+    }
+
+    fn truncate(&mut self, len: usize) {
+        ArrayBuf::truncate(self, len)
+    }
+
+    fn clear(&mut self) {
+        ArrayBuf::clear(self)
+    }
+}
+
+impl Buffer for VecBuf {
+    fn push(&mut self, b: u8) -> Result<(), u8> {
+        match self.try_reserve(1) {
+            Ok(()) => {
+                VecBuf::push(self, b);
+                Ok(())
+            }
+            Err(_) => Err(b)
+        }
+        
+    }
+
+    fn truncate(&mut self, len: usize) {
+        VecBuf::truncate(self, len)
+    }
+
+    fn clear(&mut self) {
+        VecBuf::clear(self)
+    }
+}
+
+
+pub struct SmlReader2<B: Buffer> {
+    buf: B,
+    // buf: heapless::Vec<u8, N>,
     // buf: [u8; N],
     // buf_len: usize,
     raw_msg_len: usize,
@@ -267,10 +314,22 @@ pub struct SmlReader2<const N: usize> {
     state: ParseState
 }
 
-impl<const N: usize> SmlReader2<N> {
+fn reader_static_buf<const N: usize>() -> SmlReader2<heapless::Vec<u8, N>> {
+    SmlReader2::new()
+}
+
+fn reader_dyn_buf() -> SmlReader2<alloc::vec::Vec<u8>> {
+    SmlReader2::new()
+}
+
+impl<B: Buffer> SmlReader2<B> {
     pub fn new() -> Self {
+        Self::from_buf(Default::default())
+    }
+
+    pub fn from_buf(buf: B) -> Self {
         SmlReader2 {
-            buf: heapless::Vec::new(),
+            buf: buf,
             // buf: [0; N],
             // buf_len: 0,
             raw_msg_len: 0,
@@ -651,10 +710,10 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
-    fn test_parse_input<const N: usize>(bytes: &[u8], exp: &[Result<ParseRes, ParseErr>]) {
-        let mut sml_reader = SmlReader2::<N>::new();
+    fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<ParseRes, ParseErr>]) {
+        let mut sml_reader = SmlReader2::<B>::new();
         let mut exp_iter = exp.iter();
-        
+
         for b in bytes {
             let res = sml_reader.push_byte(*b);
             match res {
@@ -696,7 +755,7 @@ mod tests {
             Ok(ParseRes::Transmission(&hex!("12345678")))
         ];
 
-        test_parse_input::<8>(&bytes, exp);
+        test_parse_input::<ArrayBuf<8>>(&bytes, exp);
     }
 
     #[test]
@@ -706,7 +765,7 @@ mod tests {
             Err(ParseErr::OutOfMemory)
         ];
 
-        test_parse_input::<7>(&bytes, exp);
+        test_parse_input::<ArrayBuf<7>>(&bytes, exp);
     }
 
     #[test]
@@ -720,7 +779,7 @@ mod tests {
             })
         ];
 
-        test_parse_input::<8>(&bytes, exp);
+        test_parse_input::<ArrayBuf<8>>(&bytes, exp);
     }
 
     #[test]
@@ -734,7 +793,7 @@ mod tests {
             })
         ];
 
-        test_parse_input::<16>(&bytes, exp);
+        test_parse_input::<ArrayBuf<16>>(&bytes, exp);
     }
 
     #[test]
@@ -748,7 +807,7 @@ mod tests {
             })
         ];
 
-        test_parse_input::<16>(&bytes, exp);
+        test_parse_input::<ArrayBuf<16>>(&bytes, exp);
     }
 
     #[test]
@@ -762,7 +821,7 @@ mod tests {
             })
         ];
 
-        test_parse_input::<16>(&bytes, exp);
+        test_parse_input::<ArrayBuf<16>>(&bytes, exp);
     }
 
     #[test]
@@ -775,7 +834,7 @@ mod tests {
             Ok(ParseRes::DiscardedBytes(2)),
         ];
         
-        test_parse_input::<128>(&bytes, exp);
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
     }
 
     #[test]
@@ -786,7 +845,7 @@ mod tests {
             Ok(ParseRes::DiscardedBytes(11)),
         ];
         
-        test_parse_input::<128>(&bytes, exp);
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
     }
 
     #[test]
@@ -797,7 +856,7 @@ mod tests {
             Ok(ParseRes::Transmission(&hex!("123456"))),
         ];
         
-        test_parse_input::<128>(&bytes, exp);
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
     }
 
     #[test]
@@ -808,7 +867,7 @@ mod tests {
             Ok(ParseRes::Transmission(&hex!("121b1b1b1b"))),
         ];
         
-        test_parse_input::<128>(&bytes, exp);
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
     }
 
     #[test]
@@ -819,7 +878,7 @@ mod tests {
             Ok(ParseRes::Transmission(&hex!("7605006345516200620072630101760101050021171B0B0A0149534B00047A5544726201650021155A620163828E00760500634552620062007263070177010B0A0149534B00047A5544070100620AFFFF726201650021155A757707010060320101010101010449534B0177070100600100FF010101010B0A0149534B00047A55440177070100010800FF650010010401621E52FF65000C13610177070100020800FF0101621E52FF62000177070100100700FF0101621B5200530860010101638E71007605006345536200620072630201710163AD5500"))),
         ];
         
-        test_parse_input::<512>(&bytes, exp);
+        test_parse_input::<ArrayBuf<512>>(&bytes, exp);
     }
 
     // TODO: test invalid esc sequences
@@ -868,4 +927,14 @@ mod tests {
     //     }
     //     assert!(false);
     // }
+
+    #[test]
+    fn alloc_basic() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        let exp = &[
+            Ok(ParseRes::Transmission(&hex!("12345678")))
+        ];
+
+        test_parse_input::<VecBuf>(&bytes, exp);
+    }
 }
