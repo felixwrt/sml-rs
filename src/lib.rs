@@ -25,6 +25,8 @@ pub use transport::{SmlReader, ArrayBuf, ParseRes};
 #[cfg(feature = "alloc")]
 pub use transport::VecBuf;
 
+static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
+
 pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 
 pub trait SmlParse<'i>
@@ -149,8 +151,6 @@ impl<'i> SmlParse<'i> for ListIter<'i> {
         for _ in 0..tlf.len {
             input = ListEntry::parse(input)?.0;
         }
-
-        //nom::multi::many_m_n(tlf.len, tlf.len, ListEntry::parse)(input)
 
         Ok((input, ListIter {
             len: tlf.len,
@@ -349,10 +349,10 @@ impl<'i> SmlParse<'i> for Message<'i> {
         let num_bytes_read = input_orig.len() - input.len();
         
         let (input, crc) = u16::parse(input)?;
-        let (input, _) = tag(&[0x00])(input)?;
+        let (input, _) = EndOfSmlMessage::parse(input)?;
 
         // validate crc16
-        let digest = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC).checksum(&input_orig[0..num_bytes_read]).swap_bytes();
+        let digest = CRC_X25.checksum(&input_orig[0..num_bytes_read]).swap_bytes();
         if digest != crc {
             return Err(error(input));
         }

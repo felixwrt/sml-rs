@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use core::{convert::TryInto, ops::Deref};
 
-static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
+use crate::CRC_X25;
 
 pub type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
 #[cfg(feature = "alloc")]

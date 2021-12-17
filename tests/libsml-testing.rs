@@ -73,14 +73,6 @@ fn basic_validation(path: &str) {
     test_bytes(&raw_bytes, std::path::Path::new(path).file_stem().unwrap())
 }
 
-
-// #[test_resources("./tests/libsml-testing/*.hex")]
-// fn basic_validation_hex(path: &str) {
-//     let byte_string = std::fs::read_to_string(path).expect("Couldn't read file");
-//     let bytes = hex::decode(byte_string.trim()).expect("Invalid input");
-//     test_bytes(&bytes)
-// }
-
 #[cfg(feature = "alloc")]
 fn test_bytes(bytes: &[u8], filename: &OsStr) {
     use std::fmt::Write;
