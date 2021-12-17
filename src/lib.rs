@@ -430,35 +430,6 @@ pub enum MessageBody<'i> {
 }
 
 
-pub fn unpack_transport_v1<Rx: Iterator<Item=u8> + Clone, const N: usize>(rx: &mut Rx) -> Result<([u8; N], usize)> {
-    let mut reader1 = transport::PowerMeterReader::<_, N>::new(rx.clone());
-    let mut reader2 = transport::SmlReader::<_, N>::new(rx.clone());
-    for i in 0.. {
-        match reader1.read_message() {
-            Ok((buf, len)) => {
-                // println!("Iteration: {}", i);
-                // new reader using the presliced data from reader1
-                let mut reader3 = transport::SmlReader::<_, N>::new(buf[..len].iter().cloned());
-                let r1 = reader3.read_transmission_into_slice();
-                // using the same reader instance multiple times
-                let r2 = reader2.read_transmission_into_slice();
-                //dbg!(&r1);
-                //dbg!(&r2);
-                assert!(r1.is_ok() && r2.is_ok());
-            }
-            Err(_e) => {
-                //println!("PowerMeterReader failed after {} iterations. Error: {}", i, e);
-                assert!(i > 0);
-                break;
-            }
-        }
-    }
-    //println!("{:?}", rx.clone().collect::<Vec<_>>());
-    let (buf, len) = transport::SmlReader::<_, N>::new(rx).read_transmission_into_array()?;
-    //println!("Returning array: {:?}", &buf[..len]);
-    Ok((buf, len))
-}
-
 pub fn parse_file_iter(bytes: &[u8]) -> FileIter {
     FileIter::new(bytes)
 }
