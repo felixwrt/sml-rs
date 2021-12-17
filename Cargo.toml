@@ -23,5 +23,6 @@ heapless = "0.7.8"
 
 [dev-dependencies]
 hex-literal = "0.3.1"
-test-generator = "0.3.0"
+# test-generator = "0.3.0"
+test-generator = { git = "https://github.com/svenfoo/test-generator",  branch = "update-dependencies" }
 hex = "0.4.3"

@@ -3,11 +3,7 @@ use std::{collections::HashSet, ffi::{OsStr, OsString}};
 use std::iter::FromIterator;
 
 use anyhow::{Result, bail};
-use test_generator::test_resources;
 
-use std::fmt::Write;
-
-use sml_rs::ParseRes;
 
 #[test]
 fn test_repo_validation() -> Result<()> {
@@ -30,7 +26,7 @@ fn test_repo_validation() -> Result<()> {
     assert_eq!(bin_filenames, hex_filenames);
 
     if bin_filenames.is_empty() {
-        bail!("There are no test files in ./tests/libsml-testing. You probably need to initialize the git submodule")
+        bail!("There are no test files in ./tests/libsml-testing. You probably need to initialize the git submodule. Try `git submodule init && git submodule update`.\n")
     }
 
     // check that for each golden file, there's also an input file
@@ -70,7 +66,7 @@ fn test_repo_validation() -> Result<()> {
 }
 
 #[cfg(feature = "alloc")]
-#[test_resources("./tests/libsml-testing/*.bin")]
+#[test_generator::test_resources("./tests/libsml-testing/*.bin")]
 fn basic_validation(path: &str) {
     let raw_bytes = std::fs::read(path).expect("Couldn't read file");
     
@@ -87,6 +83,9 @@ fn basic_validation(path: &str) {
 
 #[cfg(feature = "alloc")]
 fn test_bytes(bytes: &[u8], filename: &OsStr) {
+    use std::fmt::Write;
+    use sml_rs::ParseRes;
+
     let exp_path = std::path::Path::new("./tests/libsml-testing-expected/").join(OsString::from_iter([filename.to_os_string(), ".exp".to_string().into()]));
     
     let mut s = String::new();
