@@ -416,6 +416,18 @@ impl<B: Buffer> SmlReader2<B> {
                         
                         // nothing to do here as the input has already been added to the buffer (see above)
                         self.state = ParseState::ParsingNormal;
+                    } else if payload == &[0x01, 0x01, 0x01, 0x01] {
+                        // another transmission start
+
+                        // ignore everything that has previously been read and start reading a new transmission
+                        let ignored_bytes = self.raw_msg_len - 8;
+                        self.raw_msg_len = 8;
+                        self.buf.clear();
+                        self.crc = CRC_X25.digest();
+                        self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+                        self.crc_idx = 0;
+                        self.state = ParseState::ParsingNormal;
+                        return Ok(Some(ParseRes::DiscardedBytes(ignored_bytes)))
                     } else if payload[0] == 0x1a {
                         // end sequence (layout: [0x1a, num_padding_bytes, crc, crc])
                         
@@ -849,6 +861,30 @@ mod tests {
     }
 
     #[test]
+    fn invalid_esc_sequence() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1c000000 12345678 1b1b1b1b 1a03be25");
+        
+        let exp = &[
+            Err(ParseErr::InvalidEsc([0x1c, 0x0, 0x0, 0x0])),
+            Ok(ParseRes::DiscardedBytes(12)),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn double_msg_start() {
+        let bytes = hex!("1b1b1b1b 01010101 09 87654321 1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        
+        let exp = &[
+            Ok(ParseRes::DiscardedBytes(13)),
+            Ok(ParseRes::Transmission(&hex!("12345678"))),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
     fn padding() {
         let bytes = hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5");
 
@@ -880,10 +916,6 @@ mod tests {
         
         test_parse_input::<ArrayBuf<512>>(&bytes, exp);
     }
-
-    // TODO: test invalid esc sequences
-    // TODO: test consecutive start messages
-
 
     // #[test]
     // fn easymeter() {
