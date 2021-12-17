@@ -89,7 +89,7 @@ fn test_bytes(bytes: &[u8], filename: &OsStr) {
     
     let mut s = String::new();
 
-    let mut reader = sml_rs::SmlReader2::<sml_rs::VecBuf>::new();
+    let mut reader = sml_rs::SmlReader::<sml_rs::VecBuf>::new();
     for b in bytes {
         let res = reader.push_byte(*b);
         let res = match res {

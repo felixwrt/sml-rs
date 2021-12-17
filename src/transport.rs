@@ -5,24 +5,6 @@ use core::{convert::TryInto, ops::Deref};
 
 static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum ParseRes<T> {
-    DiscardedBytes(usize),  // just found the start of a transmission, but some previous bytes could not be parsed
-    Transmission(T),  // a full & valid transmission has been read. These are the bytes that make the message
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum ParseErr {
-    InvalidEsc([u8; 4]),  // an invalid escape sequence has been read
-    OutOfMemory,  // the buffer used internally is full. When using vec, allocation has failed
-    InvalidMessage {
-        checksum_mismatch: (u16, u16),  // (expected, found)
-        end_esc_misaligned: bool,
-        num_padding_bytes: u8,
-    }
-}
-
 pub type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
 pub type VecBuf = alloc::vec::Vec<u8>;
 
@@ -69,8 +51,36 @@ impl Buffer for VecBuf {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParseRes<T> {
+    DiscardedBytes(usize),  // just found the start of a transmission, but some previous bytes could not be parsed
+    Transmission(T),  // a full & valid transmission has been read. These are the bytes that make the message
+}
 
-pub struct SmlReader2<B: Buffer> {
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParseErr {
+    InvalidEsc([u8; 4]),  // an invalid escape sequence has been read
+    OutOfMemory,  // the buffer used internally is full. When using vec, allocation has failed
+    InvalidMessage {
+        checksum_mismatch: (u16, u16),  // (expected, found)
+        end_esc_misaligned: bool,
+        num_padding_bytes: u8,
+    }
+}
+
+#[derive(Debug)]
+enum ParseState {
+    LookingForMessageStart {
+        num_discarded_bytes: u16,
+        num_init_seq_bytes: u8,
+    },
+    ParsingNormal,
+    ParsingEscChars(u8),
+    ParsingEscPayload(u8),
+    Done,
+}
+
+pub struct SmlReader<B: Buffer> {
     buf: B,
     raw_msg_len: usize,
     crc: crc::Digest<'static, u16>,
@@ -78,13 +88,13 @@ pub struct SmlReader2<B: Buffer> {
     state: ParseState
 }
 
-impl<B: Buffer> SmlReader2<B> {
+impl<B: Buffer> SmlReader<B> {
     pub fn new() -> Self {
         Self::from_buf(Default::default())
     }
 
     pub fn from_buf(buf: B) -> Self {
-        SmlReader2 {
+        SmlReader {
             buf: buf,
             raw_msg_len: 0,
             crc: CRC_X25.digest(),
@@ -285,25 +295,13 @@ impl<B: Buffer> SmlReader2<B> {
     }
 }
 
-#[derive(Debug)]
-enum ParseState {
-    LookingForMessageStart {
-        num_discarded_bytes: u16,
-        num_init_seq_bytes: u8,
-    },
-    ParsingNormal,
-    ParsingEscChars(u8),
-    ParsingEscPayload(u8),
-    Done,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use hex_literal::hex;
 
     fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<ParseRes<&[u8]>, ParseErr>]) {
-        let mut sml_reader = SmlReader2::<B>::new();
+        let mut sml_reader = SmlReader::<B>::new();
         let mut exp_iter = exp.iter();
 
         for b in bytes {

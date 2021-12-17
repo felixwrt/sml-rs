@@ -18,7 +18,7 @@ mod octet_string;
 mod tlf;
 mod transport;
 
-pub use transport::{SmlReader2, VecBuf, ArrayBuf, ParseRes};
+pub use transport::{SmlReader, VecBuf, ArrayBuf, ParseRes};
 
 //pub use crate::octet_string::OctetString;
 
