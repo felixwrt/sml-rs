@@ -1,11 +1,11 @@
 use anyhow::Result;
 
-extern crate alloc;
 use core::{convert::TryInto, ops::Deref};
 
 static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
 pub type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
+#[cfg(feature = "alloc")]
 pub type VecBuf = alloc::vec::Vec<u8>;
 
 pub trait Buffer: Default + Deref<Target=[u8]> {
@@ -30,6 +30,7 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl Buffer for VecBuf {
     fn push(&mut self, b: u8) -> Result<(), u8> {
         match self.try_reserve(1) {
@@ -538,6 +539,7 @@ mod tests {
     //     assert!(false);
     // }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn alloc_basic() {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");

@@ -1,5 +1,8 @@
 #![no_std]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 use anyhow::Result;
 
 use nom::{
@@ -18,9 +21,9 @@ mod octet_string;
 mod tlf;
 mod transport;
 
-pub use transport::{SmlReader, VecBuf, ArrayBuf, ParseRes};
-
-//pub use crate::octet_string::OctetString;
+pub use transport::{SmlReader, ArrayBuf, ParseRes};
+#[cfg(feature = "alloc")]
+pub use transport::VecBuf;
 
 pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 

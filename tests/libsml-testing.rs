@@ -69,6 +69,7 @@ fn test_repo_validation() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "alloc")]
 #[test_resources("./tests/libsml-testing/*.bin")]
 fn basic_validation(path: &str) {
     let raw_bytes = std::fs::read(path).expect("Couldn't read file");
@@ -84,6 +85,7 @@ fn basic_validation(path: &str) {
 //     test_bytes(&bytes)
 // }
 
+#[cfg(feature = "alloc")]
 fn test_bytes(bytes: &[u8], filename: &OsStr) {
     let exp_path = std::path::Path::new("./tests/libsml-testing-expected/").join(OsString::from_iter([filename.to_os_string(), ".exp".to_string().into()]));
     

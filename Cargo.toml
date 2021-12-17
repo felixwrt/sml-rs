@@ -10,6 +10,9 @@ version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
+[features]
+
+alloc = []
 
 [dependencies]
 nom = "7.1.0"
