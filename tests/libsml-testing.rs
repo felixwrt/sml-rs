@@ -33,6 +33,27 @@ fn test_repo_validation() -> Result<()> {
         bail!("There are no test files in ./tests/libsml-testing. You probably need to initialize the git submodule")
     }
 
+    // check that for each golden file, there's also an input file
+    let mut exp_filenames = HashSet::new();
+    for entry in std::fs::read_dir("./tests/libsml-testing-expected").expect("folder with expected files doesn't exist") {
+        let entry = entry?.path();
+        match (entry.file_stem(), entry.extension().and_then(OsStr::to_str)) {
+            (Some(name), Some("exp")) => {
+                exp_filenames.insert(name.to_os_string());
+            },
+            _ => {}  // ignore other files
+        }
+    }
+    if !exp_filenames.is_subset(&bin_filenames) {
+        eprintln!("The following golden files don't have corresponding test input files:");
+        for filename in exp_filenames.difference(&bin_filenames) {
+            eprintln!("{}", filename.to_string_lossy());
+        }
+        eprintln!();
+        panic!("Invalid golden files")
+    }
+
+    // check that bin and hex files contain the same content
     for filename in bin_filenames {
         let path = std::path::Path::new("./tests/libsml-testing");
         
@@ -64,15 +85,8 @@ fn basic_validation(path: &str) {
 // }
 
 fn test_bytes(bytes: &[u8], filename: &OsStr) {
-
-    // let (buf, len) = sml_rs::unpack_transport_v1::<_, 1048>(&mut bytes.into_iter().cloned()).expect("Couldn't unpack data");
-    // let file = parse_file_iter(&buf[..len]);
-    // for msg in file {
-    //     println!("{:?}", msg.expect("Couldn't parse message"));
-    // }
-    let mut exp_path = std::path::Path::new("./tests/libsml-testing-expected/").join(filename);
-    exp_path.set_extension("exp");
-
+    let exp_path = std::path::Path::new("./tests/libsml-testing-expected/").join(OsString::from_iter([filename.to_os_string(), ".exp".to_string().into()]));
+    
     let mut s = String::new();
 
     let mut reader = sml_rs::SmlReader2::<sml_rs::VecBuf>::new();
