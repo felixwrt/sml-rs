@@ -1,4 +1,4 @@
-# sml-rs
+# *sml-rs*
 
 [![crates-io](https://img.shields.io/crates/v/sml-rs.svg?style=flat-square)](https://crates.io/crates/sml-rs)
 [![api-docs](https://img.shields.io/docsrs/sml-rs.svg?style=flat-square)](https://docs.rs/sml-rs)
@@ -10,7 +10,7 @@
 Smart Message Language (SML) parser written in Rust.
 
 
-`sml-rs` is an early work-in-progress and many features aren't implemented yet. See section "Implementation Status" for details.
+**Status:** `sml-rs` is an early work-in-progress library and many features aren't implemented yet. See section "Implementation Status" for details.
 
 ## Spec
 
