@@ -1,5 +1,12 @@
 # sml-rs
 
+[![crates-io](https://img.shields.io/crates/v/sml-rs.svg?style=flat-square)](https://crates.io/crates/sml-rs)
+[![api-docs](https://img.shields.io/docsrs/sml-rs.svg?style=flat-square)](https://docs.rs/sml-rs)
+![CI](https://img.shields.io/github/workflow/status/fkohlgrueber/sml-rs/CI?label=CI&style=flat-square)
+![Maintenance](https://img.shields.io/maintenance/yes/2022?style=flat-square)
+[![LOC](https://img.shields.io/tokei/lines/github/fkohlgrueber/sml-rs?style=flat-square)](https://docs.rs/sml-rs)
+
+
 Smart Message Language (SML) parser written in Rust.
 
 
