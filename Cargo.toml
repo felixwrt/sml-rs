@@ -1,8 +1,12 @@
 [package]
 name = "sml-rs"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 
 [dependencies]
+crc = "3.0.0"
+
+[dev-dependencies]
+hex-literal = "0.3.4"
