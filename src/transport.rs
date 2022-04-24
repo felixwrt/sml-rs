@@ -23,9 +23,7 @@ pub fn encode_v1(bytes: &[u8]) -> Vec<u8> {
 
     // padding bytes
     let num_padding_bytes = (4 - (res.len() % 4)) % 4;
-    for _ in 0..num_padding_bytes {
-        res.push(0x0);
-    }
+    res.resize(res.len() + num_padding_bytes, 0x0);
 
     res.extend([0x1b, 0x1b, 0x1b, 0x1b, 0x1a, num_padding_bytes as u8]);
 
@@ -45,7 +43,7 @@ mod tests {
     fn basic() {
         let bytes = hex!("12345678");
         let encoded_bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
-        
+
         assert_eq!(encode_v1(&bytes), encoded_bytes);
     }
 
@@ -53,7 +51,7 @@ mod tests {
     fn padding() {
         let bytes = hex!("123456");
         let encoded_bytes = hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5");
-        
+
         assert_eq!(encode_v1(&bytes), encoded_bytes);
     }
 
@@ -61,7 +59,7 @@ mod tests {
     fn escape_in_user_data() {
         let bytes = hex!("121b1b1b1b");
         let encoded_bytes = hex!("1b1b1b1b 01010101 12 1b1b1b1b 1b1b1b1b 000000 1b1b1b1b 1a03be25");
-        
+
         assert_eq!(encode_v1(&bytes), encoded_bytes);
     }
 }
