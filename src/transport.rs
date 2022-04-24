@@ -170,39 +170,64 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
+    fn test_encoding(bytes: &[u8], exp_encoded_bytes: &[u8]) {
+        compare_encoded_bytes(
+            exp_encoded_bytes,
+            &encode_v1(&bytes)
+        );
+        compare_encoded_bytes(
+            exp_encoded_bytes, 
+            &Encoder::new(bytes.into_iter().cloned()).collect::<Vec<_>>(),
+        );
+    }
+
+    fn compare_encoded_bytes(expected: &[u8], actual: &[u8]) {
+        if expected != actual {
+            // use strings here such that the output uses hex formatting
+            assert_eq!(
+                format!("{:02x?}", expected),
+                format!("{:02x?}", actual),
+            );
+        }
+    }
+
     #[test]
     fn basic() {
-        let bytes = hex!("12345678");
-        let encoded_bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
-
-        assert_eq!(encode_v1(&bytes), encoded_bytes);
-        assert_eq!(Encoder::new(bytes.into_iter()).collect::<Vec<_>>(), encoded_bytes);
+        test_encoding(
+            &hex!("12345678"), 
+            &hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b"),
+        );
     }
 
     #[test]
     fn padding() {
-        let bytes = hex!("123456");
-        let encoded_bytes = hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5");
-
-        assert_eq!(encode_v1(&bytes), encoded_bytes);
-        assert_eq!(Encoder::new(bytes.into_iter()).collect::<Vec<_>>(), encoded_bytes);
+        test_encoding(
+            &hex!("123456"),
+            &hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5"),
+        );
     }
 
     #[test]
     fn escape_in_user_data() {
-        let bytes = hex!("121b1b1b1b");
-        let encoded_bytes = hex!("1b1b1b1b 01010101 12 1b1b1b1b 1b1b1b1b 000000 1b1b1b1b 1a03be25");
-
-        assert_eq!(encode_v1(&bytes), encoded_bytes);
-        assert_eq!(Encoder::new(bytes.into_iter()).collect::<Vec<_>>(), encoded_bytes);
+        test_encoding(
+            &hex!("121b1b1b1b"),
+            &hex!("1b1b1b1b 01010101 12 1b1b1b1b 1b1b1b1b 000000 1b1b1b1b 1a03be25"),
+        );
     }
 
     #[test]
     fn almost_escape_in_user_data() {
-        let bytes = hex!("121b1b1b1a");
-        let encoded_bytes = hex!("1b1b1b1b 01010101 12 1b1b1b1a 000000 1b1b1b1b 1a03a71a");
+        test_encoding(
+            &hex!("121b1b1bFF"),
+            &hex!("1b1b1b1b 01010101 12 1b1b1bFF 000000 1b1b1b1b 1a0324d9"),
+        );
+    }
 
-        assert_eq!(encode_v1(&bytes), encoded_bytes);
-        assert_eq!(Encoder::new(bytes.into_iter()).collect::<Vec<_>>(), encoded_bytes);
+    #[test]
+    fn ending_with_1b_no_padding() {
+        test_encoding(
+            &hex!("12345678 12341b1b"),
+            &hex!("1b1b1b1b 01010101 12345678 12341b1b 1b1b1b1b 1a001ac5"),
+        );
     }
 }
