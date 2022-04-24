@@ -2,6 +2,9 @@
 name = "sml-rs"
 version = "0.0.1"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+description = "Smart Message Language (SML) parser written in Rust"
+repository = "https://github.com/fkohlgrueber/sml-rs"
+license = "MIT OR Apache-2.0"
 edition = "2021"
 
 
