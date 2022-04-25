@@ -113,31 +113,49 @@ where
                 self.state = LookingForEscape(0);
                 self.next()
             }
-            End(ref mut n) if *n < 0 => {
-                *n += 1;
-                Some(0x00)
-            }
-            End(ref mut n) if *n < 4 => {
-                *n += 1;
-                Some(0x1b)
-            }
-            End(ref mut n) if *n == 4 => {
-                *n += 1;
-                Some(0x1a)
-            }
-            End(ref mut n) if *n == 5 => {
-                *n += 1;
-                Some(self.padding.get())
-            }
-            End(ref mut n) if *n < 8 => {
-                *n += 1;
-                let crc_bytes = self.crc.clone().finalize().to_le_bytes();
-                Some(crc_bytes[(*n-7) as usize])
-            }
             End(n) => {
-                assert_eq!(n, 8);
-                None
+                let out = match n {
+                    n if n < 0 => 0x00,
+                    n if n < 4 => 0x1b,
+                    4 => 0x1a,
+                    5 => self.padding.get(),
+                    n if n < 8 => {
+                        let crc_bytes = self.crc.clone().finalize().to_le_bytes();
+                        crc_bytes[(n-6) as usize]
+                    }
+                    8 => {
+                        return None;
+                    }
+                    _ => unreachable!()
+                };
+                self.state = End(n+1);
+                Some(out)
             }
+            // End(ref mut n) if *n < 0 => {
+            //     *n += 1;
+            //     Some(0x00)
+            // }
+            // End(ref mut n) if *n < 4 => {
+            //     *n += 1;
+            //     Some(0x1b)
+            // }
+            // End(ref mut n) if *n == 4 => {
+            //     *n += 1;
+            //     Some(0x1a)
+            // }
+            // End(ref mut n) if *n == 5 => {
+            //     *n += 1;
+            //     Some(self.padding.get())
+            // }
+            // End(ref mut n) if *n < 8 => {
+            //     *n += 1;
+            //     let crc_bytes = self.crc.clone().finalize().to_le_bytes();
+            //     Some(crc_bytes[(*n-7) as usize])
+            // }
+            // End(n) => {
+            //     assert_eq!(n, 8);
+            //     None
+            // }
         }
     }
 }
