@@ -16,12 +16,48 @@ impl Padding {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum EncoderState {
-    Init(u8),
-    LookingForEscape(u8),
-    HandlingEscape(u8),
-    End(i8),
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EncoderState {
+    Init0,
+    Init1,
+    Init2,
+    Init3,
+    Init4,
+    Init5,
+    Init6,
+    Init7,
+    Read0,
+    Read1,
+    Read2,
+    Read3,
+    Esc0,
+    Esc1,
+    Esc2,
+    Esc3,
+    Pad3,
+    Pad2,
+    Pad1,
+    End0,
+    End1,
+    End2,
+    End3,
+    End4,
+    NPad,
+    Crc1,
+    Crc2,
+    Done,
+}
+
+impl EncoderState {
+    fn from_padding(pad: u8) -> Self {
+        use EncoderState::*;
+        match pad {
+            3 => Pad3,
+            2 => Pad2,
+            1 => Pad1,
+            _ => End0
+        }
+    }
 }
 
 pub struct Encoder<I> 
@@ -42,7 +78,7 @@ where
         let mut crc = CRC_X25.digest();
         crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
         Encoder { 
-            state: EncoderState::Init(0),
+            state: EncoderState::Init0,
             crc,
             padding: Padding::new(),
             iter 
@@ -57,10 +93,46 @@ where
         ret
     }
 
-    fn next_from_state(&mut self, state: EncoderState) -> (Option<u8>, EncoderState) {
-        self.state = state;
-        let out = self.next();
-        (out, self.state)
+    #[inline(always)]
+    pub fn next_state(&self) -> EncoderState {
+        use EncoderState::*;
+        if self.state == Done {
+            return Done;
+        }
+        if self.state == Esc3 {
+            return Read0;
+        }
+        unsafe { std::mem::transmute(self.state as u8 + 1) }
+        // match self.state {
+        //     Init0 => Init1,
+        //     Init1 => Init2,
+        //     Init2 => Init3,
+        //     Init3 => Init4,
+        //     Init4 => Init5,
+        //     Init5 => Init6,
+        //     Init6 => Init7,
+        //     Init7 => Read0,
+        //     Read0 => Read1,
+        //     Read1 => Read2,
+        //     Read2 => Read3,
+        //     Read3 => Esc0,
+        //     Esc0 => Esc1,
+        //     Esc1 => Esc2,
+        //     Esc2 => Esc3,
+        //     Esc3 => Read0,
+        //     Pad3 => Pad2,
+        //     Pad2 => Pad1,
+        //     Pad1 => End0,
+        //     End0 => End1,
+        //     End1 => End2,
+        //     End2 => End3,
+        //     End3 => End4,
+        //     End4 => NPad,
+        //     NPad => Crc1,
+        //     Crc1 => Crc2,
+        //     Crc2 => Done,
+        //     Done => Done,
+        // }
     }
 }
 
@@ -72,22 +144,22 @@ where
 
     fn next(&mut self) -> Option<u8> {
         use EncoderState::*;
-        let (out, state) = match self.state {
-            Init(n) if n < 4 => {
-                (Some(0x1b), Init(n + 1))
+        let out = match self.state {
+            Init0 | Init1 | Init2 | Init3 => {
+                0x1b
             }
-            Init(n) if n < 8 => {
-                (Some(0x01), Init(n + 1))
+            Init4 | Init5 | Init6 | Init7 => {
+                0x01
             }
-            Init(n) => {
-                assert_eq!(n, 8);
-                self.next_from_state(LookingForEscape(0))
-            }
-            LookingForEscape(n) if n < 4 => {
+            Read0 | Read1 | Read2 | Read3 => {
                 match self.read_from_iter() {
                     Some(b) => {
                         self.crc.update(&[b]);
-                        (Some(b), LookingForEscape((n+1) * (b==0x1b) as u8))
+                        if b != 0x1b {
+                            self.state = Read0;
+                            return Some(b);
+                        }
+                        b
                     }
                     None => {
                         let padding = self.padding.get();
@@ -96,42 +168,39 @@ where
                             self.crc.update(&[0x00]);
                         }
                         self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x1a, padding]);
-                        self.next_from_state(End(-(padding as i8)))
+                        
+                        self.state = EncoderState::from_padding(padding);
+                        return self.next();
                     }
                 }
             }
-            LookingForEscape(n) => {
-                assert_eq!(n, 4);
-                self.crc.update(&[0x1b; 4]);
-                self.next_from_state(HandlingEscape(0))
+            Esc0 | Esc1 | Esc2 | Esc3 => {
+                self.crc.update(&[0x1b]);
+                0x1b
             }
-            HandlingEscape(n) if n < 4 => {
-                (Some(0x1b), HandlingEscape(n + 1))
+            Pad3 | Pad2 | Pad1 => {
+                0x00
             }
-            HandlingEscape(n) => {
-                assert_eq!(n, 4);
-                self.next_from_state(LookingForEscape(0))
+            End0 | End1 | End2 | End3 => {
+                0x1b
             }
-            End(n) => {
-                let out = match n {
-                    n if n < 0 => 0x00,
-                    n if n < 4 => 0x1b,
-                    4 => 0x1a,
-                    5 => self.padding.get(),
-                    n if n < 8 => {
-                        let crc_bytes = self.crc.clone().finalize().to_le_bytes();
-                        crc_bytes[(n-6) as usize]
-                    }
-                    8 => {
-                        return None;
-                    }
-                    _ => unreachable!()
-                };
-                (Some(out), End(n+1))
+            End4 => {
+                0x1a
+            }
+            NPad => {
+                self.padding.get()
+            }
+            s @ (Crc1 | Crc2) => {
+                let crc_bytes: [u8; 2] = self.crc.clone().finalize().to_le_bytes();
+                let idx = (s == Crc2) as usize;
+                crc_bytes[idx]
+            }
+            Done => {
+                return None;
             }
         };
-        self.state = state;
-        out
+        self.state = self.next_state();
+        Some(out)
     }
 }
 
@@ -166,6 +235,11 @@ pub fn encode_v1(bytes: &[u8]) -> Vec<u8> {
     res.extend(crc.to_le_bytes());
 
     res
+}
+
+pub fn foo() {
+    let v = [1,2,3,4,5,6];
+    let out: Vec<_> = Encoder::new(v.into_iter()).collect();
 }
 
 #[cfg(test)]
