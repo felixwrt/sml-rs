@@ -1,5 +1,8 @@
 use crate::CRC_X25;
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 struct Padding(u8);
 
 impl Padding {
@@ -129,6 +132,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 pub fn encode_v1(bytes: &[u8]) -> Vec<u8> {
     // start escape sequence
     let mut res = vec![0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01];
@@ -167,6 +171,16 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
+    #[cfg(not(feature = "alloc"))]
+    fn test_encoding(bytes: &[u8], exp_encoded_bytes: &[u8]) {
+        let mut encoder = Encoder::new(bytes.into_iter().cloned());
+        for exp_byte in exp_encoded_bytes {
+            assert_eq!(Some(*exp_byte), encoder.next());
+        }
+        assert_eq!(None, encoder.next());
+    }
+
+    #[cfg(feature = "alloc")]
     fn test_encoding(bytes: &[u8], exp_encoded_bytes: &[u8]) {
         compare_encoded_bytes(exp_encoded_bytes, &encode_v1(&bytes));
         compare_encoded_bytes(
@@ -175,6 +189,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "alloc")]
     fn compare_encoded_bytes(expected: &[u8], actual: &[u8]) {
         if expected != actual {
             // use strings here such that the output uses hex formatting
