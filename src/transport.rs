@@ -1,22 +1,13 @@
 use crate::CRC_X25;
 
-enum EncoderState {
-    Init(u8),
-    LookingForEscape(u8),
-    HandlingEscape(u8),
-    Padding(u8, u8),
-    EndEscape(u8, u8),
-    Crc(u8),
-    Done,
-}
-
 pub struct Encoder<I> 
 where 
     I: Iterator<Item = u8>
 {
-    state: EncoderState,
+    state: u8,
     crc: crc::Digest<'static, u16>,
     padding: u8,
+    end_sequence: [u8; 11],
     iter: I
 }
 
@@ -25,93 +16,14 @@ where
     I: Iterator<Item = u8>
 {
     pub fn new(iter: I) -> Self {
-        Encoder { 
-            state: EncoderState::Init(0), 
-            crc: CRC_X25.digest(), 
+        let mut crc = CRC_X25.digest();
+        crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+        Encoder {
+            state: 8, 
+            crc, 
             padding: 0,
+            end_sequence: [0x00, 0x00, 0x00, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0xFF, 0xFF, 0xFF],
             iter 
-        }
-    }
-
-    fn next_(&mut self) -> Option<u8> {
-        match self.state {
-            EncoderState::Init(ref mut n) if *n < 4 => {
-                *n += 1;
-                Some(0x1b)
-            }
-            EncoderState::Init(ref mut n) if *n < 8 => {
-                *n += 1;
-                Some(0x01)
-            }
-            EncoderState::Init(n) => {
-                assert_eq!(n, 8);
-                self.state = EncoderState::LookingForEscape(0);
-                self.next_()
-            }
-            EncoderState::LookingForEscape(ref mut n) if *n < 4 => {
-                match self.iter.next() {
-                    Some(0x1b) => {
-                        *n += 1;
-                        Some(0x1b)
-                    }
-                    Some(b) => {
-                        *n = 0;
-                        Some(b)
-                    }
-                    None => {
-                        self.state = EncoderState::Padding(self.padding % 4, self.padding % 4);
-                        self.next_()
-                    }
-                }
-            }
-            EncoderState::LookingForEscape(n) => {
-                assert_eq!(n, 4);
-                self.state = EncoderState::HandlingEscape(0);
-                self.next_()
-            }
-            EncoderState::HandlingEscape(ref mut n) if *n < 4 => {
-                *n += 1;
-                Some(0x1b)
-            }
-            EncoderState::HandlingEscape(n) => {
-                assert_eq!(n, 4);
-                self.state = EncoderState::LookingForEscape(0);
-                self.next_()
-            }
-            EncoderState::Padding(ref mut n, _pad) if *n > 0 => {
-                *n -= 1;
-                Some(0x00)
-            }
-            EncoderState::Padding(n, pad) => {
-                assert_eq!(n, 0);
-                self.state = EncoderState::EndEscape(0, pad);
-                self.next_()
-            }
-            EncoderState::EndEscape(ref mut n, _pad) if *n < 4 => {
-                *n += 1;
-                Some(0x1b)
-            }
-            EncoderState::EndEscape(ref mut n, _pad) if *n == 4 => {
-                *n += 1;
-                Some(0x1a)
-            }
-            EncoderState::EndEscape(ref mut n, pad) if *n == 5 => {
-                *n += 1;
-                Some(pad)
-            }
-            EncoderState::EndEscape(n, _pad) => {
-                assert_eq!(n, 6);
-                let crc_bytes = self.crc.clone().finalize().to_le_bytes();
-                self.state = EncoderState::Crc(crc_bytes[1]);
-                Some(crc_bytes[0])
-            }
-            EncoderState::Crc(b) => {
-                self.state = EncoderState::Done;
-                Some(b)
-            }
-            EncoderState::Done => {
-                None
-            }
         }
     }
 }
@@ -123,12 +35,46 @@ where
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
-        let out = self.next_();
-        if let Some(b) = out {
-            self.crc.update(&[b]);
-            self.padding = self.padding.wrapping_sub(1);
+        if self.state < 4 {
+            match self.iter.next() {
+                Some(b) => {
+                    self.padding = self.padding.wrapping_sub(1);
+                    self.state = (self.state + 1) * (b==0x1b) as u8;
+                    self.crc.update(&[b]);
+                    return Some(b);
+                }
+                None => {
+                    // end of the input
+                    let padding = self.padding & 0x03;
+                    self.end_sequence[8] = padding;
+                    let offset = 3 - padding;
+                    self.crc.update(&self.end_sequence[offset as usize..(self.end_sequence.len()-2)]);
+                    let crc = self.crc.clone().finalize().to_le_bytes();
+                    self.end_sequence[9] = crc[0];
+                    self.end_sequence[10] = crc[1];
+
+                    self.state = 16 + offset;
+                    return self.next();
+                }
+            }
+        } else if self.state < 8 {
+            // handling escape
+            self.crc.update(&[0x1b]);
+            self.state = (self.state + 1) * (self.state != 7) as u8;
+            return Some(0x1b);
+        } else if self.state < 16 {
+            // init sequence
+            let r = 0x01 + 0x1a * (self.state < 12) as u8;
+            self.state = (self.state + 1) * (self.state != 15) as u8;
+            return Some(r);
+        } else if self.state < (16 + 11) {
+            // end sequence
+            let r = self.end_sequence[self.state as usize - 16];
+            self.state += 1;
+            return Some(r);
+        } else {
+            return None;
         }
-        out
     }
 }
 
