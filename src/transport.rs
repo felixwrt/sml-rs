@@ -24,28 +24,28 @@ enum EncoderState {
     End(i8),
 }
 
-pub struct Encoder<I> 
-where 
-    I: Iterator<Item = u8>
+pub struct Encoder<I>
+where
+    I: Iterator<Item = u8>,
 {
     state: EncoderState,
     crc: crc::Digest<'static, u16>,
     padding: Padding,
-    iter: I
+    iter: I,
 }
 
 impl<I> Encoder<I>
 where
-    I: Iterator<Item = u8>
+    I: Iterator<Item = u8>,
 {
     pub fn new(iter: I) -> Self {
         let mut crc = CRC_X25.digest();
         crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
-        Encoder { 
+        Encoder {
             state: EncoderState::Init(0),
             crc,
             padding: Padding::new(),
-            iter 
+            iter,
         }
     }
 
@@ -66,19 +66,15 @@ where
 
 impl<I> Iterator for Encoder<I>
 where
-    I: Iterator<Item = u8>
+    I: Iterator<Item = u8>,
 {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
         use EncoderState::*;
         let (out, state) = match self.state {
-            Init(n) if n < 4 => {
-                (Some(0x1b), Init(n + 1))
-            }
-            Init(n) if n < 8 => {
-                (Some(0x01), Init(n + 1))
-            }
+            Init(n) if n < 4 => (Some(0x1b), Init(n + 1)),
+            Init(n) if n < 8 => (Some(0x01), Init(n + 1)),
             Init(n) => {
                 assert_eq!(n, 8);
                 self.next_from_state(LookingForEscape(0))
@@ -87,7 +83,7 @@ where
                 match self.read_from_iter() {
                     Some(b) => {
                         self.crc.update(&[b]);
-                        (Some(b), LookingForEscape((n+1) * (b==0x1b) as u8))
+                        (Some(b), LookingForEscape((n + 1) * (b == 0x1b) as u8))
                     }
                     None => {
                         let padding = self.padding.get();
@@ -105,9 +101,7 @@ where
                 self.crc.update(&[0x1b; 4]);
                 self.next_from_state(HandlingEscape(0))
             }
-            HandlingEscape(n) if n < 4 => {
-                (Some(0x1b), HandlingEscape(n + 1))
-            }
+            HandlingEscape(n) if n < 4 => (Some(0x1b), HandlingEscape(n + 1)),
             HandlingEscape(n) => {
                 assert_eq!(n, 4);
                 self.next_from_state(LookingForEscape(0))
@@ -120,14 +114,14 @@ where
                     5 => self.padding.get(),
                     n if n < 8 => {
                         let crc_bytes = self.crc.clone().finalize().to_le_bytes();
-                        crc_bytes[(n-6) as usize]
+                        crc_bytes[(n - 6) as usize]
                     }
                     8 => {
                         return None;
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
-                (Some(out), End(n+1))
+                (Some(out), End(n + 1))
             }
         };
         self.state = state;
@@ -174,12 +168,9 @@ mod tests {
     use hex_literal::hex;
 
     fn test_encoding(bytes: &[u8], exp_encoded_bytes: &[u8]) {
+        compare_encoded_bytes(exp_encoded_bytes, &encode_v1(&bytes));
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode_v1(&bytes)
-        );
-        compare_encoded_bytes(
-            exp_encoded_bytes, 
             &Encoder::new(bytes.into_iter().cloned()).collect::<Vec<_>>(),
         );
     }
@@ -187,17 +178,14 @@ mod tests {
     fn compare_encoded_bytes(expected: &[u8], actual: &[u8]) {
         if expected != actual {
             // use strings here such that the output uses hex formatting
-            assert_eq!(
-                format!("{:02x?}", expected),
-                format!("{:02x?}", actual),
-            );
+            assert_eq!(format!("{:02x?}", expected), format!("{:02x?}", actual),);
         }
     }
 
     #[test]
     fn basic() {
         test_encoding(
-            &hex!("12345678"), 
+            &hex!("12345678"),
             &hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b"),
         );
     }
