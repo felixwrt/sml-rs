@@ -1,7 +1,4 @@
-use crate::CRC_X25;
-
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use crate::{Buffer, CRC_X25};
 
 struct Padding(u8);
 
@@ -132,10 +129,12 @@ where
     }
 }
 
-#[cfg(feature = "alloc")]
-pub fn encode_v1(bytes: &[u8]) -> Vec<u8> {
+#[allow(clippy::result_unit_err)]
+pub fn encode_v1<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
+    let mut res: B = Default::default();
+
     // start escape sequence
-    let mut res = vec![0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01];
+    res.extend_from_slice(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01])?;
 
     // encode data
     let mut num_1b = 0;
@@ -146,24 +145,24 @@ pub fn encode_v1(bytes: &[u8]) -> Vec<u8> {
             num_1b = 0;
         }
 
-        res.push(*b);
+        res.push(*b).map_err(|_| ())?;
 
         if num_1b == 4 {
-            res.extend([0x1b; 4]);
+            res.extend_from_slice(&[0x1b; 4])?;
             num_1b = 0;
         }
     }
 
     // padding bytes
     let num_padding_bytes = (4 - (res.len() % 4)) % 4;
-    res.resize(res.len() + num_padding_bytes, 0x0);
+    res.extend_from_slice(&[0x0; 3][..num_padding_bytes])?;
 
-    res.extend([0x1b, 0x1b, 0x1b, 0x1b, 0x1a, num_padding_bytes as u8]);
-    let crc = CRC_X25.checksum(res.as_slice());
+    res.extend_from_slice(&[0x1b, 0x1b, 0x1b, 0x1b, 0x1a, num_padding_bytes as u8])?;
+    let crc = CRC_X25.checksum(&res[..]);
 
-    res.extend(crc.to_le_bytes());
+    res.extend_from_slice(&crc.to_le_bytes())?;
 
-    res
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -171,30 +170,40 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
-    #[cfg(not(feature = "alloc"))]
-    fn test_encoding(bytes: &[u8], exp_encoded_bytes: &[u8]) {
-        let mut encoder = Encoder::new(bytes.into_iter().cloned());
-        for exp_byte in exp_encoded_bytes {
-            assert_eq!(Some(*exp_byte), encoder.next());
-        }
-        assert_eq!(None, encoder.next());
+    // adapted from the `assert_hex` crate
+    macro_rules! assert_eq_hex {
+        ($left:expr, $right:expr $(,)?) => {{
+            match (&$left, &$right) {
+                (left_val, right_val) => {
+                    if !(*left_val == *right_val) {
+                        // The reborrows below are intentional. Without them, the stack slot for the
+                        // borrow is initialized even before the values are compared, leading to a
+                        // noticeable slow down.
+                        panic!(
+                            r#"assertion failed: `(left == right)`
+  left: `{:02x?}`,
+ right: `{:02x?}`"#,
+                            &*left_val, &*right_val
+                        )
+                    }
+                }
+            }
+        }};
     }
 
-    #[cfg(feature = "alloc")]
-    fn test_encoding(bytes: &[u8], exp_encoded_bytes: &[u8]) {
-        compare_encoded_bytes(exp_encoded_bytes, &encode_v1(&bytes));
+    fn test_encoding<const N: usize>(bytes: &[u8], exp_encoded_bytes: &[u8; N]) {
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &Encoder::new(bytes.into_iter().cloned()).collect::<Vec<_>>(),
+            &encode_v1::<crate::ArrayBuf<N>>(&bytes).expect("ran out of memory"),
+        );
+        compare_encoded_bytes(
+            exp_encoded_bytes,
+            &Encoder::new(bytes.into_iter().cloned()).collect::<crate::ArrayBuf<N>>(),
         );
     }
 
-    #[cfg(feature = "alloc")]
     fn compare_encoded_bytes(expected: &[u8], actual: &[u8]) {
-        if expected != actual {
-            // use strings here such that the output uses hex formatting
-            assert_eq!(format!("{:02x?}", expected), format!("{:02x?}", actual),);
-        }
+        assert_eq_hex!(expected, actual);
     }
 
     #[test]
