@@ -26,7 +26,7 @@
 //! 
 //! TBD
 
-use crate::{Buffer, CRC_X25};
+use crate::{Buffer, CRC_X25, OutOfMemory};
 
 struct Padding(u8);
 
@@ -183,7 +183,7 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// ### Using heapless::Vec
 /// 
 /// ```
-/// # use sml_rs::transport::encode;
+/// # use sml_rs::{OutOfMemory, transport::encode};
 /// # let bytes = [0x12, 0x34, 0x56, 0x78];
 /// # let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// let encoded = encode::<heapless::Vec<u8, 20>>(&bytes);
@@ -192,11 +192,11 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// 
 /// // encoding returns `Err(())` if the encoded message does not fit into the vector
 /// let encoded = encode::<heapless::Vec<u8, 19>>(&bytes);
-/// assert_eq!(encoded, Err(()));
+/// assert_eq!(encoded, Err(OutOfMemory));
 /// ```
 /// 
 #[allow(clippy::result_unit_err)]
-pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
+pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
     let mut res: B = Default::default();
 
     // start escape sequence

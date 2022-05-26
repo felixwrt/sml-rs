@@ -25,7 +25,7 @@ pub trait Buffer: Default + Deref<Target = [u8]> {
     /// Appends a byte to the back of the vector.
     /// 
     /// Returns `Err` if the vector is full and could not be extended.
-    fn push(&mut self, b: u8) -> Result<(), ()>;
+    fn push(&mut self, b: u8) -> Result<(), OutOfMemory>;
 
     /// Shortens the vector, keeping the first len elements and dropping the rest.
     fn truncate(&mut self, len: usize);
@@ -36,13 +36,12 @@ pub trait Buffer: Default + Deref<Target = [u8]> {
     /// Clones and appends all bytes in a slice to the vector.
     /// 
     /// Iterates over the slice `other` and appends each byte to this vector. The `other` vector is traversed in-order.
-    #[allow(clippy::result_unit_err)]
-    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), ()>;
+    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory>;
 }
 
 impl<const N: usize> Buffer for ArrayBuf<N> {
-    fn push(&mut self, b: u8) -> Result<(), ()> {
-        ArrayBuf::push(self, b).map_err(|_| ())
+    fn push(&mut self, b: u8) -> Result<(), OutOfMemory> {
+        ArrayBuf::push(self, b).map_err(|_| OutOfMemory)
     }
 
     fn truncate(&mut self, len: usize) {
@@ -53,20 +52,20 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
         ArrayBuf::clear(self)
     }
 
-    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), ()> {
-        ArrayBuf::extend_from_slice(self, other)
+    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory> {
+        ArrayBuf::extend_from_slice(self, other).map_err(|_| OutOfMemory)
     }
 }
 
 #[cfg(feature = "alloc")]
 impl Buffer for VecBuf {
-    fn push(&mut self, b: u8) -> Result<(), ()> {
+    fn push(&mut self, b: u8) -> Result<(), OutOfMemory> {
         match self.try_reserve(1) {
             Ok(()) => {
                 VecBuf::push(self, b);
                 Ok(())
             }
-            Err(_) => Err(()),
+            Err(_) => Err(OutOfMemory),
         }
     }
 
@@ -78,13 +77,17 @@ impl Buffer for VecBuf {
         VecBuf::clear(self)
     }
 
-    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), ()> {
+    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory> {
         match self.try_reserve(other.len()) {
             Ok(()) => {
                 VecBuf::extend_from_slice(self, other);
                 Ok(())
             }
-            Err(_) => Err(()),
+            Err(_) => Err(OutOfMemory),
         }
     }
 }
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct OutOfMemory;
