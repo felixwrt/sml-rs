@@ -1,3 +1,31 @@
+//! SML transport protocol (version 1).
+//! 
+//! *Hint: This crate currently only implements version 1 of the SML transport 
+//! protocol. If you need support for version 2, let me know!*
+//! 
+//! # SML Transport Protocol - Version 1
+//! 
+//! Version 1 of the SML Transport Protocol is a simple format that encodes binary messages using escape sequences. A message consists of the following parts (numbers in hex):
+//! 
+//! - **Start sequence**: `1b1b1b1b 01010101`
+//! - **Escaped data**: The data that should be encoded. If the escape sequence (`1b1b1b1b`) occurs in the data, it is escaped by an escape sequence (`1b1b1b1b`). For example, the data `001b1b1b 1b010203` would be encoded as `001b1b1b 1b1b1b1b 1b010203`.
+//! - **Padding**: The data is zero-padded to the next multiple of four. Therefore, zero to three `0x00` bytes are inserted.
+//! - **End sequence**: `1b1b1b1b 1aXXYYZZ`
+//!   - `XX`: number of padding bytes
+//!   - `YY`/`ZZ`: CRC checksum
+//! 
+//! ## Encoding
+//! 
+//! This crate implements both a streaming and a more traditional encoder.
+//! 
+//! - `encode`: takes a slice of bytes as input and returns a buffer containing the encoded message
+//! - `encode_streaming`: an iterator adapter that encodes the input on the fly
+//! 
+//! 
+//! ## Decoding
+//! 
+//! TBD
+
 use crate::{Buffer, CRC_X25};
 
 struct Padding(u8);
@@ -129,8 +157,36 @@ where
     }
 }
 
+/// Takes a slice of bytes as input and returns a buffer containing the encoded message.
+/// 
+/// Returns `Err(())` when the buffer can't be grown to hold the entire output.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use sml_rs::transport::encode;
+/// 
+/// // example data
+/// let bytes = [0x12, 0x34, 0x56, 0x78];
+/// let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+/// 
+/// // encoding into std::vec::Vec
+/// let encoded = encode::<Vec<u8>>(&bytes);
+/// assert!(encoded.is_ok());
+/// assert_eq!(encoded.unwrap().as_slice(), &expected);
+/// 
+/// // encoding into heapless::Vec
+/// let encoded = encode::<heapless::Vec<u8, 20>>(&bytes);
+/// assert!(encoded.is_ok());
+/// assert_eq!(encoded.unwrap().as_slice(), &expected);
+/// 
+/// // encoding returns `Err(())` if the encoded message does not fit into the vector
+/// let encoded = encode::<heapless::Vec<u8, 19>>(&bytes);
+/// assert_eq!(encoded, Err(()));
+/// ```
+/// 
 #[allow(clippy::result_unit_err)]
-pub fn encode_v1<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
+pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
     let mut res: B = Default::default();
 
     // start escape sequence
@@ -165,12 +221,17 @@ pub fn encode_v1<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
     Ok(res)
 }
 
+pub fn encode_streaming<I: IntoIterator<Item = u8>>(iter: I) -> Encoder<I::IntoIter> {
+    Encoder::new(iter.into_iter())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use hex_literal::hex;
 
-    // adapted from the `assert_hex` crate
+    // assert_eq macro that prints its arguments as hex when they don't match.
+    // (adapted from the `assert_hex` crate)
     macro_rules! assert_eq_hex {
         ($left:expr, $right:expr $(,)?) => {{
             match (&$left, &$right) {
@@ -180,9 +241,7 @@ mod tests {
                         // borrow is initialized even before the values are compared, leading to a
                         // noticeable slow down.
                         panic!(
-                            r#"assertion failed: `(left == right)`
-  left: `{:02x?}`,
- right: `{:02x?}`"#,
+                            "assertion failed: `(left == right)`\n  left: `{:02x?}`,\n right: `{:02x?}`",
                             &*left_val, &*right_val
                         )
                     }
@@ -194,11 +253,11 @@ mod tests {
     fn test_encoding<const N: usize>(bytes: &[u8], exp_encoded_bytes: &[u8; N]) {
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode_v1::<crate::ArrayBuf<N>>(&bytes).expect("ran out of memory"),
+            &encode::<crate::ArrayBuf<N>>(&bytes).expect("ran out of memory"),
         );
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &Encoder::new(bytes.into_iter().cloned()).collect::<crate::ArrayBuf<N>>(),
+            &encode_streaming(bytes.iter().copied()).collect::<crate::ArrayBuf<N>>(),
         );
     }
 
@@ -211,6 +270,14 @@ mod tests {
         test_encoding(
             &hex!("12345678"),
             &hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b"),
+        );
+    }
+
+    #[test]
+    fn empty() {
+        test_encoding(
+            &hex!(""),
+            &hex!("1b1b1b1b 01010101 1b1b1b1b 1a00c6e5"),
         );
     }
 
