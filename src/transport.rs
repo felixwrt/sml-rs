@@ -164,18 +164,28 @@ where
 /// # Examples
 /// 
 /// ```
-/// use sml_rs::transport::encode;
-/// 
 /// // example data
 /// let bytes = [0x12, 0x34, 0x56, 0x78];
 /// let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+/// ```
+#[cfg_attr(feature = "alloc", doc = r##"
+### Using alloc::Vec
+
+```
+# use sml_rs::transport::encode;
+# let bytes = [0x12, 0x34, 0x56, 0x78];
+# let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+let encoded = encode::<Vec<u8>>(&bytes);
+assert!(encoded.is_ok());
+assert_eq!(encoded.unwrap().as_slice(), &expected);
+```
+"##)]
+/// ### Using heapless::Vec
 /// 
-/// // encoding into std::vec::Vec
-/// let encoded = encode::<Vec<u8>>(&bytes);
-/// assert!(encoded.is_ok());
-/// assert_eq!(encoded.unwrap().as_slice(), &expected);
-/// 
-/// // encoding into heapless::Vec
+/// ```
+/// # use sml_rs::transport::encode;
+/// # let bytes = [0x12, 0x34, 0x56, 0x78];
+/// # let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// let encoded = encode::<heapless::Vec<u8, 20>>(&bytes);
 /// assert!(encoded.is_ok());
 /// assert_eq!(encoded.unwrap().as_slice(), &expected);
@@ -201,7 +211,7 @@ pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
             num_1b = 0;
         }
 
-        res.push(*b).map_err(|_| ())?;
+        res.push(*b)?;
 
         if num_1b == 4 {
             res.extend_from_slice(&[0x1b; 4])?;
@@ -221,6 +231,17 @@ pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, ()> {
     Ok(res)
 }
 
+/// Takes an iterator over bytes and returns an iterator that produces the encoded message.
+/// 
+/// # Examples
+/// ```
+/// # use sml_rs::transport::encode_streaming;
+/// // example data
+/// let bytes = [0x12, 0x34, 0x56, 0x78];
+/// let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+/// let iter = encode_streaming(bytes);
+/// assert!(iter.eq(expected));
+/// ```
 pub fn encode_streaming<I: IntoIterator<Item = u8>>(iter: I) -> Encoder<I::IntoIter> {
     Encoder::new(iter.into_iter())
 }
@@ -253,7 +274,7 @@ mod tests {
     fn test_encoding<const N: usize>(bytes: &[u8], exp_encoded_bytes: &[u8; N]) {
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode::<crate::ArrayBuf<N>>(&bytes).expect("ran out of memory"),
+            &encode::<crate::ArrayBuf<N>>(bytes).expect("ran out of memory"),
         );
         compare_encoded_bytes(
             exp_encoded_bytes,
