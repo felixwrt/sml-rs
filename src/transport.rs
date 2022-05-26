@@ -52,6 +52,7 @@ enum EncoderState {
     End(i8),
 }
 
+/// An iterator that encoder the bytes of an underlying iterator using the SML Transport Protocol v1.
 pub struct Encoder<I>
 where
     I: Iterator<Item = u8>,
@@ -66,6 +67,7 @@ impl<I> Encoder<I>
 where
     I: Iterator<Item = u8>,
 {
+    /// Creates an `Encoder` from a byte iterator.
     pub fn new(iter: I) -> Self {
         let mut crc = CRC_X25.digest();
         crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);

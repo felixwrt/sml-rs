@@ -1,4 +1,14 @@
+//! This crate is a WIP implementation of the Smart Message Language (SML).
+//! 
+//! Properties:
+//! - `no_std` by default, optional support for allocations using the `alloc` feature flag.
+//! 
+//! # Feature flags
+//! - **`alloc`** — Implementations using allocations (alloc::Vec et al.).
+//! 
 #![no_std]
+#![deny(unsafe_code)]
+#![warn(missing_docs)]
 
 use core::ops::Deref;
 
@@ -89,5 +99,6 @@ impl Buffer for VecBuf {
 }
 
 
+/// Error type indicating that an operation failed due to lack of memory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutOfMemory;
