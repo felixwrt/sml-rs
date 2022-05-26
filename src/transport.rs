@@ -1,32 +1,32 @@
 //! SML transport protocol (version 1).
-//! 
-//! *Hint: This crate currently only implements version 1 of the SML transport 
+//!
+//! *Hint: This crate currently only implements version 1 of the SML transport
 //! protocol. If you need support for version 2, let me know!*
-//! 
+//!
 //! # SML Transport Protocol - Version 1
-//! 
+//!
 //! Version 1 of the SML Transport Protocol is a simple format that encodes binary messages using escape sequences. A message consists of the following parts (numbers in hex):
-//! 
+//!
 //! - **Start sequence**: `1b1b1b1b 01010101`
 //! - **Escaped data**: The data that should be encoded. If the escape sequence (`1b1b1b1b`) occurs in the data, it is escaped by an escape sequence (`1b1b1b1b`). For example, the data `001b1b1b 1b010203` would be encoded as `001b1b1b 1b1b1b1b 1b010203`.
 //! - **Padding**: The data is zero-padded to the next multiple of four. Therefore, zero to three `0x00` bytes are inserted.
 //! - **End sequence**: `1b1b1b1b 1aXXYYZZ`
 //!   - `XX`: number of padding bytes
 //!   - `YY`/`ZZ`: CRC checksum
-//! 
+//!
 //! ## Encoding
-//! 
+//!
 //! This crate implements both a streaming and a more traditional encoder.
-//! 
+//!
 //! - `encode`: takes a slice of bytes as input and returns a buffer containing the encoded message
 //! - `encode_streaming`: an iterator adapter that encodes the input on the fly
-//! 
-//! 
+//!
+//!
 //! ## Decoding
-//! 
+//!
 //! TBD
 
-use crate::{Buffer, CRC_X25, OutOfMemory};
+use crate::{Buffer, OutOfMemory, CRC_X25};
 
 struct Padding(u8);
 
@@ -160,17 +160,19 @@ where
 }
 
 /// Takes a slice of bytes as input and returns a buffer containing the encoded message.
-/// 
+///
 /// Returns `Err(())` when the buffer can't be grown to hold the entire output.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// // example data
 /// let bytes = [0x12, 0x34, 0x56, 0x78];
 /// let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// ```
-#[cfg_attr(feature = "alloc", doc = r##"
+#[cfg_attr(
+    feature = "alloc",
+    doc = r##"
 ### Using alloc::Vec
 
 ```
@@ -181,9 +183,10 @@ let encoded = encode::<Vec<u8>>(&bytes);
 assert!(encoded.is_ok());
 assert_eq!(encoded.unwrap().as_slice(), &expected);
 ```
-"##)]
+"##
+)]
 /// ### Using heapless::Vec
-/// 
+///
 /// ```
 /// # use sml_rs::{OutOfMemory, transport::encode};
 /// # let bytes = [0x12, 0x34, 0x56, 0x78];
@@ -191,12 +194,12 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// let encoded = encode::<heapless::Vec<u8, 20>>(&bytes);
 /// assert!(encoded.is_ok());
 /// assert_eq!(encoded.unwrap().as_slice(), &expected);
-/// 
+///
 /// // encoding returns `Err(())` if the encoded message does not fit into the vector
 /// let encoded = encode::<heapless::Vec<u8, 19>>(&bytes);
 /// assert_eq!(encoded, Err(OutOfMemory));
 /// ```
-/// 
+///
 #[allow(clippy::result_unit_err)]
 pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
     let mut res: B = Default::default();
@@ -234,7 +237,7 @@ pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
 }
 
 /// Takes an iterator over bytes and returns an iterator that produces the encoded message.
-/// 
+///
 /// # Examples
 /// ```
 /// # use sml_rs::transport::encode_streaming;
@@ -298,10 +301,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        test_encoding(
-            &hex!(""),
-            &hex!("1b1b1b1b 01010101 1b1b1b1b 1a00c6e5"),
-        );
+        test_encoding(&hex!(""), &hex!("1b1b1b1b 01010101 1b1b1b1b 1a00c6e5"));
     }
 
     #[test]
