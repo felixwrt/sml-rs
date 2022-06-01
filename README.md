@@ -1,16 +1,21 @@
+<div align="center">
+  <img src="./.static/logo.svg" width="300" height="150" alt="sml-rs"/>
+  <p>
+    <a href="https://crates.io/crates/sml-rs"><img alt="Crate Info" src="https://img.shields.io/crates/v/sml-rs.svg?style=flat-square"/></a>
+    <a href="https://docs.rs/sml-rs/"><img alt="API Docs" src="https://img.shields.io/docsrs/sml-rs.svg?style=flat-square"/></a>
+    <img alt="CI" src="https://img.shields.io/github/workflow/status/fkohlgrueber/sml-rs/CI?label=CI&style=flat-square"/>
+    <img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2022?style=flat-square"/>
+    <img alt="LOC" src="https://img.shields.io/tokei/lines/github/fkohlgrueber/sml-rs?style=flat-square)](https://docs.rs/sml-rs"/>
+  </p>
+</div>
+
+
 # *sml-rs*
-
-[![crates-io](https://img.shields.io/crates/v/sml-rs.svg?style=flat-square)](https://crates.io/crates/sml-rs)
-[![api-docs](https://img.shields.io/docsrs/sml-rs.svg?style=flat-square)](https://docs.rs/sml-rs)
-![CI](https://img.shields.io/github/workflow/status/fkohlgrueber/sml-rs/CI?label=CI&style=flat-square)
-![Maintenance](https://img.shields.io/maintenance/yes/2022?style=flat-square)
-[![LOC](https://img.shields.io/tokei/lines/github/fkohlgrueber/sml-rs?style=flat-square)](https://docs.rs/sml-rs)
-
 
 Smart Message Language (SML) parser written in Rust.
 
 
-**Status:** `sml-rs` is an early work-in-progress library and many features aren't implemented yet. See section "Implementation Status" for details.
+**Status:** This library is an early work-in-progress library and many features aren't implemented yet. See section "Implementation Status" for details.
 
 ## Spec
 
