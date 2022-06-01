@@ -1,4 +1,6 @@
-# *sml-rs*
+<div align="center">
+  <img src="./.static/logo.svg" width="300" alt="sml-rs"/>
+</div>
 
 [![crates-io](https://img.shields.io/crates/v/sml-rs.svg?style=flat-square)](https://crates.io/crates/sml-rs)
 [![api-docs](https://img.shields.io/docsrs/sml-rs.svg?style=flat-square)](https://docs.rs/sml-rs)
@@ -7,10 +9,10 @@
 [![LOC](https://img.shields.io/tokei/lines/github/fkohlgrueber/sml-rs?style=flat-square)](https://docs.rs/sml-rs)
 
 
-Smart Message Language (SML) parser written in Rust.
+**sml-rs** is a parser for the Smart Message Language (SML) written in Rust.
 
 
-**Status:** `sml-rs` is an early work-in-progress library and many features aren't implemented yet. See section "Implementation Status" for details.
+**Status:** This library is an early work-in-progress library and many features aren't implemented yet. See section "Implementation Status" for details.
 
 ## Spec
 

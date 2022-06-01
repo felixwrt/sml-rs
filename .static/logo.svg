@@ -1,0 +1,78 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        width="400" height="150" viewBox="0 0 75 25">
+    <title>sml-rs logo</title>
+    <style type="text/css">
+        .digit-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            text-anchor: middle;
+            fill: url('#digit-text-gradient');
+        }
+    </style>
+
+    <defs>
+        <linearGradient id="digit-bg-gradient" gradientTransform="rotate(90)">
+            <stop offset="0%"  stop-color="#000" />
+            <stop offset="50%" stop-color="#333" />
+            <stop offset="100%"  stop-color="#000" />
+        </linearGradient>
+        <linearGradient id="digit-text-gradient" gradientTransform="rotate(90)">
+            <stop offset="0%"  stop-color="#aaa" />
+            <stop offset="50%" stop-color="#fff" />
+            <stop offset="100%"  stop-color="#555" />
+        </linearGradient>
+
+        <g id="digit">
+            <rect
+                stroke-width="1"
+                stroke="#000000"
+                fill="url('#digit-bg-gradient')"
+                width="10"
+                height="16"
+                x="5"
+                y="5"
+                ry="1" />
+        </g>
+    </defs>
+
+    <rect
+       fill="#555"
+       width="42"
+       height="22"
+       x="2"
+       y="2"
+       ry="2.5"/>
+    <rect
+       fill="#555"
+       width="25"
+       height="22"
+       x="22"
+       y="2"/>
+    <rect
+       fill="#ed0000"
+       width="29"
+       height="22"
+       x="44"
+       y="2"
+       ry="2.5"/>
+    <rect
+       fill="#ed0000"
+       width="15"
+       height="22"
+       x="44"
+       y="2"/>
+    
+    <use transform="translate( 0,0)" xlink:href="#digit" />
+    <use transform="translate(13,0)" xlink:href="#digit" />
+    <use transform="translate(26,0)" xlink:href="#digit" />
+    <text class="digit-text" x="10" y="16">s</text>
+    <text class="digit-text" x="23" y="16">m</text>
+    <text class="digit-text" x="36" y="16">l</text>
+
+    <use transform="translate(42,0)" xlink:href="#digit" />
+    <use transform="translate(55,0)" xlink:href="#digit" />
+    <text class="digit-text" x="52" y="16">r</text>
+    <text class="digit-text" x="65" y="16">s</text>
+    
+</svg>
