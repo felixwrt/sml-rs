@@ -637,3 +637,245 @@ mod tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod decode_tests {
+    use super::*;
+    use crate::ArrayBuf;
+    use DecodeErr::*;
+    use hex_literal::hex;
+
+    fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<&[u8], DecodeErr>]) {
+        let mut sml_reader = Decoder::<B>::new();
+        let mut exp_iter = exp.iter();
+
+        for b in bytes {
+            let res = sml_reader.push_byte(*b);
+            match res {
+                Ok(None) => {
+                    // continue
+                },
+                Ok(Some(res)) => {
+                    match exp_iter.next() {
+                        Some(exp_res) => {
+                            assert_eq!(Ok(res), *exp_res);
+                        }
+                        None => {
+                            panic!("Additional ParseRes: {:?}", res);
+                        }
+                    }
+                }
+                Err(e) => {
+                    match exp_iter.next() {
+                        Some(exp_res) => {
+                            assert_eq!(Err(e), *exp_res);
+                        }
+                        None => {
+                            panic!("Additional Error: {:?}", e);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(final_res) = sml_reader.finalize() {
+            assert_eq!(exp_iter.next(), Some(&Err(final_res)));
+        }
+        assert_eq!(exp_iter.next(), None);
+    }
+
+    #[test]
+    fn basic() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        let exp = &[
+            Ok(hex!("12345678").as_slice())
+        ];
+
+        test_parse_input::<ArrayBuf<8>>(&bytes, exp);
+    }
+
+    #[test]
+    fn out_of_memory() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        let exp = &[
+            Err(DecodeErr::OutOfMemory)
+        ];
+
+        test_parse_input::<ArrayBuf<7>>(&bytes, exp);
+    }
+
+    #[test]
+    fn invalid_crc() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b8FF");
+        let exp = &[
+            Err(InvalidMessage {
+                checksum_mismatch: (0xFFb8, 0x7bb8),
+                end_esc_misaligned: false,
+                num_padding_bytes: 0
+            })
+        ];
+
+        test_parse_input::<ArrayBuf<8>>(&bytes, exp);
+    }
+
+    #[test]
+    fn msg_end_misaligned() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 FF 1b1b1b1b 1a0013b6");
+        let exp = &[
+            Err(InvalidMessage {
+                checksum_mismatch: (0xb613, 0xb613),
+                end_esc_misaligned: true,
+                num_padding_bytes: 0,
+            })
+        ];
+
+        test_parse_input::<ArrayBuf<16>>(&bytes, exp);
+    }
+
+    #[test]
+    fn padding_too_large() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12345678 1b1b1b1b 1a04f950");
+        let exp = &[
+            Err(InvalidMessage {
+                checksum_mismatch: (0x50f9, 0x50f9),
+                end_esc_misaligned: false,
+                num_padding_bytes: 4,
+            })
+        ];
+
+        test_parse_input::<ArrayBuf<16>>(&bytes, exp);
+    }
+
+    #[test]
+    fn empty_msg_with_padding() {
+        let bytes = hex!("1b1b1b1b 01010101 1b1b1b1b 1a014FF4");
+        let exp = &[
+            Err(InvalidMessage {
+                checksum_mismatch: (0xf44f, 0xf44f),
+                end_esc_misaligned: false,
+                num_padding_bytes: 1,
+            })
+        ];
+
+        test_parse_input::<ArrayBuf<16>>(&bytes, exp);
+    }
+
+    #[test]
+    fn additional_bytes() {
+        let bytes = hex!("000102 1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b 1234");
+        let exp = &[
+            Err(DiscardedBytes(3)),
+            Ok(hex!("12345678").as_slice()),
+            Err(DiscardedBytes(2)),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn incomplete_message() {
+        let bytes = hex!("1b1b1b1b 01010101 123456");
+        let exp = &[
+            Err(DiscardedBytes(11)),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn invalid_esc_sequence() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1c000000 12345678 1b1b1b1b 1a03be25");
+        let exp = &[
+            Err(InvalidEsc([0x1c, 0x0, 0x0, 0x0])),
+            Err(DiscardedBytes(12)),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn incomplete_esc_sequence() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b00 12345678 1b1b1b1b 1a030A07");
+        let exp = &[
+            Ok(hex!("12345678 1b1b1b00 12").as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn double_msg_start() {
+        let bytes = hex!("1b1b1b1b 01010101 09 87654321 1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        let exp = &[
+            Err(DiscardedBytes(13)),
+            Ok(hex!("12345678").as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn padding() {
+        let bytes = hex!("1b1b1b1b 01010101 12345600 1b1b1b1b 1a0191a5");
+        let exp_bytes = hex!("123456");
+        let exp = &[
+            Ok(exp_bytes.as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn escape_in_user_data() {
+        let bytes = hex!("1b1b1b1b 01010101 12 1b1b1b1b 1b1b1b1b 000000 1b1b1b1b 1a03be25");
+        let exp = &[
+            Ok(hex!("121b1b1b1b").as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn ending_with_1b_no_padding_1() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1234561b 1b1b1b1b 1a00361a");
+        let exp_bytes = hex!("12345678 1234561b");
+        let exp = &[
+            Ok(exp_bytes.as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn ending_with_1b_no_padding_2() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12341b1b 1b1b1b1b 1a001ac5");
+        let exp_bytes = hex!("12345678 12341b1b");
+        let exp = &[
+            Ok(exp_bytes.as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[test]
+    fn ending_with_1b_no_padding_3() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 121b1b1b 1b1b1b1b 1a000ba4");
+        let exp_bytes = hex!("12345678 121b1b1b");
+        let exp = &[
+            Ok(exp_bytes.as_slice()),
+        ];
+        
+        test_parse_input::<ArrayBuf<128>>(&bytes, exp);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn alloc_basic() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+        let exp = &[
+            Ok(hex!("12345678").as_slice())
+        ];
+
+        test_parse_input::<crate::VecBuf>(&bytes, exp);
+    }
+}
