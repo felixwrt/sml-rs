@@ -200,7 +200,6 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// assert_eq!(encoded, Err(OutOfMemory));
 /// ```
 ///
-#[allow(clippy::result_unit_err)]
 pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
     let mut res: B = Default::default();
 
@@ -251,6 +250,306 @@ pub fn encode_streaming<I: IntoIterator<Item = u8>>(iter: I) -> Encoder<I::IntoI
     Encoder::new(iter.into_iter())
 }
 
+#[derive(Debug, PartialEq, Eq)]
+/// An error which can be returned when decoding an sml message. 
+pub enum DecodeErr {
+    /// Some bytes could not be parsed and were discarded
+    DiscardedBytes(usize),
+    /// An invalid escape sequence has been read
+    InvalidEsc([u8; 4]),
+    /// The buffer used internally by the encoder is full. When using vec, allocation has failed.
+    OutOfMemory,
+    /// The decoded message is invalid.
+    InvalidMessage {
+        /// (expected, found) checksums
+        checksum_mismatch: (u16, u16),
+        /// whether the end escape sequence wasn't aligned to a 4-byte boundary
+        end_esc_misaligned: bool,
+        /// the number of padding bytes. 
+        num_padding_bytes: u8,
+    }
+}
+
+#[derive(Debug)]
+enum DecodeState {
+    LookingForMessageStart {
+        num_discarded_bytes: u16,
+        num_init_seq_bytes: u8,
+    },
+    ParsingNormal,
+    ParsingEscChars(u8),
+    ParsingEscPayload(u8),
+    Done,
+}
+
+/// Decoder for sml transport v1.
+pub struct Decoder<B: Buffer> {
+    buf: B,
+    raw_msg_len: usize,
+    crc: crc::Digest<'static, u16>,
+    crc_idx: usize,
+    state: DecodeState
+}
+
+
+impl<B: Buffer> Decoder<B> {
+    /// Constructs a new decoder.
+    pub fn new() -> Self {
+        Self::from_buf(Default::default())
+    }
+
+    /// Constructs a new decoder using an existing buffer `buf`.
+    pub fn from_buf(buf: B) -> Self {
+        Decoder {
+            buf: buf,
+            raw_msg_len: 0,
+            crc: CRC_X25.digest(),
+            crc_idx: 0,
+            state: DecodeState::LookingForMessageStart {
+                num_discarded_bytes: 0,
+                num_init_seq_bytes: 0,
+            }
+        }
+    }
+
+    /// Pushes a byte `b` into the decoder, advances the parser state and possibly returns 
+    /// a transmission or an decoder error.
+    pub fn push_byte(&mut self, b: u8) -> Result<Option<&[u8]>, DecodeErr> {
+        use DecodeState::*;
+        self.raw_msg_len += 1;
+        match self.state {
+            LookingForMessageStart {
+                ref mut num_discarded_bytes, ref mut num_init_seq_bytes
+            } => {
+                if (b == 0x1b && *num_init_seq_bytes < 4) || (b == 0x01 && *num_init_seq_bytes >= 4) {
+                    *num_init_seq_bytes += 1;
+                } else {
+                    *num_discarded_bytes += 1 + *num_init_seq_bytes as u16;
+                    *num_init_seq_bytes = 0;
+                }
+                if *num_init_seq_bytes == 8 {
+                    let num_discarded_bytes = *num_discarded_bytes;
+                    self.state = ParsingNormal;
+                    self.raw_msg_len = 8;
+                    assert_eq!(self.buf.len(), 0);
+                    assert_eq!(self.crc_idx, 0);
+                    self.crc = CRC_X25.digest();
+                    self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+                    if num_discarded_bytes > 0 {
+                        return Err(DecodeErr::DiscardedBytes(num_discarded_bytes as usize))
+                    }
+                }
+            },
+            ParsingNormal => { 
+                if b == 0x1b {
+                    // this could be the first byte of an escape sequence
+                    self.state = ParsingEscChars(1);
+                } else {
+                    // regular data
+                    self.push(b)?;
+                }
+            },
+            ParsingEscChars(n) => {
+                if b != 0x1b {
+                    // push previous 0x1b bytes as they didn't belong to an escape sequence
+                    for _ in 0..n {
+                        self.push(0x1b)?;
+                    }
+                    // push current byte
+                    self.push(b)?;
+                    // continue in regular parsing state
+                    self.state = ParsingNormal;
+                } else if n == 3 {
+                    // this is the fourth 0x1b byte, so we're seeing an escape sequence.
+                    // continue by parsing the escape sequence's payload.
+
+                    // also update the crc here. the escape bytes aren't stored in `buf`, but
+                    // still need to count for the crc calculation
+                    // (1) add everything that's in the buffer and hasn't been added to the crc previously
+                    self.crc.update(&self.buf[self.crc_idx..self.buf.len()]);
+                    // (2) add the four escape bytes
+                    self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
+                    // update crc_idx to indicate that everything that's currently in the buffer has already
+                    // been used to update the crc
+                    self.crc_idx = self.buf.len();
+
+                    self.state = ParsingEscPayload(0);
+                } else {
+                    self.state = ParsingEscChars(n+1);
+                }
+            },
+            ParsingEscPayload(n) => {
+                self.push(b)?;
+                if n < 3 {
+                    self.state = ParsingEscPayload(n+1);
+                } else {
+                    // last 4 elements in self.buf are the escape sequence payload
+                    let payload = &self.buf[self.buf.len()-4..self.buf.len()];
+                    if payload == &[0x1b, 0x1b, 0x1b, 0x1b] {
+                        // escape sequence in user data
+                        
+                        // nothing to do here as the input has already been added to the buffer (see above)
+                        self.state = ParsingNormal;
+                    } else if payload == &[0x01, 0x01, 0x01, 0x01] {
+                        // another transmission start
+
+                        // ignore everything that has previously been read and start reading a new transmission
+                        let ignored_bytes = self.raw_msg_len - 8;
+                        self.raw_msg_len = 8;
+                        self.buf.clear();
+                        self.crc = CRC_X25.digest();
+                        self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
+                        self.crc_idx = 0;
+                        self.state = ParsingNormal;
+                        return Err(DecodeErr::DiscardedBytes(ignored_bytes))
+                    } else if payload[0] == 0x1a {
+                        // end sequence (layout: [0x1a, num_padding_bytes, crc, crc])
+                        
+                        // check number of padding bytes
+                        let num_padding_bytes = payload[1];
+
+                        // compute and compare checksum
+                        let read_crc = u16::from_le_bytes([payload[2], payload[3]]);
+                        // update the crc, but exclude the last two bytes (which contain the crc itself)
+                        self.crc.update(&self.buf[self.crc_idx..(self.buf.len()-2)]);
+                        // get the calculated crc and reset it afterwards
+                        let calculated_crc = {
+                            let mut crc = CRC_X25.digest();
+                            core::mem::swap(&mut crc, &mut self.crc);
+                            crc.finalize()
+                        };
+                        
+                        // check alignment (end marker needs to have 4-byte alignment)
+                        let misaligned = self.buf.len() % 4 != 0;
+
+                        // check if padding is larger than the message length
+                        let padding_too_large = num_padding_bytes > 3 || (num_padding_bytes as usize + 4) > self.buf.len();
+
+                        if read_crc != calculated_crc || misaligned || padding_too_large {
+                            self.set_done();
+                            return Err(DecodeErr::InvalidMessage {
+                                checksum_mismatch: (read_crc, calculated_crc),
+                                end_esc_misaligned: misaligned,
+                                num_padding_bytes: num_padding_bytes,
+                            });
+                        }
+
+                        // subtract padding bytes and escape payload length from buffer length
+                        self.buf.truncate(self.buf.len() - num_padding_bytes as usize - 4);
+
+                        let len = self.buf.len();
+                        self.set_done();
+
+                        return Ok(Some(&self.buf[..len]));
+                    } else {
+                        // special case of message ending with incomplete escape sequence
+                        // Explanation:
+                        // when a message ends with 1-3 0x1b bytes and there's no padding bytes,
+                        // we end up in this branch because there's four consecutive 0x1b bytes
+                        // that aren't followed by a known escape sequence. The problem is that 
+                        // the first 1-3 0x1b bytes belong to the message, not to the end escape 
+                        // code. 
+                        // Example:
+                        //                  detected as escape sequence
+                        //                  vvvv vvvv
+                        // Message: ... 12341b1b 1b1b1b1b 1a00abcd
+                        //                       ^^^^^^^^
+                        //                       real escape sequence
+                        // 
+                        // The solution for this issue is to check whether the read esacpe code
+                        // isn't aligned to a 4-byte boundary and followed by an aligned end 
+                        // escape sequence (`1b1b1b1b 1a...`).
+                        // If that's the case, simply reset the parser state by 1-3 steps. This
+                        // will parse the 0x1b bytes in the message as regular bytes and check
+                        // for the end escape code at the right position.
+                        let bytes_until_alignment = (4 - (self.buf.len() % 4)) % 4;
+                        if bytes_until_alignment > 0 && payload[..bytes_until_alignment].iter().all(|x| *x==0x1b) && payload[bytes_until_alignment] == 0x1a {
+                            self.state = ParsingEscPayload(4 - bytes_until_alignment as u8);
+                            return Ok(None);
+                        }
+
+                        // invalid escape sequence
+                        
+                        // unwrap is safe here because payload is guaranteed to have size 4
+                        let esc_bytes: [u8; 4] = payload.try_into().unwrap();
+                        self.set_done();
+                        return Err(DecodeErr::InvalidEsc(esc_bytes));
+                    }
+                }
+            }
+            Done => {
+                // reset and let's go again
+                self.reset();
+                return self.push_byte(b);
+            }
+        }
+        Ok(None)
+    }
+
+    /// Consumes the `Decoder` and returns an error if it contained an incomplete message.
+    pub fn finalize(self) -> Option<DecodeErr> {
+        use DecodeState::*;
+        match self.state {
+            LookingForMessageStart {
+                num_discarded_bytes: 0, num_init_seq_bytes: 0
+            } => {
+                None
+            },
+            LookingForMessageStart {
+                num_discarded_bytes, num_init_seq_bytes
+            } => {
+                Some(DecodeErr::DiscardedBytes(num_discarded_bytes as usize + num_init_seq_bytes as usize))
+            }
+            Done => {
+                None
+            }
+            _ => {
+                Some(DecodeErr::DiscardedBytes(self.raw_msg_len))
+            }
+        }
+    }
+
+    fn set_done(&mut self) {
+        self.state = DecodeState::Done;
+    }
+
+    fn reset(&mut self) {
+        self.state = DecodeState::LookingForMessageStart {
+            num_discarded_bytes: 0,
+            num_init_seq_bytes: 0
+        };
+        self.buf.clear();
+        self.crc_idx = 0;
+        self.raw_msg_len = 0;
+    }
+
+    fn push(&mut self, b: u8) -> Result<(), DecodeErr> {
+        if self.buf.push(b).is_err() {
+            self.reset();
+            return Err(DecodeErr::OutOfMemory)
+        }
+        Ok(())
+    }
+}
+
+/// Decode a given slice of bytes and returns a vector of messages / errors.
+#[cfg(feature = "alloc")]
+pub fn decode(bytes: &[u8]) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
+    let mut decoder: Decoder<crate::VecBuf> = Decoder::new();
+    let mut res = alloc::vec::Vec::new();
+    for b in bytes {
+        match decoder.push_byte(*b) {
+            Ok(None) => {},
+            Ok(Some(buf)) => res.push(Ok(buf.to_vec())),
+            Err(e) => res.push(Err(e))
+        }
+    }
+    if let Some(e) = decoder.finalize() {
+        res.push(Err(e));
+    }
+    res
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,6 +584,8 @@ mod tests {
             exp_encoded_bytes,
             &encode_streaming(bytes.iter().copied()).collect::<crate::ArrayBuf<N>>(),
         );
+        #[cfg(feature = "alloc")]
+        assert_eq_hex!(alloc::vec![Ok(bytes.to_vec())], decode(exp_encoded_bytes));
     }
 
     fn compare_encoded_bytes(expected: &[u8], actual: &[u8]) {
