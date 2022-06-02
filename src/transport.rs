@@ -291,6 +291,12 @@ pub struct Decoder<B: Buffer> {
     state: DecodeState
 }
 
+impl<B: Buffer> Default for Decoder<B> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+    
 
 impl<B: Buffer> Decoder<B> {
     /// Constructs a new decoder.
@@ -301,7 +307,7 @@ impl<B: Buffer> Decoder<B> {
     /// Constructs a new decoder using an existing buffer `buf`.
     pub fn from_buf(buf: B) -> Self {
         Decoder {
-            buf: buf,
+            buf,
             raw_msg_len: 0,
             crc: CRC_X25.digest(),
             crc_idx: 0,
@@ -385,12 +391,12 @@ impl<B: Buffer> Decoder<B> {
                 } else {
                     // last 4 elements in self.buf are the escape sequence payload
                     let payload = &self.buf[self.buf.len()-4..self.buf.len()];
-                    if payload == &[0x1b, 0x1b, 0x1b, 0x1b] {
+                    if payload == [0x1b, 0x1b, 0x1b, 0x1b] {
                         // escape sequence in user data
                         
                         // nothing to do here as the input has already been added to the buffer (see above)
                         self.state = ParsingNormal;
-                    } else if payload == &[0x01, 0x01, 0x01, 0x01] {
+                    } else if payload == [0x01, 0x01, 0x01, 0x01] {
                         // another transmission start
 
                         // ignore everything that has previously been read and start reading a new transmission
@@ -430,7 +436,7 @@ impl<B: Buffer> Decoder<B> {
                             return Err(DecodeErr::InvalidMessage {
                                 checksum_mismatch: (read_crc, calculated_crc),
                                 end_esc_misaligned: misaligned,
-                                num_padding_bytes: num_padding_bytes,
+                                num_padding_bytes,
                             });
                         }
 
