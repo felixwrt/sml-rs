@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./.static/logo.svg" width="300" height="150" alt="sml-rs"/>
+  <img src="./.static/logo_embedded_font.svg" width="300" height="150" alt="sml-rs"/>
   <p>
     <a href="https://crates.io/crates/sml-rs"><img alt="Crate Info" src="https://img.shields.io/crates/v/sml-rs.svg?style=flat-square"/></a>
     <a href="https://docs.rs/sml-rs/"><img alt="API Docs" src="https://img.shields.io/docsrs/sml-rs.svg?style=flat-square"/></a>
