@@ -7,7 +7,7 @@
             font-family: 'Courier New', Courier, monospace;
             font-size: 13px;
             text-anchor: middle;
-            fill: url('#digit-text-gradient');
+            /* fill: url('#digit-text-gradient'); */
         }
     </style>
 
@@ -18,9 +18,9 @@
             <stop offset="100%"  stop-color="#000" />
         </linearGradient>
         <linearGradient id="digit-text-gradient" gradientTransform="rotate(90)">
-            <stop offset="0%"  stop-color="#aaa" />
+            <stop offset="0%"  stop-color="#888" />
             <stop offset="50%" stop-color="#fff" />
-            <stop offset="100%"  stop-color="#555" />
+            <stop offset="100%"  stop-color="#000" />
         </linearGradient>
 
         <g id="digit">
@@ -66,13 +66,16 @@
     <use transform="translate( 0,0)" xlink:href="#digit" />
     <use transform="translate(13,0)" xlink:href="#digit" />
     <use transform="translate(26,0)" xlink:href="#digit" />
-    <text class="digit-text" x="10" y="16">s</text>
-    <text class="digit-text" x="23" y="16">m</text>
-    <text class="digit-text" x="36" y="16">l</text>
-
     <use transform="translate(42,0)" xlink:href="#digit" />
     <use transform="translate(55,0)" xlink:href="#digit" />
-    <text class="digit-text" x="52" y="16">r</text>
-    <text class="digit-text" x="65" y="16">s</text>
     
+    <clipPath id="txt">
+        <text class="digit-text" x="10" y="16">s</text>
+        <text class="digit-text" x="23" y="16">m</text>
+        <text class="digit-text" x="36" y="16">l</text>
+        <text class="digit-text" x="52" y="16">r</text>
+        <text class="digit-text" x="65" y="16">s</text>
+    </clipPath>
+
+    <rect x="5" y="5" width="100" height="16" fill="url(#digit-text-gradient)" clip-path="url(#txt)"/>
 </svg>
