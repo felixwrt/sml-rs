@@ -26,6 +26,8 @@
 //!
 //! TBD
 
+use core::borrow::Borrow;
+
 use crate::{Buffer, OutOfMemory, CRC_X25};
 
 struct Padding(u8);
@@ -246,8 +248,10 @@ pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
 /// let iter = encode_streaming(bytes);
 /// assert!(iter.eq(expected));
 /// ```
-pub fn encode_streaming<I: IntoIterator<Item = u8>>(iter: I) -> Encoder<I::IntoIter> {
-    Encoder::new(iter.into_iter())
+pub fn encode_streaming(
+    iter: impl IntoIterator<Item = impl Borrow<u8>>,
+) -> Encoder<impl Iterator<Item = u8>> {
+    Encoder::new(iter.into_iter().map(|x| *x.borrow()))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -593,7 +597,7 @@ mod tests {
         );
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode_streaming(bytes.iter().copied()).collect::<crate::ArrayBuf<N>>(),
+            &encode_streaming(bytes).collect::<crate::ArrayBuf<N>>(),
         );
         #[cfg(feature = "alloc")]
         assert_eq_hex!(alloc::vec![Ok(bytes.to_vec())], decode(exp_encoded_bytes));
