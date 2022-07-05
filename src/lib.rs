@@ -4,7 +4,7 @@
 //! - `no_std` by default, optional support for allocations using the `alloc` feature flag.
 //!
 //! # Feature flags
-//! - **`alloc`** — Implementations using allocations (alloc::Vec et al.).
+//! - **`alloc`** — Implementations using allocations (`alloc::Vec` et al.).
 //!
 #![no_std]
 #![deny(unsafe_code)]
@@ -19,9 +19,9 @@ pub mod transport;
 
 static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
-/// Type alias for heapless::Vec<u8>
+/// Type alias for `heapless::Vec<u8>`
 pub type ArrayBuf<const N: usize> = heapless::Vec<u8, N>;
-/// Type alias for alloc::Vec<u8>
+/// Type alias for `alloc::Vec<u8>`
 #[cfg(feature = "alloc")]
 pub type VecBuf = alloc::vec::Vec<u8>;
 
@@ -54,11 +54,11 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
     }
 
     fn truncate(&mut self, len: usize) {
-        ArrayBuf::truncate(self, len)
+        ArrayBuf::truncate(self, len);
     }
 
     fn clear(&mut self) {
-        ArrayBuf::clear(self)
+        ArrayBuf::clear(self);
     }
 
     fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory> {
@@ -79,11 +79,11 @@ impl Buffer for VecBuf {
     }
 
     fn truncate(&mut self, len: usize) {
-        VecBuf::truncate(self, len)
+        VecBuf::truncate(self, len);
     }
 
     fn clear(&mut self) {
-        VecBuf::clear(self)
+        VecBuf::clear(self);
     }
 
     fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory> {

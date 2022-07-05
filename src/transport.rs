@@ -33,7 +33,7 @@ use crate::{Buffer, OutOfMemory, CRC_X25};
 struct Padding(u8);
 
 impl Padding {
-    fn new() -> Self {
+    const fn new() -> Self {
         Padding(0)
     }
 
@@ -41,7 +41,7 @@ impl Padding {
         self.0 = self.0.wrapping_sub(1);
     }
 
-    fn get(&self) -> u8 {
+    const fn get(&self) -> u8 {
         self.0 & 0x3
     }
 }
@@ -115,7 +115,7 @@ where
                 match self.read_from_iter() {
                     Some(b) => {
                         self.crc.update(&[b]);
-                        (Some(b), LookingForEscape((n + 1) * (b == 0x1b) as u8))
+                        (Some(b), LookingForEscape((n + 1) * u8::from(b == 0x1b)))
                     }
                     None => {
                         let padding = self.padding.get();
@@ -187,7 +187,7 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 ```
 "##
 )]
-/// ### Using heapless::Vec
+/// ### Using `heapless::Vec`
 ///
 /// ```
 /// # use sml_rs::{OutOfMemory, transport::encode};
@@ -303,6 +303,7 @@ impl<B: Buffer> Default for Decoder<B> {
 
 impl<B: Buffer> Decoder<B> {
     /// Constructs a new decoder.
+    #[must_use]
     pub fn new() -> Self {
         Self::from_buf(Default::default())
     }
@@ -335,7 +336,7 @@ impl<B: Buffer> Decoder<B> {
                 {
                     *num_init_seq_bytes += 1;
                 } else {
-                    *num_discarded_bytes += 1 + *num_init_seq_bytes as u16;
+                    *num_discarded_bytes += 1 + u16::from(*num_init_seq_bytes);
                     *num_init_seq_bytes = 0;
                 }
                 if *num_init_seq_bytes == 8 {
@@ -549,6 +550,7 @@ impl<B: Buffer> Decoder<B> {
 
 /// Decode a given slice of bytes and returns a vector of messages / errors.
 #[cfg(feature = "alloc")]
+#[must_use]
 pub fn decode(bytes: &[u8]) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
     let mut decoder: Decoder<crate::VecBuf> = Decoder::new();
     let mut res = alloc::vec::Vec::new();
