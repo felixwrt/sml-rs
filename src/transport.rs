@@ -33,11 +33,13 @@ use core::borrow::Borrow;
 use crate::{Buffer, OutOfMemory, CRC_X25};
 
 /// An `Iterator`-like trait that can borrow from `Self`.
-/// 
+///
 /// Eventually, this trait should be supplied by a library / the stdlib, but we're not there yet.
 pub trait LendingIterator {
     /// The type of the elements being iterated over.
-    type Item<'a> where Self: 'a;
+    type Item<'a>
+    where
+        Self: 'a;
 
     /// Advances the iterator and returns the next value.
     fn next<'a>(&'a mut self) -> Option<Self::Item<'a>>;
@@ -215,7 +217,9 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// assert_eq!(encoded, Err(OutOfMemory));
 /// ```
 ///
-pub fn encode<B: Buffer>(iter: impl IntoIterator<Item = impl Borrow<u8>>) -> Result<B, OutOfMemory> {
+pub fn encode<B: Buffer>(
+    iter: impl IntoIterator<Item = impl Borrow<u8>>,
+) -> Result<B, OutOfMemory> {
     let mut res: B = Default::default();
 
     // start escape sequence
@@ -301,14 +305,14 @@ enum DecodeState {
 }
 
 /// Decoder for sml transport v1.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// # use sml_rs::transport::Decoder;
 /// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// let expected = [0x12, 0x34, 0x56, 0x78];
-/// 
+///
 /// let mut decoder = Decoder::<heapless::Vec<u8, 20>>::new();
 /// for b in bytes {
 ///     match decoder.push_byte(b) {
@@ -361,9 +365,10 @@ impl<B: Buffer> Decoder<B> {
     /// Pushes a byte `b` into the decoder, advances the parser state and possibly returns
     /// a transmission or an decoder error.
     pub fn push_byte(&mut self, b: u8) -> Result<Option<&[u8]>, DecodeErr> {
-        self._push_byte(b).map(|b| if b { Some(self.borrow_buf()) } else { None })
+        self._push_byte(b)
+            .map(|b| if b { Some(self.borrow_buf()) } else { None })
     }
-    
+
     /// Resets the `Decoder` and returns an error if it contained an incomplete message.
     pub fn finalize(&mut self) -> Option<DecodeErr> {
         use DecodeState::*;
@@ -385,9 +390,9 @@ impl<B: Buffer> Decoder<B> {
         res
     }
 
-    /// Main function of the parser. 
-    /// 
-    /// Returns 
+    /// Main function of the parser.
+    ///
+    /// Returns
     /// - `Ok(true)` if a complete message is ready.
     /// - `Ok(false)` when more bytes are necessary to complete parsing a message.
     /// - `Err(_)` if an error occurred during parsing
@@ -603,9 +608,9 @@ impl<B: Buffer> Decoder<B> {
 }
 
 /// Decode a given slice of bytes and returns a vector of messages / errors.
-/// 
+///
 /// *This function is available only if sml-rs is built with the `"alloc"` feature.*
-/// 
+///
 /// # Examples
 /// ```
 /// # use sml_rs::transport::decode;
@@ -616,7 +621,9 @@ impl<B: Buffer> Decoder<B> {
 /// assert_eq!(decoded, vec!(Ok(expected.to_vec())));
 #[cfg(feature = "alloc")]
 #[must_use]
-pub fn decode(iter: impl IntoIterator<Item = impl Borrow<u8>>) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
+pub fn decode(
+    iter: impl IntoIterator<Item = impl Borrow<u8>>,
+) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
     let mut decoder: Decoder<crate::VecBuf> = Decoder::new();
     let mut res = alloc::vec::Vec::new();
     for b in iter.into_iter() {
@@ -660,16 +667,13 @@ impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I>
             match self.bytes.next() {
                 Some(b) => {
                     match self.decoder._push_byte(b) {
-                        Ok(true) => {
-                            return Some(Ok(self.decoder.borrow_buf()))
-                        }
+                        Ok(true) => return Some(Ok(self.decoder.borrow_buf())),
                         Err(e) => {
                             return Some(Err(e));
                         }
                         Ok(false) => {
                             // take next byte...
                         }
-                        
                     }
                 }
                 None => {
@@ -682,14 +686,14 @@ impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I>
 }
 
 /// Takes an iterator over bytes and returns an iterator that yields decoded messages / decoding errors.
-/// 
+///
 /// # Examples
 /// ```
 /// # use sml_rs::transport::{decode_streaming, LendingIterator};
 /// // example data
 /// let bytes = [
 ///     // first message
-///     0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b, 
+///     0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b,
 ///     // second message
 ///     0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x13, 0x24, 0x35, 0x46, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb1, 0xa1,
 /// ];
@@ -827,7 +831,10 @@ mod decode_tests {
             match (res, res2) {
                 (Ok(Some(a)), Some(Ok(b))) => assert_eq!(a, b),
                 (Err(a), Some(Err(b))) => assert_eq!(a, b),
-                (a, b) => panic!("Mismatch between decoder and streaming_decoder: {:?} vs. {:?}", a, b),
+                (a, b) => panic!(
+                    "Mismatch between decoder and streaming_decoder: {:?} vs. {:?}",
+                    a, b
+                ),
             }
         }
         match (decoder.finalize(), streaming_decoder.next()) {
