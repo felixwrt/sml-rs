@@ -24,10 +24,11 @@ Smart Message Language (SML) parser written in Rust.
 
 ## Implementation status
 
-- [ ] Transport v1
+- [x] Transport v1
   - [x] Encode
   - [x] Encode streaming
-  - [ ] Decode
+  - [x] Decode
+  - [x] Decode streaming
 - [ ] Parsing
   - [ ] ...
 - [x] no_std support
