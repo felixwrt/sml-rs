@@ -18,17 +18,30 @@
 //!
 //! This crate implements both a streaming and a more traditional encoder.
 //!
-//! - `encode`: takes a slice of bytes as input and returns a buffer containing the encoded message
+//! - `encode`: takes a sequence of bytes as input and returns a buffer containing the encoded message
 //! - `encode_streaming`: an iterator adapter that encodes the input on the fly
 //!
 //!
 //! ## Decoding
 //!
-//! TBD
+//! - `decode`: takes a sequence of bytes and decodes them into a vector of messages / errors. Requires feature "alloc".
+//! - `decode_streaming`: takes a sequence of bytes and returns an iterator over the decoded messages / errors.
+//! - using `Decoder` directly: instantiate a `Decoder` manually, call `push_byte()` on it when data becomes available. Call `finalize()` when all data has been pushed.
 
 use core::borrow::Borrow;
 
 use crate::{Buffer, OutOfMemory, CRC_X25};
+
+/// An `Iterator`-like trait that can borrow from `Self`.
+/// 
+/// Eventually, this trait should be supplied by a library / the stdlib, but we're not there yet.
+pub trait LendingIterator {
+    /// The type of the elements being iterated over.
+    type Item<'a> where Self: 'a;
+
+    /// Advances the iterator and returns the next value.
+    fn next<'a>(&'a mut self) -> Option<Self::Item<'a>>;
+}
 
 struct Padding(u8);
 
@@ -202,7 +215,7 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// assert_eq!(encoded, Err(OutOfMemory));
 /// ```
 ///
-pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
+pub fn encode<B: Buffer>(iter: impl IntoIterator<Item = impl Borrow<u8>>) -> Result<B, OutOfMemory> {
     let mut res: B = Default::default();
 
     // start escape sequence
@@ -210,14 +223,15 @@ pub fn encode<B: Buffer>(bytes: &[u8]) -> Result<B, OutOfMemory> {
 
     // encode data
     let mut num_1b = 0;
-    for b in bytes {
-        if *b == 0x1b {
+    for b in iter.into_iter() {
+        let b = *b.borrow();
+        if b == 0x1b {
             num_1b += 1;
         } else {
             num_1b = 0;
         }
 
-        res.push(*b)?;
+        res.push(b)?;
 
         if num_1b == 4 {
             res.extend_from_slice(&[0x1b; 4])?;
@@ -254,7 +268,7 @@ pub fn encode_streaming(
     Encoder::new(iter.into_iter().map(|x| *x.borrow()))
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 /// An error which can be returned when decoding an sml message.
 pub enum DecodeErr {
     /// Some bytes could not be parsed and were discarded
@@ -287,6 +301,28 @@ enum DecodeState {
 }
 
 /// Decoder for sml transport v1.
+/// 
+/// # Examples
+/// 
+/// ```
+/// # use sml_rs::transport::Decoder;
+/// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+/// let expected = [0x12, 0x34, 0x56, 0x78];
+/// 
+/// let mut decoder = Decoder::<heapless::Vec<u8, 20>>::new();
+/// for b in bytes {
+///     match decoder.push_byte(b) {
+///         Ok(None) => {},  // nothing to output currently
+///         Ok(Some(decoded)) => {  // complete and valid message was decoded
+///             assert_eq!(decoded, expected);
+///         }
+///         Err(e) => {
+///             panic!("Unexpected Error: {:?}", e);
+///         }
+///     }
+/// }
+/// assert_eq!(decoder.finalize(), None)
+/// ```
 pub struct Decoder<B: Buffer> {
     buf: B,
     raw_msg_len: usize,
@@ -325,6 +361,37 @@ impl<B: Buffer> Decoder<B> {
     /// Pushes a byte `b` into the decoder, advances the parser state and possibly returns
     /// a transmission or an decoder error.
     pub fn push_byte(&mut self, b: u8) -> Result<Option<&[u8]>, DecodeErr> {
+        self._push_byte(b).map(|b| if b { Some(self.borrow_buf()) } else { None })
+    }
+    
+    /// Resets the `Decoder` and returns an error if it contained an incomplete message.
+    pub fn finalize(&mut self) -> Option<DecodeErr> {
+        use DecodeState::*;
+        let res = match self.state {
+            LookingForMessageStart {
+                num_discarded_bytes: 0,
+                num_init_seq_bytes: 0,
+            } => None,
+            LookingForMessageStart {
+                num_discarded_bytes,
+                num_init_seq_bytes,
+            } => Some(DecodeErr::DiscardedBytes(
+                num_discarded_bytes as usize + num_init_seq_bytes as usize,
+            )),
+            Done => None,
+            _ => Some(DecodeErr::DiscardedBytes(self.raw_msg_len)),
+        };
+        self.reset();
+        res
+    }
+
+    /// Main function of the parser. 
+    /// 
+    /// Returns 
+    /// - `Ok(true)` if a complete message is ready.
+    /// - `Ok(false)` when more bytes are necessary to complete parsing a message.
+    /// - `Err(_)` if an error occurred during parsing
+    fn _push_byte(&mut self, b: u8) -> Result<bool, DecodeErr> {
         use DecodeState::*;
         self.raw_msg_len += 1;
         match self.state {
@@ -442,7 +509,7 @@ impl<B: Buffer> Decoder<B> {
                             || (num_padding_bytes as usize + 4) > self.buf.len();
 
                         if read_crc != calculated_crc || misaligned || padding_too_large {
-                            self.set_done();
+                            self.reset();
                             return Err(DecodeErr::InvalidMessage {
                                 checksum_mismatch: (read_crc, calculated_crc),
                                 end_esc_misaligned: misaligned,
@@ -454,10 +521,9 @@ impl<B: Buffer> Decoder<B> {
                         self.buf
                             .truncate(self.buf.len() - num_padding_bytes as usize - 4);
 
-                        let len = self.buf.len();
                         self.set_done();
 
-                        return Ok(Some(&self.buf[..len]));
+                        return Ok(true);
                     } else {
                         // special case of message ending with incomplete escape sequence
                         // Explanation:
@@ -485,14 +551,14 @@ impl<B: Buffer> Decoder<B> {
                             && payload[bytes_until_alignment] == 0x1a
                         {
                             self.state = ParsingEscPayload(4 - bytes_until_alignment as u8);
-                            return Ok(None);
+                            return Ok(false);
                         }
 
                         // invalid escape sequence
 
                         // unwrap is safe here because payload is guaranteed to have size 4
                         let esc_bytes: [u8; 4] = payload.try_into().unwrap();
-                        self.set_done();
+                        self.reset();
                         return Err(DecodeErr::InvalidEsc(esc_bytes));
                     }
                 }
@@ -500,29 +566,17 @@ impl<B: Buffer> Decoder<B> {
             Done => {
                 // reset and let's go again
                 self.reset();
-                return self.push_byte(b);
+                return self._push_byte(b);
             }
         }
-        Ok(None)
+        Ok(false)
     }
 
-    /// Consumes the `Decoder` and returns an error if it contained an incomplete message.
-    pub fn finalize(self) -> Option<DecodeErr> {
-        use DecodeState::*;
-        match self.state {
-            LookingForMessageStart {
-                num_discarded_bytes: 0,
-                num_init_seq_bytes: 0,
-            } => None,
-            LookingForMessageStart {
-                num_discarded_bytes,
-                num_init_seq_bytes,
-            } => Some(DecodeErr::DiscardedBytes(
-                num_discarded_bytes as usize + num_init_seq_bytes as usize,
-            )),
-            Done => None,
-            _ => Some(DecodeErr::DiscardedBytes(self.raw_msg_len)),
+    fn borrow_buf(&self) -> &[u8] {
+        if !matches!(self.state, DecodeState::Done) {
+            panic!("Reading from the internal buffer is only allowed when a complete message is present (DecodeState::Done). Found state {:?}.", self.state);
         }
+        &self.buf[..self.buf.len()]
     }
 
     fn set_done(&mut self) {
@@ -549,13 +603,24 @@ impl<B: Buffer> Decoder<B> {
 }
 
 /// Decode a given slice of bytes and returns a vector of messages / errors.
+/// 
+/// *This function is available only if sml-rs is built with the `"alloc"` feature.*
+/// 
+/// # Examples
+/// ```
+/// # use sml_rs::transport::decode;
+/// // example data
+/// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+/// let expected = [0x12, 0x34, 0x56, 0x78];
+/// let decoded = decode(&bytes);
+/// assert_eq!(decoded, vec!(Ok(expected.to_vec())));
 #[cfg(feature = "alloc")]
 #[must_use]
-pub fn decode(bytes: &[u8]) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
+pub fn decode(iter: impl IntoIterator<Item = impl Borrow<u8>>) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
     let mut decoder: Decoder<crate::VecBuf> = Decoder::new();
     let mut res = alloc::vec::Vec::new();
-    for b in bytes {
-        match decoder.push_byte(*b) {
+    for b in iter.into_iter() {
+        match decoder.push_byte(*b.borrow()) {
             Ok(None) => {}
             Ok(Some(buf)) => res.push(Ok(buf.to_vec())),
             Err(e) => res.push(Err(e)),
@@ -565,6 +630,77 @@ pub fn decode(bytes: &[u8]) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, Decod
         res.push(Err(e));
     }
     res
+}
+
+/// Iterator over decoded messages / errors.
+pub struct DecodeIterator<B: Buffer, I: Iterator<Item = u8>> {
+    decoder: Decoder<B>,
+    bytes: I,
+    done: bool,
+}
+
+impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
+    fn new(bytes: I) -> Self {
+        DecodeIterator {
+            decoder: Decoder::new(),
+            bytes: bytes,
+            done: false,
+        }
+    }
+}
+
+impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I> {
+    type Item<'a> = Result<&'a [u8], DecodeErr> where I: 'a, B: 'a;
+
+    fn next<'a>(&'a mut self) -> Option<Self::Item<'a>> {
+        if self.done {
+            return None;
+        }
+        loop {
+            match self.bytes.next() {
+                Some(b) => {
+                    match self.decoder._push_byte(b) {
+                        Ok(true) => {
+                            return Some(Ok(self.decoder.borrow_buf()))
+                        }
+                        Err(e) => {
+                            return Some(Err(e));
+                        }
+                        Ok(false) => {
+                            // take next byte...
+                        }
+                        
+                    }
+                }
+                None => {
+                    self.done = true;
+                    return self.decoder.finalize().map(|x| Err(x));
+                }
+            }
+        }
+    }
+}
+
+/// Takes an iterator over bytes and returns an iterator that yields decoded messages / decoding errors.
+/// 
+/// # Examples
+/// ```
+/// # use sml_rs::transport::{decode_streaming, LendingIterator};
+/// // example data
+/// let bytes = [
+///     // first message
+///     0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b, 
+///     // second message
+///     0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x13, 0x24, 0x35, 0x46, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb1, 0xa1,
+/// ];
+/// let mut decode_iterator = decode_streaming::<heapless::Vec<u8, 10>>(&bytes);
+/// assert_eq!(decode_iterator.next(), Some(Ok([0x12, 0x34, 0x56, 0x78].as_slice())));
+/// assert_eq!(decode_iterator.next(), Some(Ok([0x13, 0x24, 0x35, 0x46].as_slice())));
+/// assert_eq!(decode_iterator.next(), None);
+pub fn decode_streaming<B: Buffer>(
+    iter: impl IntoIterator<Item = impl Borrow<u8>>,
+) -> DecodeIterator<B, impl Iterator<Item = u8>> {
+    DecodeIterator::new(iter.into_iter().map(|x| *x.borrow()))
 }
 
 #[cfg(test)]
@@ -663,37 +799,42 @@ mod decode_tests {
     use DecodeErr::*;
 
     fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<&[u8], DecodeErr>]) {
-        let mut sml_reader = Decoder::<B>::new();
+        // check that the streaming decoder yields the expected data
         let mut exp_iter = exp.iter();
+        let mut streaming_decoder = DecodeIterator::<B, _>::new(bytes.iter().cloned());
 
-        for b in bytes {
-            let res = sml_reader.push_byte(*b);
-            match res {
-                Ok(None) => {
-                    // continue
+        while let Some(res) = streaming_decoder.next() {
+            match exp_iter.next() {
+                Some(exp) => {
+                    assert_eq!(res, *exp);
                 }
-                Ok(Some(res)) => match exp_iter.next() {
-                    Some(exp_res) => {
-                        assert_eq!(Ok(res), *exp_res);
-                    }
-                    None => {
-                        panic!("Additional ParseRes: {:?}", res);
-                    }
-                },
-                Err(e) => match exp_iter.next() {
-                    Some(exp_res) => {
-                        assert_eq!(Err(e), *exp_res);
-                    }
-                    None => {
-                        panic!("Additional Error: {:?}", e);
-                    }
-                },
+                None => {
+                    panic!("Additional decoded item: {:?}", res);
+                }
             }
         }
-        if let Some(final_res) = sml_reader.finalize() {
-            assert_eq!(exp_iter.next(), Some(&Err(final_res)));
-        }
         assert_eq!(exp_iter.next(), None);
+
+        // check that Decoder and DecodeIterator yield the same data:
+        let mut decoder = Decoder::<B>::new();
+        let mut streaming_decoder = DecodeIterator::<B, _>::new(bytes.iter().cloned());
+        for b in bytes {
+            let res = decoder.push_byte(*b);
+            if let Ok(None) = res {
+                continue;
+            }
+            let res2 = streaming_decoder.next();
+            match (res, res2) {
+                (Ok(Some(a)), Some(Ok(b))) => assert_eq!(a, b),
+                (Err(a), Some(Err(b))) => assert_eq!(a, b),
+                (a, b) => panic!("Mismatch between decoder and streaming_decoder: {:?} vs. {:?}", a, b),
+            }
+        }
+        match (decoder.finalize(), streaming_decoder.next()) {
+            (None, None) => {},
+            (Some(a), Some(Err(b))) => assert_eq!(a, b),
+            (a, b) => panic!("Mismatch between decoder and streaming_decoder on the final element: {:?} vs. {:?}", a, b),
+        }
     }
 
     #[test]
