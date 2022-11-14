@@ -42,7 +42,7 @@ pub trait LendingIterator {
         Self: 'a;
 
     /// Advances the iterator and returns the next value.
-    fn next<'a>(&'a mut self) -> Option<Self::Item<'a>>;
+    fn next(&mut self) -> Option<Self::Item<'_>>;
 }
 
 struct Padding(u8);
@@ -650,7 +650,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
     fn new(bytes: I) -> Self {
         DecodeIterator {
             decoder: Decoder::new(),
-            bytes: bytes,
+            bytes,
             done: false,
         }
     }
@@ -659,7 +659,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
 impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I> {
     type Item<'a> = Result<&'a [u8], DecodeErr> where I: 'a, B: 'a;
 
-    fn next<'a>(&'a mut self) -> Option<Self::Item<'a>> {
+    fn next(&mut self) -> Option<Self::Item<'_>> {
         if self.done {
             return None;
         }
@@ -678,7 +678,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I>
                 }
                 None => {
                     self.done = true;
-                    return self.decoder.finalize().map(|x| Err(x));
+                    return self.decoder.finalize().map(Err);
                 }
             }
         }
