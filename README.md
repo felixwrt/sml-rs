@@ -33,10 +33,6 @@ Smart Message Language (SML) parser written in Rust.
   - [ ] ...
 - [x] no_std support
 
-## MSRV
-
-The Minimum Supported Rust Version is 1.65.0 due to the use of GATs.
-
 #### License
 
 <sup>

@@ -32,19 +32,6 @@ use core::borrow::Borrow;
 
 use crate::{Buffer, OutOfMemory, CRC_X25};
 
-/// An `Iterator`-like trait that can borrow from `Self`.
-///
-/// Eventually, this trait should be supplied by a library / the stdlib, but we're not there yet.
-pub trait LendingIterator {
-    /// The type of the elements being iterated over.
-    type Item<'a>
-    where
-        Self: 'a;
-
-    /// Advances the iterator and returns the next value.
-    fn next(&mut self) -> Option<Self::Item<'_>>;
-}
-
 struct Padding(u8);
 
 impl Padding {
@@ -654,12 +641,9 @@ impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
             done: false,
         }
     }
-}
 
-impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I> {
-    type Item<'a> = Result<&'a [u8], DecodeErr> where I: 'a, B: 'a;
-
-    fn next(&mut self) -> Option<Self::Item<'_>> {
+    /// Returns the next message / error.
+    pub fn next(&mut self) -> Option<Result<&[u8], DecodeErr>> {
         if self.done {
             return None;
         }
@@ -689,7 +673,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> LendingIterator for DecodeIterator<B, I>
 ///
 /// # Examples
 /// ```
-/// # use sml_rs::transport::{decode_streaming, LendingIterator};
+/// # use sml_rs::transport::decode_streaming;
 /// // example data
 /// let bytes = [
 ///     // first message
