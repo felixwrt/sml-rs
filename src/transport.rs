@@ -643,6 +643,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
     }
 
     /// Returns the next message / error.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<Result<&[u8], DecodeErr>> {
         if self.done {
             return None;
