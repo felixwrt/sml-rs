@@ -1,0 +1,20 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/DrNeuhaus_SMARTY_ix-130.bin
+---
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Ok(307)
+Err(DiscardedBytes(208))
+

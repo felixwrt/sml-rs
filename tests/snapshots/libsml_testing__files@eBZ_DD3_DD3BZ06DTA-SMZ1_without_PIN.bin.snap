@@ -1,0 +1,9 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/eBZ_DD3_DD3BZ06DTA-SMZ1_without_PIN.bin
+---
+Ok(214)
+Ok(214)
+

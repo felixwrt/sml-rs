@@ -1,0 +1,16 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/ISKRA_MT175_D1A52-V22-K0t.bin
+---
+Ok(444)
+Ok(444)
+Ok(444)
+Ok(444)
+Ok(444)
+Ok(444)
+Ok(444)
+Ok(444)
+Err(DiscardedBytes(416))
+

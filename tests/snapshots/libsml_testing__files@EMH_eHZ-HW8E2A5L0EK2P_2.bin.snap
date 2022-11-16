@@ -1,0 +1,8 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/EMH_eHZ-HW8E2A5L0EK2P_2.bin
+---
+Ok(299)
+
