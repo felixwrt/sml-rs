@@ -11,11 +11,20 @@ edition = "2021"
 alloc = []
 
 [dependencies]
+anyhow = "1.0.66"
 crc = "3.0.0"
 heapless = "0.7.13"
 
 [dev-dependencies]
+insta = { version = "1.21.0", features = ["yaml", "glob"] }
 hex-literal = "0.3.4"
+hex = "0.4.3"
 
 [package.metadata.docs.rs]
 all-features = true
+
+[profile.dev.package.insta]
+opt-level = 3
+
+[profile.dev.package.similar]
+opt-level = 3

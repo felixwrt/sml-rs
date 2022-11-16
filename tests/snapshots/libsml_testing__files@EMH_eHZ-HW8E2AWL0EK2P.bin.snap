@@ -1,0 +1,21 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/EMH_eHZ-HW8E2AWL0EK2P.bin
+---
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Ok(296)
+Err(DiscardedBytes(40))
+

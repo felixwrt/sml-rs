@@ -1,0 +1,18 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/ISKRA_MT175_eHZ.bin
+---
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Ok(368)
+Err(DiscardedBytes(256))
+

@@ -1,0 +1,11 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/DZG_DVS-7420.2V.G2_mtr2_neg.bin
+---
+Ok(235)
+Ok(235)
+Ok(235)
+Err(DiscardedBytes(200))
+

@@ -1,0 +1,12 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/eBZ_DD3_DD32R06DTA-SMZ1.bin
+---
+Err(DiscardedBytes(119))
+Ok(237)
+Ok(237)
+Ok(237)
+Ok(237)
+

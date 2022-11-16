@@ -1,0 +1,16 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/EasyMeter_Q3A_A1064V1009.bin
+---
+Err(DiscardedBytes(445))
+Err(InvalidMessage { checksum_mismatch: (54139, 2392), end_esc_misaligned: false, num_padding_bytes: 3 })
+Ok(485)
+Ok(485)
+Err(InvalidMessage { checksum_mismatch: (62722, 55140), end_esc_misaligned: true, num_padding_bytes: 3 })
+Err(InvalidMessage { checksum_mismatch: (2297, 29438), end_esc_misaligned: true, num_padding_bytes: 3 })
+Ok(485)
+Ok(485)
+Err(DiscardedBytes(146))
+

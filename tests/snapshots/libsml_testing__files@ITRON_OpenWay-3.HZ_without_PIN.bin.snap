@@ -1,0 +1,9 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/ITRON_OpenWay-3.HZ_without_PIN.bin
+---
+Ok(206)
+Ok(206)
+

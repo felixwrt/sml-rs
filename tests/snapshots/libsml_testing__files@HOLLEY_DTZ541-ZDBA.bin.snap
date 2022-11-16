@@ -1,0 +1,15 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 80
+expression: s
+input_file: tests/libsml-testing/HOLLEY_DTZ541-ZDBA.bin
+---
+Ok(510)
+Ok(510)
+Ok(510)
+Ok(510)
+Ok(510)
+Ok(510)
+Ok(510)
+Err(DiscardedBytes(400))
+
