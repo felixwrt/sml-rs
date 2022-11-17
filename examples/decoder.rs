@@ -5,7 +5,7 @@ use std::io::Read;
 /// Example usage:
 ///
 /// ```
-/// cat tests/libsml-testing/dzg_dwsb20_2th_3byte.bin | cargo run --all-features --example decoder
+/// cat tests/libsml-testing/dzg_dwsb20_2th_3byte.bin | cargo run --example decoder
 /// ```
 
 fn main() -> Result<(), std::io::Error> {
