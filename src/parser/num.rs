@@ -1,9 +1,10 @@
 //! Parsers for number types and booleans
 
-use super::tlf::{Ty, TypeLengthField};
-use super::{SmlParse, take_byte};
-use super::ResTy;
-use super::{ParseError, take_n};
+use super::{
+    take_byte, take_n,
+    tlf::{Ty, TypeLengthField},
+    ParseError, ResTy, SmlParse,
+};
 
 macro_rules! impl_num {
     (($($t:ty),+), $int_ty:expr) => {

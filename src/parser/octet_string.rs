@@ -3,10 +3,10 @@
 use crate::parser::ParseError;
 
 use super::{
+    take_n,
     tlf::{Ty, TypeLengthField},
-    SmlParse, ResTy, take_n,
+    ResTy, SmlParse,
 };
-
 
 #[cfg(feature = "alloc")]
 /// OctetString is the owned version of a sequence of bytes.
@@ -35,7 +35,6 @@ impl<'i> SmlParse<'i> for OctetStr<'i> {
     }
 }
 
-
 #[cfg(test)]
 mod test {
 
@@ -57,6 +56,9 @@ mod test {
         );
 
         // optional
-        assert_eq!(Option::<&[u8]>::parse_complete(b"\x01").expect("Decode Error"), None);
+        assert_eq!(
+            Option::<&[u8]>::parse_complete(b"\x01").expect("Decode Error"),
+            None
+        );
     }
 }

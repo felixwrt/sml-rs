@@ -2,7 +2,7 @@
 
 use crate::parser::ParseError;
 
-use super::{SmlParse, take_byte};
+use super::{take_byte, SmlParse};
 
 use super::ResTy;
 
@@ -63,7 +63,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
 fn tlf_byte(input: &[u8]) -> ResTy<(bool, u8, u32)> {
     let (input, b) = take_byte(input)?;
     let len = b & 0x0F;
-    let ty = (b>>4) & 0x07;
+    let ty = (b >> 4) & 0x07;
     let has_more_bytes = (b & 0x80) != 0;
     Ok((input, (has_more_bytes, ty, len as u32)))
 }

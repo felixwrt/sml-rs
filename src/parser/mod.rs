@@ -1,9 +1,8 @@
 //! This module implements the SML parser
 
-pub mod tlf;
-pub mod octet_string;
 pub mod num;
-
+pub mod octet_string;
+pub mod tlf;
 
 /// Error type used by the parser
 #[derive(Debug, PartialEq, Eq)]
@@ -37,12 +36,12 @@ where
     Self: Sized,
 {
     /// Tries to parse an instance of `Self` from a byte slice.
-    /// 
+    ///
     /// On success, returns the remaining input and the parsed instance of `Self`.
     fn parse(input: &'i [u8]) -> ResTy<Self>;
-    
+
     /// Tries to parse an instance of `Self` from a byte slice and returns an error if there are leftover bytes.
-    /// 
+    ///
     /// On success, returns the parsed instance of `Self`.
     fn parse_complete(input: &'i [u8]) -> ResTyComplete<Self> {
         let (input, x) = Self::parse(input)?;
@@ -61,7 +60,6 @@ impl<'i, T: SmlParse<'i>> SmlParse<'i> for Option<T> {
             let (input, x) = T::parse(input)?;
             Ok((input, Some(x)))
         }
-        
     }
 }
 
