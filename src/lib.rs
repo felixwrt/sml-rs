@@ -6,7 +6,7 @@
 //! # Feature flags
 //! - **`alloc`** — Implementations using allocations (`alloc::Vec` et al.).
 //!
-#![no_std]
+// #![no_std]
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
@@ -16,6 +16,7 @@ use core::ops::Deref;
 extern crate alloc;
 
 pub mod transport;
+pub mod parser;
 
 static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
