@@ -11,6 +11,11 @@ macro_rules! impl_num {
         $(
             impl<'i> SmlParse<'i> for $t {
                 fn parse(input: &'i [u8]) -> ResTy<Self> {
+                    // compile time check to ensure that the second argument to `impl_num` can only be `Ty::Unsigned` or `Ty::Integer`
+                    const _: () = if !matches!($int_ty, Ty::Unsigned | Ty::Integer) {
+                        panic!("impl_num used with invalid type argument. Only Ty::Unsigned and Ty::Integer are allowed");
+                    };
+
                     // size of the number type (in bytes)
                     const SIZE: usize = core::mem::size_of::<$t>();
 
@@ -30,7 +35,7 @@ macro_rules! impl_num {
                             let is_negative = bytes[0] > 0x7F;
                             if is_negative { 0xFF } else { 0x00 }
                         },
-                        _ => panic!("impl_num used with invalid type argument. Only Ty::Unsigned and Ty::Integer are allowed")
+                        _ => unreachable!()
                     };
 
                     // initialize buffer of Self's size with fill bytes
