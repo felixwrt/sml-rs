@@ -1,6 +1,6 @@
 //! An OctetString in SML is a sequence of bytes.
 
-use anyhow::bail;
+use crate::parser::ParseError;
 
 use super::{
     tlf::{Ty, TypeLengthField},
@@ -28,7 +28,7 @@ impl<'i> SmlParse<'i> for OctetStr<'i> {
         let (input, tlf) = TypeLengthField::parse(input)?;
 
         if !matches!(tlf.ty, Ty::OctetString) {
-            bail!("Error parsing OctetStr: TLF type mismatch.");
+            return Err(ParseError::OctetStrTlfTypeMismatch);
         }
 
         take_n(input, tlf.len as usize)
@@ -57,6 +57,6 @@ mod test {
         );
 
         // optional
-        // assert_eq!(Option::<&[u8]>::parse_complete(b"\x01"), Ok(None));
+        assert_eq!(Option::<&[u8]>::parse_complete(b"\x01").expect("Decode Error"), None);
     }
 }

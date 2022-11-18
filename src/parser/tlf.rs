@@ -1,8 +1,8 @@
 //! A Type-Length-Field is a building block for many SML data structures.
 
-use super::{SmlParse, take_byte};
+use crate::parser::ParseError;
 
-use anyhow::bail;
+use super::{SmlParse, take_byte};
 
 use super::ResTy;
 
@@ -26,7 +26,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
 
         // reserved for future usages
         if matches!(ty, Ty::Boolean) && has_more_bytes {
-            bail!("Ty::Boolean && has_more_bytes is reserved for future usage");
+            return Err(ParseError::TlfReserved);
         }
 
         while has_more_bytes {
@@ -39,7 +39,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
             len = match len.checked_shl(4) {
                 Some(l) => l,
                 None => {
-                    bail!("Overflow in the length field of TLF");
+                    return Err(ParseError::TlfLengthOverflow);
                 }
             };
             len += len_new & 0b1111;
@@ -51,7 +51,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
             len = match len.checked_sub(tlf_len) {
                 Some(l) => l,
                 None => {
-                    bail!("Specified length is too small");
+                    return Err(ParseError::TlfLengthUnderflow);
                 }
             }
         }
@@ -77,7 +77,7 @@ fn tlf_first_byte(input: &[u8]) -> ResTy<(bool, Ty, u32)> {
 fn tlf_next_byte(input: &[u8]) -> ResTy<(bool, u32)> {
     let (input, (has_more_bytes, ty, len)) = tlf_byte(input)?;
     if ty != 0x00 {
-        bail!("Type field needs to be 0 for non-first tlf bytes")
+        return Err(ParseError::TlfNextByteTypeMismatch);
     }
     Ok((input, (has_more_bytes, len)))
 }
@@ -92,7 +92,7 @@ pub(crate) enum Ty {
 }
 
 impl Ty {
-    fn from_byte(ty_num: u8) -> anyhow::Result<Ty> {
+    fn from_byte(ty_num: u8) -> Result<Ty, ParseError> {
         Ok(match ty_num {
             0b000 => Ty::OctetString,
             0b100 => Ty::Boolean,
@@ -100,7 +100,7 @@ impl Ty {
             0b110 => Ty::Unsigned,
             0b111 => Ty::ListOf,
             _ => {
-                bail!("Invalid type in TLF.");
+                return Err(ParseError::TlfInvalidTy);
             }
         })
     }
