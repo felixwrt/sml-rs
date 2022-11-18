@@ -3,9 +3,9 @@ use super::{error, SmlParse};
 use nom::{
     bits::{bits, complete::take as take_bits},
     combinator::map,
-    error::{Error, ParseError, context, ContextError},
+    error::Error,
     sequence::tuple,
-    IResult, bytes::complete::take,
+    IResult,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -21,9 +21,8 @@ impl TypeLengthField {
 }
 
 impl<'i> SmlParse<'i> for TypeLengthField {
-    fn parsex<E>(input: &'i [u8]) -> IResult<&[u8], Self, E> 
-    where E: ParseError<&'i [u8]> + ContextError<&'i [u8]> {
-        let (mut input, (mut has_more_bytes, ty, mut len)) = context("parsing first byte", tlf_first_byte)(input)?;
+    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
+        let (mut input, (mut has_more_bytes, ty, mut len)) = tlf_first_byte(input)?;
         let mut tlf_len = 1;
 
         // reserved for future usages
@@ -34,7 +33,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
         while has_more_bytes {
             tlf_len += 1;
 
-            let (input_new, (has_more_bytes_new, len_new)) = context("parsing next byte", tlf_next_byte)(input)?;
+            let (input_new, (has_more_bytes_new, len_new)) = tlf_next_byte(input)?;
             input = input_new;
             has_more_bytes = has_more_bytes_new;
 
@@ -62,26 +61,23 @@ impl<'i> SmlParse<'i> for TypeLengthField {
     }
 }
 
-fn tlf_byte<'i, E>(input: &'i [u8]) -> IResult<&'i [u8], (bool, u8, usize), E> 
-where E: ParseError<&'i [u8]> {
-    let (input, bytes) = take(1u16)(input)?;
-    let byte = bytes[0];
-    let has_more_bytes = (byte & 0x80) > 0;
-    let ty = (byte >> 4) & 0x07;
-    let len = byte & 0x0f;
+fn tlf_byte(input: &[u8]) -> IResult<&[u8], (bool, u8, usize)> {
+    let (input, (has_more_bytes, ty, len)) = bits::<_, _, Error<_>, _, _>(tuple((
+        map(take_bits(1usize), |x: u8| x > 0),  // has_more_bytes
+        take_bits(3usize),  // type
+        take_bits(4usize),  // len
+    )))(input)?;
 
-    Ok((input, (has_more_bytes, ty, len as usize)))
+    Ok((input, (has_more_bytes, ty, len)))
 }
 
-fn tlf_first_byte<'i, E>(input: &'i [u8]) -> IResult<&'i [u8], (bool, Ty, usize), E> 
-where E: ParseError<&'i [u8]> {
+fn tlf_first_byte(input: &[u8]) -> IResult<&[u8], (bool, Ty, usize)> {
     let (input, (has_more_bytes, ty, len)) = tlf_byte(input)?;
     let ty = Ty::from_byte(ty).map_err(|_| error(input))?;
     Ok((input, (has_more_bytes, ty, len)))
 }
 
-fn tlf_next_byte<'i, E>(input: &'i [u8]) -> IResult<&'i [u8], (bool, usize), E> 
-where E: ParseError<&'i [u8]> {
+fn tlf_next_byte(input: &[u8]) -> IResult<&[u8], (bool, usize)> {
     let (input, (has_more_bytes, ty, len)) = tlf_byte(input)?;
     if ty != 0x00 {
         return Err(error(input));
@@ -217,7 +213,5 @@ mod tests {
                 .expect("Decode error"),
             TypeLengthField::new(Ty::ListOf, 0b0010_0011_1111)
         );
-
-        TypeLengthField::parse_complete(&[0b1111_0010, 0b1000_0011, 0b1000_1111]);
     }
 }

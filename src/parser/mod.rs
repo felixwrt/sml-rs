@@ -6,23 +6,13 @@ use nom::{
     IResult,
 };
 
-pub type IResultComplete<I, O> = Result<O, nom::Err<VerboseError<I>>>;
+pub type IResultComplete<I, O> = Result<O, nom::Err<error::Error<I>>>;
 
 pub trait SmlParse<'i>
 where
     Self: Sized + std::fmt::Debug,
 {
-    fn parsex<E>(input: &'i [u8]) -> IResult<&[u8], Self, E> 
-    where E: ParseError<&'i [u8]> + ContextError<&'i [u8]>;
-
-    fn parse(input: &'i [u8]) -> IResult<&[u8], Self, VerboseError<&[u8]>> {
-        let res = Self::parsex(input);
-        if let Err(x) = &res {
-            println!("{:?}", x);
-            // panic!();
-        }
-        res
-    }
+    fn parse(input: &'i [u8]) -> IResult<&'i [u8], Self>;
 
     fn parse_complete(input: &'i [u8]) -> IResultComplete<&[u8], Self> {
         let res = all_consuming(Self::parse)(input);
