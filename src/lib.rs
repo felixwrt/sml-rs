@@ -6,7 +6,7 @@
 //! # Feature flags
 //! - **`alloc`** — Implementations using allocations (`alloc::Vec` et al.).
 //!
-// #![no_std]
+#![no_std]
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 

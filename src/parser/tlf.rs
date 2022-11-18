@@ -1,3 +1,5 @@
+//! A Type-Length-Field is a building block for many SML data structures.
+
 use super::{SmlParse, take_byte};
 
 use anyhow::bail;
@@ -11,7 +13,8 @@ pub(crate) struct TypeLengthField {
 }
 
 impl TypeLengthField {
-    pub fn new(ty: Ty, len: u32) -> TypeLengthField {
+    #[allow(unused)]
+    fn new(ty: Ty, len: u32) -> TypeLengthField {
         TypeLengthField { ty, len }
     }
 }
