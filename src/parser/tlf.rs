@@ -1,33 +1,29 @@
-use super::{error, SmlParse};
+use super::{SmlParse, take_byte};
 
-use nom::{
-    bits::{bits, complete::take as take_bits},
-    combinator::map,
-    error::Error,
-    sequence::tuple,
-    IResult,
-};
+use anyhow::bail;
+
+use super::ResTy;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct TypeLengthField {
     pub ty: Ty,
-    pub len: usize,
+    pub len: u32,
 }
 
 impl TypeLengthField {
-    pub fn new(ty: Ty, len: usize) -> TypeLengthField {
+    pub fn new(ty: Ty, len: u32) -> TypeLengthField {
         TypeLengthField { ty, len }
     }
 }
 
 impl<'i> SmlParse<'i> for TypeLengthField {
-    fn parse(input: &'i [u8]) -> IResult<&[u8], Self> {
+    fn parse(input: &[u8]) -> ResTy<Self> {
         let (mut input, (mut has_more_bytes, ty, mut len)) = tlf_first_byte(input)?;
         let mut tlf_len = 1;
 
         // reserved for future usages
         if matches!(ty, Ty::Boolean) && has_more_bytes {
-            return Err(error(input)); /*reserved for future usage*/
+            bail!("Ty::Boolean && has_more_bytes is reserved for future usage");
         }
 
         while has_more_bytes {
@@ -40,10 +36,10 @@ impl<'i> SmlParse<'i> for TypeLengthField {
             len = match len.checked_shl(4) {
                 Some(l) => l,
                 None => {
-                    return Err(error(input)); /*Overflow in length field of TLF*/
+                    bail!("Overflow in the length field of TLF");
                 }
             };
-            len += (len_new & 0b1111) as usize;
+            len += len_new & 0b1111;
         }
 
         // For some reason, the length of the tlf is part of `len` for primitive types.
@@ -52,7 +48,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
             len = match len.checked_sub(tlf_len) {
                 Some(l) => l,
                 None => {
-                    return Err(error(input)); /*Specified length is too small*/
+                    bail!("Specified length is too small");
                 }
             }
         }
@@ -61,26 +57,24 @@ impl<'i> SmlParse<'i> for TypeLengthField {
     }
 }
 
-fn tlf_byte(input: &[u8]) -> IResult<&[u8], (bool, u8, usize)> {
-    let (input, (has_more_bytes, ty, len)) = bits::<_, _, Error<_>, _, _>(tuple((
-        map(take_bits(1usize), |x: u8| x > 0),  // has_more_bytes
-        take_bits(3usize),  // type
-        take_bits(4usize),  // len
-    )))(input)?;
-
-    Ok((input, (has_more_bytes, ty, len)))
+fn tlf_byte(input: &[u8]) -> ResTy<(bool, u8, u32)> {
+    let (input, b) = take_byte(input)?;
+    let len = b & 0x0F;
+    let ty = (b>>4) & 0x07;
+    let has_more_bytes = (b & 0x80) != 0;
+    Ok((input, (has_more_bytes, ty, len as u32)))
 }
 
-fn tlf_first_byte(input: &[u8]) -> IResult<&[u8], (bool, Ty, usize)> {
+fn tlf_first_byte(input: &[u8]) -> ResTy<(bool, Ty, u32)> {
     let (input, (has_more_bytes, ty, len)) = tlf_byte(input)?;
-    let ty = Ty::from_byte(ty).map_err(|_| error(input))?;
+    let ty = Ty::from_byte(ty)?;
     Ok((input, (has_more_bytes, ty, len)))
 }
 
-fn tlf_next_byte(input: &[u8]) -> IResult<&[u8], (bool, usize)> {
+fn tlf_next_byte(input: &[u8]) -> ResTy<(bool, u32)> {
     let (input, (has_more_bytes, ty, len)) = tlf_byte(input)?;
     if ty != 0x00 {
-        return Err(error(input));
+        bail!("Type field needs to be 0 for non-first tlf bytes")
     }
     Ok((input, (has_more_bytes, len)))
 }
@@ -95,7 +89,7 @@ pub(crate) enum Ty {
 }
 
 impl Ty {
-    fn from_byte(ty_num: u8) -> Result<Ty, ()> {
+    fn from_byte(ty_num: u8) -> anyhow::Result<Ty> {
         Ok(match ty_num {
             0b000 => Ty::OctetString,
             0b100 => Ty::Boolean,
@@ -103,7 +97,7 @@ impl Ty {
             0b110 => Ty::Unsigned,
             0b111 => Ty::ListOf,
             _ => {
-                return Err(()); /*invalid type bit*/
+                bail!("Invalid type in TLF.");
             }
         })
     }
