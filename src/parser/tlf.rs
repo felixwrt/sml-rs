@@ -14,7 +14,7 @@ pub(crate) struct TypeLengthField {
 
 impl TypeLengthField {
     #[allow(unused)]
-    fn new(ty: Ty, len: u32) -> TypeLengthField {
+    pub fn new(ty: Ty, len: u32) -> TypeLengthField {
         TypeLengthField { ty, len }
     }
 }

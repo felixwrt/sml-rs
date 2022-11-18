@@ -2,10 +2,11 @@
 
 pub mod tlf;
 pub mod octet_string;
+pub mod num;
 
 
 /// Error type used by the parser
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ParseError {
     /// There are additional bytes in the input while the parser expects EOF
     LeftoverInput,
@@ -23,6 +24,8 @@ pub enum ParseError {
     TlfNextByteTypeMismatch,
     /// The TLF's type field contains an invalid value
     TlfInvalidTy,
+    /// TLF doesn't match the number type being parsed
+    NumTlfMismatch,
 }
 
 type ResTy<'i, O> = Result<(&'i [u8], O), ParseError>;
