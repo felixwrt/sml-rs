@@ -4,10 +4,10 @@ use quote::quote;
 
 #[proc_macro_derive(SmlParse, attributes(tag))]
 pub fn sml_parse_macro(input: TokenStream) -> TokenStream {
-    let item = syn::parse_macro_input!(input as syn::Item);
-    match item {
-        syn::Item::Struct(strukt) => struct_derive_macro(strukt),
-        syn::Item::Enum(enum_) => enum_derive_macro(enum_),
+    let derive_input = syn::parse_macro_input!(input as syn::DeriveInput);
+    match derive_input.data {
+        syn::Data::Struct(strukt) => struct_derive_macro(strukt, derive_input.ident, derive_input.generics),
+        syn::Data::Enum(enum_) => enum_derive_macro(enum_, derive_input.ident, derive_input.generics),
         _ => quote!(compile_error!(
             "SmlParse can only be applied to structs and enums."
         ))
@@ -15,9 +15,9 @@ pub fn sml_parse_macro(input: TokenStream) -> TokenStream {
     }
 }
 
-fn struct_derive_macro(strukt: syn::ItemStruct) -> TokenStream {
-    let strukt_name = strukt.ident;
-    let strukt_generics = strukt.generics;
+fn struct_derive_macro(strukt: syn::DataStruct, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+    let strukt_name = ident;
+    let strukt_generics = generics;
 
     let nf = match strukt.fields {
         syn::Fields::Named(nf) => nf,
@@ -63,12 +63,11 @@ fn struct_derive_macro(strukt: syn::ItemStruct) -> TokenStream {
     toks.into()
 }
 
-fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
+fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
     use quote::ToTokens;
     // TODO: improve error handling
 
-    let name = enum_.ident;
-    let generics = enum_.generics;
+    let name = ident;
 
     let mut is_u32 = false;
 
@@ -82,24 +81,12 @@ fn enum_derive_macro(enum_: syn::ItemEnum) -> TokenStream {
             .next()
             .unwrap()
             .tokens;
-        let tag_paren = syn::parse2::<syn::ExprParen>(attr).unwrap();
-        let tag = match tag_paren.expr.as_ref() {
-            syn::Expr::Lit(expr_lit) => match &expr_lit.lit {
-                syn::Lit::Int(tag) => tag,
-                _ => {
-                    panic!()
-                }
-            },
-            _ => {
-                panic!();
-            }
-        };
-
+        let tag_value = u32::from_str_radix(attr.to_string().trim_start_matches("(0x").trim_end_matches(')'), 16).expect("Couldn't parse tag");
         // if one of the tags is out of range for u8, it should be u32 instead
-        if tag.base10_parse::<u8>().is_err() {
+        let tag = proc_macro2::Literal::u32_unsuffixed(tag_value);
+        if tag_value > 255 {
             is_u32 = true;
         }
-        //let tag_value = tag.base10_parse::<u32>().unwrap();
         let var_name = variant.ident;
         let ty = match variant.fields {
             syn::Fields::Unnamed(fu) => fu.unnamed.iter().next().unwrap().ty.clone(),

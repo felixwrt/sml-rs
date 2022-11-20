@@ -10,5 +10,5 @@ path = "sml-rs-macros.rs"
 
 [dependencies]
 quote = "1.0"
-syn = {version = "1.0", features = ["full", "extra-traits"]}
+syn = {version = "1.0", features = ["derive"] }
 proc-macro2 = "1.0"
