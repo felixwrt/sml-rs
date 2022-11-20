@@ -1,8 +1,11 @@
 //! This module implements the SML parser
 
+use self::tlf::{Ty, TypeLengthField};
+
 pub mod num;
 pub mod octet_string;
 pub mod tlf;
+pub mod domain;
 
 /// Error type used by the parser
 #[derive(Debug, PartialEq, Eq)]
@@ -25,6 +28,14 @@ pub enum ParseError {
     TlfInvalidTy,
     /// TLF doesn't match the number type being parsed
     NumTlfMismatch,
+    /// TLF mismatch while parsing struct / enum
+    TlfMismatch(&'static str),
+    /// CRC mismatch,
+    CrcMismatch,
+    /// Expected to find 0x00 as message end marker, got something else
+    MsgEndMismatch,
+    /// Got a variant id that isn't known. This means it's either invalid or not supported (yet) by the parser
+    UnexpectedVariant,
 }
 
 type ResTy<'i, O> = Result<(&'i [u8], O), ParseError>;
@@ -70,16 +81,28 @@ fn take_byte(input: &[u8]) -> ResTy<u8> {
     Ok((&input[1..], input[0]))
 }
 
-// fn take<const N: usize>(input: &[u8]) -> ResTy<&[u8; N]> {
-//     if input.len() < N {
-//         return Err(ParseError::UnexpectedEOF);
-//     }
-//     Ok((&input[N..], input[..N].try_into().unwrap()))
-// }
+fn take<const N: usize>(input: &[u8]) -> ResTy<&[u8; N]> {
+    if input.len() < N {
+        return Err(ParseError::UnexpectedEOF);
+    }
+    Ok((&input[N..], input[..N].try_into().unwrap()))
+}
 
 fn take_n(input: &[u8], n: usize) -> ResTy<&[u8]> {
     if input.len() < n {
         return Err(ParseError::UnexpectedEOF);
     }
     Ok((&input[n..], &input[..n]))
+}
+
+fn take_tlf<'i>(input: &'i [u8], ty: Ty, len: u32, s: &'static str) -> ResTy<'i, ()> {
+    let (input, tlf) = TypeLengthField::parse(input)?;
+    if tlf.ty != ty || tlf.len != len {
+        return Err(ParseError::TlfMismatch(s));
+    }
+    Ok((input, ()))
+}
+
+fn map<'i, O1, O2>(val: ResTy<'i, O1>, mut f: impl FnMut(O1) -> O2) -> ResTy<'i, O2> {
+    val.map(|(input, x)| (input, f(x)))
 }

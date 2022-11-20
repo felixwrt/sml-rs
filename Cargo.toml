@@ -1,3 +1,9 @@
+[workspace]
+members = [
+    ".",
+    "sml-rs-macros"
+]
+
 [package]
 name = "sml-rs"
 version = "0.0.5"
@@ -11,10 +17,9 @@ edition = "2021"
 alloc = []
 
 [dependencies]
-anyhow = "1.0.66"
 crc = "3.0.0"
 heapless = "0.7.13"
-nom = "7.1.1"
+sml-rs-macros = { path = "sml-rs-macros" }
 
 [dev-dependencies]
 insta = { version = "1.21.0", features = ["yaml", "glob"] }

@@ -19,7 +19,8 @@ fn main() -> Result<(), std::io::Error> {
         match decoder.push_byte(b) {
             Ok(None) => {}
             Ok(Some(decoded_bytes)) => {
-                println!("Ok({})", decoded_bytes.len());
+                use sml_rs::parser::SmlParse;
+                println!("{:#?}", sml_rs::parser::domain::File::parse_complete(decoded_bytes));
             }
             Err(e) => {
                 println!("Err({:?})", e);
