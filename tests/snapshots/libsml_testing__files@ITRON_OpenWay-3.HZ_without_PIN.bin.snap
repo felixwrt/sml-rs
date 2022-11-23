@@ -1,9 +1,100 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/ITRON_OpenWay-3.HZ_without_PIN.bin
 ---
-Ok(206)
-Ok(206)
+Ok(
+    [
+        Message {
+            transaction_id: [155, 98, 36, 6, 6, 164, 175, 211],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 0, 8, 91, 71, 225],
+                server_id: [10, 1, 73, 84, 82, 0, 3, 71, 240, 64],
+                ref_time: SecIndex(140200337),
+            },
+        },
+        Message {
+            transaction_id: [155, 98, 36, 6, 6, 164, 175, 212],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 73, 84, 82, 0, 3, 71, 240, 64],
+                list_name: [1, 0, 98, 10, 255, 255],
+                act_sensor_time: SecIndex(140200337),
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [73, 84, 82],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 73, 84, 82, 0, 3, 71, 240, 64],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 1835268,
+                        unit: 30,
+                        scaler: 3,
+                        value: 25688,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [155, 98, 36, 6, 6, 164, 175, 213],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [155, 98, 36, 6, 6, 164, 175, 214],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 0, 8, 91, 71, 226],
+                server_id: [10, 1, 73, 84, 82, 0, 3, 71, 240, 64],
+                ref_time: SecIndex(140200338),
+            },
+        },
+        Message {
+            transaction_id: [155, 98, 36, 6, 6, 164, 175, 215],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 73, 84, 82, 0, 3, 71, 240, 64],
+                list_name: [1, 0, 98, 10, 255, 255],
+                act_sensor_time: SecIndex(140200338),
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [73, 84, 82],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 73, 84, 82, 0, 3, 71, 240, 64],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 1835268,
+                        unit: 30,
+                        scaler: 3,
+                        value: 25688,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [155, 98, 36, 6, 6, 164, 175, 216],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 

@@ -1,8 +1,75 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/DZG_DVS-7412.2_jmberg.bin
 ---
-Ok(239)
+Ok(
+    [
+        Message {
+            transaction_id: [241, 44, 173, 7],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [49],
+                server_id: [10, 1, 68, 90, 71, 0, 2, 130, 34, 94],
+                ref_time: SecIndex(99043543),
+                sml_version: 2,
+            },
+        },
+        Message {
+            transaction_id: [242, 44, 173, 7],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 68, 90, 71, 0, 2, 130, 34, 94],
+                list_name: [1, 0, 98, 10, 255, 255],
+                act_sensor_time: SecIndex(99043543),
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        val_time: SecIndex(0),
+                        unit: 0,
+                        scaler: 0,
+                        value: [68, 90, 71],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        val_time: SecIndex(0),
+                        unit: 0,
+                        scaler: 0,
+                        value: [10, 1, 68, 90, 71, 0, 2, 130, 34, 94],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 1835268,
+                        val_time: SecIndex(0),
+                        unit: 30,
+                        scaler: -1,
+                        value: 54301577,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        val_time: SecIndex(0),
+                        unit: 30,
+                        scaler: -1,
+                        value: 262445726,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        val_time: SecIndex(0),
+                        unit: 27,
+                        scaler: -2,
+                        value: -29912,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [243, 44, 173, 7],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 

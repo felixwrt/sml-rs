@@ -1,8 +1,61 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/EMH_eHZ361L5R.bin
 ---
-Ok(202)
+Ok(
+    [
+        Message {
+            transaction_id: [152, 224, 206, 149],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [72, 97, 103, 8, 66, 25, 173],
+                server_id: [49, 48, 48, 49, 49, 56, 53],
+            },
+        },
+        Message {
+            transaction_id: [152, 224, 206, 150],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [49, 48, 48, 49, 49, 56, 53],
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [72, 65, 71, 69, 82],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 0, 255],
+                        value: [49, 48, 48, 49, 49, 56, 53],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 1, 255],
+                        status: 130,
+                        unit: 30,
+                        scaler: -1,
+                        value: 1103403151,
+                    },
+                    ListEntry {
+                        obj_name: [0, 0, 96, 1, 255, 255],
+                        value: [48, 48, 48, 48, 49, 49, 54, 57, 49, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 7, 1, 255],
+                        status: 130,
+                        unit: 27,
+                        scaler: -4,
+                        value: -56321916,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [152, 224, 206, 151],
+            group_id: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 
