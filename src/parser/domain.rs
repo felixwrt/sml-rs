@@ -1,30 +1,42 @@
 //! SML domain types and their parser implementations.
 #![allow(missing_docs)]
 
+use core::fmt::Display;
+
 use sml_rs_macros::SmlParse;
 
 use crate::CRC_X25;
 
-use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map};
+use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter};
 
 type Timestamp = u32; // unix timestamp
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-pub struct TimestampLocal {
-    // localtime = timestamp + local_offset + season_time_offset
-    timestamp: Timestamp,
-    local_offset: i16,       // in minutes
-    season_time_offset: i16, // in minutes
-}
+// NOTE: removed because it doesn't seem to be used in any devices
+// #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+// pub struct TimestampLocal {
+//     // localtime = timestamp + local_offset + season_time_offset
+//     timestamp: Timestamp,
+//     local_offset: i16,       // in minutes
+//     season_time_offset: i16, // in minutes
+// }
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum Time {
     #[tag(0x01)]
     SecIndex(u32),
-    #[tag(0x02)]
-    Timestamp(Timestamp),
-    #[tag(0x03)]
-    LocalTimestamp(TimestampLocal),
+    // NOTE: removed because it doesn't seem to be used in any devices
+    // #[tag(0x02)]
+    // Timestamp(Timestamp),
+    // #[tag(0x03)]
+    // LocalTimestamp(TimestampLocal),
+}
+
+impl ::core::fmt::Debug for Time {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::SecIndex(arg0) => write!(f, "SecIndex({})", arg0),
+        }
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -49,7 +61,7 @@ impl<'i> SmlParse<'i> for File<'i> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct Message<'i> {
     pub transaction_id: OctetStr<'i>,
     pub group_id: u8,
@@ -90,6 +102,17 @@ impl<'i> SmlParse<'i> for Message<'i> {
     }
 }
 
+impl<'i> ::core::fmt::Debug for Message<'i> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Message")
+            .field("transaction_id", &OctetStrFormatter(self.transaction_id))
+            .field("group_id", &self.group_id)
+            .field("abort_on_error", &self.abort_on_error)
+            .field("message_body", &self.message_body)
+        .finish()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EndOfSmlMessage;
 
@@ -104,7 +127,7 @@ impl<'i> SmlParse<'i> for EndOfSmlMessage {
 }
 
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum MessageBody<'i> {
     #[tag(0x00000101)]
     OpenResponse(OpenResponse<'i>),
@@ -114,7 +137,17 @@ pub enum MessageBody<'i> {
     GetListResponse(GetListResponse<'i>),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+impl<'i> core::fmt::Debug for MessageBody<'i> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::OpenResponse(arg0) => arg0.fmt(f),
+            Self::CloseResponse(arg0) => arg0.fmt(f),
+            Self::GetListResponse(arg0) => arg0.fmt(f),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub struct OpenResponse<'i> {
     codepage: Option<OctetStr<'i>>,
     client_id: Option<OctetStr<'i>>,
@@ -124,14 +157,46 @@ pub struct OpenResponse<'i> {
     sml_version: Option<u8>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+impl<'i> ::core::fmt::Debug for OpenResponse<'i> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        let mut x = f.debug_struct("OpenResponse");
+        if let Some(e) = &self.codepage {
+            x.field("codepage", &OctetStrFormatter(e));
+        }
+        if let Some(e) = &self.client_id {
+            x.field("client_id", &OctetStrFormatter(e));
+        }
+        x.field("req_file_id", &OctetStrFormatter(self.req_file_id));
+        x.field("server_id", &OctetStrFormatter(self.server_id));
+        if let Some(e) = &self.ref_time {
+            x.field("ref_time", e);
+        }
+        if let Some(e) = &self.sml_version {
+            x.field("sml_version", e);
+        }
+        x.finish()
+    }
+}
+
+
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub struct CloseResponse<'i> {
     global_signature: Option<Signature<'i>>,
 }
 
+impl<'i> ::core::fmt::Debug for CloseResponse<'i> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        let mut x = f.debug_struct("CloseResponse");
+        if let Some(e) = &self.global_signature {
+            x.field("global_signature", &OctetStrFormatter(e));
+        }
+        x.finish()
+    }
+}
+
 type Signature<'i> = OctetStr<'i>;
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub struct GetListResponse<'i> {
     pub client_id: Option<OctetStr<'i>>,
     pub server_id: OctetStr<'i>,
@@ -140,6 +205,30 @@ pub struct GetListResponse<'i> {
     pub val_list: List<'i>,
     pub list_signature: Option<Signature<'i>>,
     pub act_gateway_time: Option<Time>,
+}
+
+impl<'i> ::core::fmt::Debug for GetListResponse<'i> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        let mut x = f.debug_struct("GetListResponse");
+        if let Some(e) = &self.client_id {
+            x.field("client_id", &OctetStrFormatter(e));
+        }
+        x.field("server_id", &OctetStrFormatter(self.server_id));
+        if let Some(e) = &self.list_name {
+            x.field("list_name", &OctetStrFormatter(e));
+        }
+        if let Some(e) = &self.act_sensor_time {
+            x.field("act_sensor_time", e);
+        }
+        x.field("val_list", &self.val_list);
+        if let Some(e) = &self.list_signature {
+            x.field("list_signature", e);
+        }
+        if let Some(e) = &self.act_gateway_time {
+            x.field("act_gateway_time", e);
+        }
+        x.finish()
+    }
 }
 
 
@@ -165,7 +254,7 @@ impl<'i> SmlParse<'i> for List<'i> {
 }
 
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub struct ListEntry<'i> {
     pub obj_name: OctetStr<'i>,
     pub status: Option<Status>,
@@ -176,7 +265,31 @@ pub struct ListEntry<'i> {
     pub value_signature: Option<Signature<'i>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+impl<'i> ::core::fmt::Debug for ListEntry<'i> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        let mut x = f.debug_struct("ListEntry");
+        x.field("obj_name", &OctetStrFormatter(&self.obj_name));
+        if let Some(e) = &self.status {
+            x.field("status", e);
+        }
+        if let Some(e) = &self.val_time {
+            x.field("val_time", e);
+        }
+        if let Some(e) = &self.unit {
+            x.field("unit", e);
+        }
+        if let Some(e) = &self.scaler {
+            x.field("scaler", e);
+        }
+        x.field("value", &self.value);
+        if let Some(e) = &self.value_signature {
+            x.field("value_signature", &OctetStrFormatter(e));
+        }
+        x.finish()
+    }
+}
+
+#[derive(PartialEq, Eq, Clone)]
 pub enum Status {
     Status8(u8),
     Status16(u16),
@@ -202,10 +315,21 @@ impl<'i> SmlParse<'i> for Status {
     }
 }
 
+impl ::core::fmt::Debug for Status {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Status8(x) => write!(f, "{}", x),
+            Self::Status16(x) => write!(f, "{}", x),
+            Self::Status32(x) => write!(f, "{}", x),
+            Self::Status64(x) => write!(f, "{}", x),
+        }
+    }
+}
+
 // see IEC 62056-62
 pub type Unit = u8; // proper enum?
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum Value<'i> {
     Bool(bool),
     Bytes(OctetStr<'i>),
@@ -218,6 +342,24 @@ pub enum Value<'i> {
     U32(u32),
     U64(u64),
     List(ListType),
+}
+
+impl<'i> core::fmt::Debug for Value<'i> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Bool(arg0) => write!(f, "{:?}", arg0),
+            Self::Bytes(arg0) => write!(f, "{:?}", OctetStrFormatter(arg0)),
+            Self::I8(arg0) => write!(f, "{:?}", arg0),
+            Self::I16(arg0) => write!(f, "{:?}", arg0),
+            Self::I32(arg0) => write!(f, "{:?}", arg0),
+            Self::I64(arg0) => write!(f, "{:?}", arg0),
+            Self::U8(arg0) => write!(f, "{:?}", arg0),
+            Self::U16(arg0) => write!(f, "{:?}", arg0),
+            Self::U32(arg0) => write!(f, "{:?}", arg0),
+            Self::U64(arg0) => write!(f, "{:?}", arg0),
+            Self::List(arg0) => write!(f, "{:?}", arg0),
+        }
+    }
 }
 
 impl<'i> SmlParse<'i> for Value<'i> {

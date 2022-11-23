@@ -1,5 +1,7 @@
 //! This module implements the SML parser
 
+use core::fmt::{Display, Debug};
+
 use self::tlf::{Ty, TypeLengthField};
 
 pub mod num;
@@ -105,4 +107,12 @@ fn take_tlf<'i>(input: &'i [u8], ty: Ty, len: u32, s: &'static str) -> ResTy<'i,
 
 fn map<'i, O1, O2>(val: ResTy<'i, O1>, mut f: impl FnMut(O1) -> O2) -> ResTy<'i, O2> {
     val.map(|(input, x)| (input, f(x)))
+}
+
+struct OctetStrFormatter<'i>(&'i [u8]);
+
+impl<'i> Debug for OctetStrFormatter<'i> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
 }

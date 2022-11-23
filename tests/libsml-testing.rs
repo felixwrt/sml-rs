@@ -5,7 +5,7 @@ use std::{
     ffi::{OsStr, OsString},
 };
 
-// use sml_rs::parser::SmlParse;
+use sml_rs::parser::SmlParse;
 
 #[test]
 fn test_repo_validation()  {
@@ -57,8 +57,11 @@ fn test_files() {
 
         let mut s = String::new();
         while let Some(result) = decoder.next() {
-            write!(s, "{:?}\n", result.map(|x| x.len())).unwrap();
-            // write!(s, "{:?}\n", result.map(|x| sml_rs::parser::domain::File::parse_complete(x))).unwrap();
+            // write!(s, "{:?}\n", result.map(|x| x.len())).unwrap();
+            write!(s, "{:#?}\n", result.map(|x| {
+                let res = sml_rs::parser::domain::File::parse_complete(x);
+                res.expect("Error while parsing:").messages
+            })).unwrap();
         }
         insta::assert_snapshot!(s);
     });
