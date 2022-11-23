@@ -116,3 +116,11 @@ impl<'i> Debug for OctetStrFormatter<'i> {
         write!(f, "{:?}", self.0)
     }
 }
+
+struct DebugToDisplayAdapter<'i>(&'i dyn Display);
+
+impl<'i> Debug for DebugToDisplayAdapter<'i> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
