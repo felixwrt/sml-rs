@@ -4,7 +4,30 @@ use super::{
     take_byte, take_n,
     tlf::{Ty, TypeLengthField},
     ResTy, SmlParseTlf,
+    map
 };
+
+fn parse_num<'i, const SIZE: usize, const IS_SIGNED: bool>(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, [u8; SIZE]> {
+    // read bytes
+    let (input, bytes) = take_n(input, tlf.len as usize)?;
+
+    // determine fill bytes depending on the type and sign of the number
+    let fill_byte = if IS_SIGNED {
+        let is_negative = bytes[0] > 0x7F;
+        if is_negative { 0xFF } else { 0x00 }
+    } else {
+        0x00
+    };
+
+    // initialize buffer of Self's size with fill bytes
+    let mut buffer = [fill_byte; SIZE];
+
+    // copy read bytes into the buffer
+    let num_skipped_bytes = SIZE - tlf.len as usize;
+    buffer[num_skipped_bytes..].copy_from_slice(bytes);
+
+    Ok((input, buffer))
+}
 
 macro_rules! impl_num {
     (($($t:ty),+), $int_ty:expr) => {
@@ -25,31 +48,9 @@ macro_rules! impl_num {
                 fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
                     // size of the number type (in bytes)
                     const SIZE: usize = core::mem::size_of::<$t>();
+                    const IS_SIGNED: bool = matches!($int_ty, Ty::Integer);
 
-                    // read bytes
-                    let (input, bytes) = take_n(input, tlf.len as usize)?;
-
-                    // determine fill bytes depending on the type and sign of the number
-                    let fill_byte = match $int_ty {
-                        Ty::Unsigned => 0x00,
-                        Ty::Integer => {
-                            let is_negative = bytes[0] > 0x7F;
-                            if is_negative { 0xFF } else { 0x00 }
-                        },
-                        _ => unreachable!()
-                    };
-
-                    // initialize buffer of Self's size with fill bytes
-                    let mut buffer = [fill_byte; SIZE];
-
-                    // copy read bytes into the buffer
-                    let num_skipped_bytes = SIZE - tlf.len as usize;
-                    buffer[num_skipped_bytes..].copy_from_slice(bytes);
-
-                    // turn the buffer into an actual number type
-                    let num = Self::from_be_bytes(buffer);
-
-                    Ok((input, num))
+                    map(parse_num::<SIZE, IS_SIGNED>(input, tlf), Self::from_be_bytes)
                 }
             }
         )+
