@@ -1,11 +1,9 @@
 //! An OctetString in SML is a sequence of bytes.
 
-use crate::parser::ParseError;
-
 use super::{
     take_n,
     tlf::{Ty, TypeLengthField},
-    ResTy, SmlParse,
+    ResTy, SmlParseTlf,
 };
 
 #[cfg(feature = "alloc")]
@@ -13,9 +11,13 @@ use super::{
 pub type OctetString = alloc::vec::Vec<u8>;
 
 #[cfg(feature = "alloc")]
-impl<'i> SmlParse<'i> for OctetString {
-    fn parse(input: &'i [u8]) -> ResTy<Self> {
-        let (input, octet_str) = OctetStr::parse(input)?;
+impl<'i> SmlParseTlf<'i> for OctetString {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        OctetStr::check_tlf(tlf)
+    }
+
+    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        let (input, octet_str) = OctetStr::parse_with_tlf(input, tlf)?;
         Ok((input, octet_str.to_vec()))
     }
 }
@@ -23,14 +25,12 @@ impl<'i> SmlParse<'i> for OctetString {
 /// OctetStr is the borrowed version of a sequence of bytes.
 pub type OctetStr<'i> = &'i [u8];
 
-impl<'i> SmlParse<'i> for OctetStr<'i> {
-    fn parse(input: &'i [u8]) -> ResTy<OctetStr<'i>> {
-        let (input, tlf) = TypeLengthField::parse(input)?;
+impl<'i> SmlParseTlf<'i> for OctetStr<'i> {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        matches!(tlf.ty, Ty::OctetString)
+    }
 
-        if !matches!(tlf.ty, Ty::OctetString) {
-            return Err(ParseError::OctetStrTlfTypeMismatch);
-        }
-
+    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
         take_n(input, tlf.len as usize)
     }
 }
@@ -38,6 +38,7 @@ impl<'i> SmlParse<'i> for OctetStr<'i> {
 #[cfg(test)]
 mod test {
 
+    use crate::parser::SmlParse;
     use super::*;
     use hex_literal::hex;
 

@@ -5,7 +5,7 @@ use sml_rs_macros::SmlParse;
 
 use crate::CRC_X25;
 
-use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter, DebugToDisplayAdapter};
+use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter, DebugToDisplayAdapter, SmlParseTlf};
 
 // NOTE: removed because it doesn't seem to be used in any devices
 // type Timestamp = u32; // unix timestamp
@@ -234,14 +234,13 @@ impl<'i> ::core::fmt::Debug for GetListResponse<'i> {
 #[cfg(feature = "alloc")]
 pub type List<'i> = alloc::vec::Vec<ListEntry<'i>>;
 
-impl<'i> SmlParse<'i> for List<'i> {
-    fn parse(input: &'i [u8]) -> ResTy<Self> {
-        let (mut input, tlf) = TypeLengthField::parse(input)?;
+#[cfg(feature = "alloc")]
+impl<'i> SmlParseTlf<'i> for List<'i> {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        matches!(tlf.ty, Ty::ListOf)
+    }
 
-        if !matches!(tlf.ty, Ty::ListOf) {
-            return Err(ParseError::TlfMismatch("List"));
-        }
-
+    fn parse_with_tlf(mut input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
         let mut v = alloc::vec::Vec::with_capacity(tlf.len as usize);
         for _ in 0..tlf.len {
             let (new_input, x) = ListEntry::parse(input)?;
@@ -296,20 +295,18 @@ pub enum Status {
     Status64(u64),
 }
 
-impl<'i> SmlParse<'i> for Status {
-    fn parse(input: &'i [u8]) -> ResTy<Self> {
-        let (_, tlf) = TypeLengthField::parse(input)?;
+impl<'i> SmlParseTlf<'i> for Status {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        matches!(tlf.ty, Ty::Unsigned)
+    }
 
-        if !matches!(tlf.ty, Ty::Unsigned) {
-            return Err(ParseError::TlfMismatch("Status1"));
-        }
-
-        match tlf.len {
-            0x01 => map(u8::parse(input), Status::Status8),
-            0x02 => map(u16::parse(input), Status::Status16),
-            0x03 | 0x04 => map(u32::parse(input), Status::Status32),
-            x if x <= 0x08 => map(u64::parse(input), Status::Status64),
-            _ => Err(ParseError::TlfMismatch("Status2"))
+    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        match tlf {
+            tlf if u8::check_tlf(tlf) => map(u8::parse_with_tlf(input, tlf), Status::Status8),
+            tlf if u16::check_tlf(tlf) => map(u16::parse_with_tlf(input, tlf), Status::Status16),
+            tlf if u32::check_tlf(tlf) => map(u32::parse_with_tlf(input, tlf), Status::Status32),
+            tlf if u64::check_tlf(tlf) => map(u64::parse_with_tlf(input, tlf), Status::Status64),
+            _ => Err(ParseError::TlfMismatch(core::any::type_name::<Self>()))
         }
     }
 }
@@ -361,23 +358,25 @@ impl<'i> core::fmt::Display for Value<'i> {
     }
 }
 
-impl<'i> SmlParse<'i> for Value<'i> {
-    fn parse(input: &'i [u8]) -> ResTy<Self> {
-        let (_, tlf) = TypeLengthField::parse(input)?;
+impl<'i> SmlParseTlf<'i> for Value<'i> {
+    fn check_tlf(_tlf: &TypeLengthField) -> bool {
+        true
+    }
 
-        match (tlf.ty, tlf.len) {
-            (Ty::Boolean, 1) => map(bool::parse(input), Value::Bool),
-            (Ty::OctetString, _) => map(OctetStr::parse(input), Value::Bytes),
-            (Ty::Unsigned, 1) => map(u8::parse(input), Value::U8),
-            (Ty::Unsigned, 2) => map(u16::parse(input), Value::U16),
-            (Ty::Unsigned, 3 | 4) => map(u32::parse(input), Value::U32),
-            (Ty::Unsigned, x) if x <= 8 => map(u64::parse(input), Value::U64),
-            (Ty::Integer, 1) => map(i8::parse(input), Value::I8),
-            (Ty::Integer, 2) => map(i16::parse(input), Value::I16),
-            (Ty::Integer, 3 | 4) => map(i32::parse(input), Value::I32),
-            (Ty::Integer, x) if x <= 8 => map(i64::parse(input), Value::I64),
-            (Ty::ListOf, 2) => map(ListType::parse(input), Value::List),
-            _ => Err(ParseError::TlfMismatch("Value"))
+    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        match tlf {
+            tlf if bool::check_tlf(tlf) => map(bool::parse_with_tlf(input, tlf), Value::Bool),
+            tlf if OctetStr::check_tlf(tlf) => map(OctetStr::parse_with_tlf(input, tlf), Value::Bytes),
+            tlf if u8::check_tlf(tlf) => map(u8::parse_with_tlf(input, tlf), Value::U8),
+            tlf if u16::check_tlf(tlf) => map(u16::parse_with_tlf(input, tlf), Value::U16),
+            tlf if u32::check_tlf(tlf) => map(u32::parse_with_tlf(input, tlf), Value::U32),
+            tlf if u64::check_tlf(tlf) => map(u64::parse_with_tlf(input, tlf), Value::U64),
+            tlf if i8::check_tlf(tlf) => map(i8::parse_with_tlf(input, tlf), Value::I8),
+            tlf if i16::check_tlf(tlf) => map(i16::parse_with_tlf(input, tlf), Value::I16),
+            tlf if i32::check_tlf(tlf) => map(i32::parse_with_tlf(input, tlf), Value::I32),
+            tlf if i64::check_tlf(tlf) => map(i64::parse_with_tlf(input, tlf), Value::I64),
+            tlf if ListType::check_tlf(tlf) => map(ListType::parse_with_tlf(input, tlf), Value::List),
+            _ => Err(ParseError::TlfMismatch(core::any::type_name::<Self>()))
         }
     }
 }

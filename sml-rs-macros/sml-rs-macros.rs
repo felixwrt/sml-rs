@@ -46,11 +46,12 @@ fn struct_derive_macro(strukt: syn::DataStruct, ident: syn::Ident, generics: syn
     }
 
     let toks = quote!(
-        // todo: rewrite such that the lifetime parameter 'i isn't hardcoded here anymore
-        impl<'i> crate::parser::SmlParse<'i> for #strukt_name #strukt_generics {
-            fn parse(input: &'i [u8]) -> crate::parser::ResTy<Self> {
-                let (input, ()) = crate::parser::take_tlf(input, crate::parser::tlf::Ty::ListOf, #num_fields as u32, stringify!(#strukt_name))?;
-                
+        impl<'i> crate::parser::SmlParseTlf<'i> for #strukt_name #strukt_generics {
+            fn check_tlf(tlf: &TypeLengthField) -> bool {
+                *tlf == crate::parser::tlf::TypeLengthField::new(crate::parser::tlf::Ty::ListOf, #num_fields as u32)
+            }
+        
+            fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
                 #(#fields)*
 
                 let val = #strukt_name {
@@ -101,6 +102,12 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
         ));
     }
 
+    let holley_workaround_check = if name == "Time" {
+        quote!(
+            *tlf == crate::parser::tlf::TypeLengthField::new(crate::parser::tlf::Ty::Unsigned, 4)
+        )
+    } else { quote!( false ) };
+
     let holley_workaround = if name == "Time" {
         quote!(
             // Workaround for Holley DTZ541:
@@ -108,7 +115,7 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
             // Intead of a TLF of type ListOf and length 2, it directly sends an u32 integer,
             // which is encoded by a TLF of Unsigned and length 4 followed by four bytes containing 
             // the data. 
-            if tlf == crate::parser::tlf::TypeLengthField::new(crate::parser::tlf::Ty::Unsigned, 4) {
+            if #holley_workaround_check {
                 let (input, bytes) = crate::parser::take::<4>(input)?;
                 return Ok((input, Time::SecIndex(u32::from_be_bytes(bytes.clone()))));
             }
@@ -118,16 +125,14 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
     let tag_ty = if is_u32 { quote!(u32) } else { quote!(u8) };
 
     let toks = quote!(
-        impl<'i> crate::parser::SmlParse<'i> for #name #generics {
-            fn parse(input: &'i [u8]) -> crate::parser::ResTy<Self> {
-                // ListOf(Tag(u8), Elmt)
+        impl<'i> crate::parser::SmlParseTlf<'i> for #name #generics {
 
-                // parse ListOf-tlf
-                let (input, tlf) = crate::parser::tlf::TypeLengthField::parse(input)?;
-                if tlf.ty != crate::parser::tlf::Ty::ListOf || tlf.len != 2 {
-                    #holley_workaround
-                    return Err(crate::parser::ParseError::TlfMismatch(stringify!(#name)));
-                }
+            fn check_tlf(tlf: &TypeLengthField) -> bool {
+                (tlf.ty == crate::parser::tlf::Ty::ListOf && tlf.len == 2) || #holley_workaround_check
+            }
+        
+            fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+                #holley_workaround
 
                 // parse tag
                 let (input, tag) = #tag_ty::parse(input)?;

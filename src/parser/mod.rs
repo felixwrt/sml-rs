@@ -2,7 +2,7 @@
 
 use core::fmt::{Display, Debug};
 
-use self::tlf::{Ty, TypeLengthField};
+use self::tlf::TypeLengthField;
 
 pub mod num;
 pub mod octet_string;
@@ -65,6 +65,27 @@ where
     }
 }
 
+pub(crate) trait SmlParseTlf<'i>
+where
+    Self: Sized,
+{
+    fn check_tlf(tlf: &TypeLengthField) -> bool;
+
+    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self>;
+}
+
+impl<'i, T: SmlParseTlf<'i>> SmlParse<'i> for T {
+    fn parse(input: &'i [u8]) -> ResTy<Self> {
+        let (input, tlf) = TypeLengthField::parse(input)?;
+        if !Self::check_tlf(&tlf) {
+            return Err(ParseError::TlfMismatch(core::any::type_name::<Self>()));
+        }
+        Self::parse_with_tlf(input, &tlf)
+    }
+}
+
+
+
 impl<'i, T: SmlParse<'i>> SmlParse<'i> for Option<T> {
     fn parse(input: &'i [u8]) -> ResTy<Self> {
         if let Some(0x01u8) = input.first() {
@@ -95,14 +116,6 @@ fn take_n(input: &[u8], n: usize) -> ResTy<&[u8]> {
         return Err(ParseError::UnexpectedEOF);
     }
     Ok((&input[n..], &input[..n]))
-}
-
-fn take_tlf<'i>(input: &'i [u8], ty: Ty, len: u32, s: &'static str) -> ResTy<'i, ()> {
-    let (input, tlf) = TypeLengthField::parse(input)?;
-    if tlf.ty != ty || tlf.len != len {
-        return Err(ParseError::TlfMismatch(s));
-    }
-    Ok((input, ()))
 }
 
 fn map<'i, O1, O2>(val: ResTy<'i, O1>, mut f: impl FnMut(O1) -> O2) -> ResTy<'i, O2> {

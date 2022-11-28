@@ -3,27 +3,28 @@
 use super::{
     take_byte, take_n,
     tlf::{Ty, TypeLengthField},
-    ParseError, ResTy, SmlParse,
+    ResTy, SmlParseTlf,
 };
 
 macro_rules! impl_num {
     (($($t:ty),+), $int_ty:expr) => {
         $(
-            impl<'i> SmlParse<'i> for $t {
-                fn parse(input: &'i [u8]) -> ResTy<Self> {
-                    // compile time check to ensure that the second argument to `impl_num` can only be `Ty::Unsigned` or `Ty::Integer`
-                    const _: () = if !matches!($int_ty, Ty::Unsigned | Ty::Integer) {
-                        panic!("impl_num used with invalid type argument. Only Ty::Unsigned and Ty::Integer are allowed");
-                    };
+            // compile time check to ensure that the second argument to `impl_num` can only be `Ty::Unsigned` or `Ty::Integer`
+            const _: () = if !matches!($int_ty, Ty::Unsigned | Ty::Integer) {
+                panic!("impl_num used with invalid type argument. Only Ty::Unsigned and Ty::Integer are allowed");
+            };
 
+            impl<'i> SmlParseTlf<'i> for $t {
+                fn check_tlf(tlf: &TypeLengthField) -> bool {
                     // size of the number type (in bytes)
                     const SIZE: usize = core::mem::size_of::<$t>();
-
-                    // parse and validate type-length field
-                    let (input, tlf) = TypeLengthField::parse(input)?;
-                    if tlf.ty != $int_ty || tlf.len as usize > SIZE || tlf.len == 0 {
-                        return Err(ParseError::NumTlfMismatch);
-                    }
+                    
+                    tlf.ty == $int_ty && tlf.len as usize <= SIZE && tlf.len != 0
+                }
+            
+                fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+                    // size of the number type (in bytes)
+                    const SIZE: usize = core::mem::size_of::<$t>();
 
                     // read bytes
                     let (input, bytes) = take_n(input, tlf.len as usize)?;
@@ -59,14 +60,12 @@ impl_num!((u8, u16, u32, u64), Ty::Unsigned);
 impl_num!((i8, i16, i32, i64), Ty::Integer);
 
 // Boolean
-impl<'i> SmlParse<'i> for bool {
-    fn parse(input: &'i [u8]) -> ResTy<Self> {
-        let (input, tlf) = TypeLengthField::parse(input)?;
+impl<'i> SmlParseTlf<'i> for bool {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        *tlf == TypeLengthField::new(Ty::Boolean, core::mem::size_of::<Self>() as u32)
+    }
 
-        if tlf != TypeLengthField::new(Ty::Boolean, core::mem::size_of::<Self>() as u32) {
-            return Err(ParseError::NumTlfMismatch);
-        }
-
+    fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
         let (input, b) = take_byte(input)?;
         Ok((input, b > 0))
     }
@@ -74,7 +73,7 @@ impl<'i> SmlParse<'i> for bool {
 
 #[cfg(test)]
 mod test {
-    use super::SmlParse;
+    use crate::parser::SmlParse;
 
     #[test]
     fn parse_nums() {
@@ -96,6 +95,12 @@ mod test {
             i64::parse_complete(&[0x59, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]),
             Ok(-1)
         );
+    }
+
+    #[test]
+    fn parse_nums_error() {
+        // tlf if for u32, but we're trying to parse as u8
+        assert!(u8::parse_complete(&[0x65, 0x0, 0x0, 0x0, 0x1]).is_err());
     }
 
     #[test]
