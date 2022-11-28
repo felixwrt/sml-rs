@@ -74,22 +74,23 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
 
     let mut variant_lines = vec![];
 
-    for variant in enum_.variants {
-        let attr = variant
+    for variant in &enum_.variants {
+        let Some(attr) = variant
             .attrs
-            .into_iter()
-            .filter(|a| a.path.to_token_stream().to_string() == "tag")
-            .next()
-            .unwrap()
-            .tokens;
+            .iter()
+            .find(|a| a.path.to_token_stream().to_string() == "tag")
+            .map(|x| &x.tokens)
+        else {
+            return enum_derive_macro_implicit(&enum_, name, generics);
+        };
         let tag_value = u32::from_str_radix(attr.to_string().trim_start_matches("(0x").trim_end_matches(')'), 16).expect("Couldn't parse tag");
         // if one of the tags is out of range for u8, it should be u32 instead
         let tag = proc_macro2::Literal::u32_unsuffixed(tag_value);
         if tag_value > 255 {
             is_u32 = true;
         }
-        let var_name = variant.ident;
-        let ty = match variant.fields {
+        let var_name = &variant.ident;
+        let ty = match &variant.fields {
             syn::Fields::Unnamed(fu) => fu.unnamed.iter().next().unwrap().ty.clone(),
             _ => panic!(),
         };
@@ -141,6 +142,41 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
                 match tag {
                     #(#variant_lines)*
                     _ => { return Err(crate::parser::ParseError::UnexpectedVariant); }
+                }
+            }
+        }
+    );
+    // println!("{}", toks.to_string());
+    toks.into()
+}
+
+
+fn enum_derive_macro_implicit(enum_: &syn::DataEnum, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+    let mut variant_lines = vec![];
+
+    for variant in &enum_.variants {
+        let var_name = &variant.ident;
+        let ty = match &variant.fields {
+            syn::Fields::Unnamed(fu) => fu.unnamed.iter().next().unwrap().ty.clone(),
+            _ => panic!(),
+        };
+
+        variant_lines.push(quote!(
+            tlf if <#ty>::check_tlf(tlf) => map(<#ty>::parse_with_tlf(input, tlf), Self::#var_name),
+        ));
+    }
+
+    let toks = quote!(
+        impl<'i> crate::parser::SmlParseTlf<'i> for #ident #generics {
+
+            fn check_tlf(tlf: &TypeLengthField) -> bool {
+                true
+            }
+        
+            fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+                match tlf {
+                    #(#variant_lines)*
+                    _ => Err(ParseError::TlfMismatch(core::any::type_name::<Self>()))
                 }
             }
         }

@@ -287,28 +287,12 @@ impl<'i> ::core::fmt::Debug for ListEntry<'i> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
 pub enum Status {
     Status8(u8),
     Status16(u16),
     Status32(u32),
     Status64(u64),
-}
-
-impl<'i> SmlParseTlf<'i> for Status {
-    fn check_tlf(tlf: &TypeLengthField) -> bool {
-        matches!(tlf.ty, Ty::Unsigned)
-    }
-
-    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
-        match tlf {
-            tlf if u8::check_tlf(tlf) => map(u8::parse_with_tlf(input, tlf), Status::Status8),
-            tlf if u16::check_tlf(tlf) => map(u16::parse_with_tlf(input, tlf), Status::Status16),
-            tlf if u32::check_tlf(tlf) => map(u32::parse_with_tlf(input, tlf), Status::Status32),
-            tlf if u64::check_tlf(tlf) => map(u64::parse_with_tlf(input, tlf), Status::Status64),
-            _ => Err(ParseError::TlfMismatch(core::any::type_name::<Self>()))
-        }
-    }
 }
 
 impl ::core::fmt::Display for Status {
@@ -325,7 +309,7 @@ impl ::core::fmt::Display for Status {
 // see IEC 62056-62
 pub type Unit = u8; // proper enum?
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
 pub enum Value<'i> {
     Bool(bool),
     Bytes(OctetStr<'i>),
@@ -354,29 +338,6 @@ impl<'i> core::fmt::Display for Value<'i> {
             Self::U32(arg0) => write!(f, "{:?}", arg0),
             Self::U64(arg0) => write!(f, "{:?}", arg0),
             Self::List(arg0) => write!(f, "{:?}", arg0),
-        }
-    }
-}
-
-impl<'i> SmlParseTlf<'i> for Value<'i> {
-    fn check_tlf(_tlf: &TypeLengthField) -> bool {
-        true
-    }
-
-    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
-        match tlf {
-            tlf if bool::check_tlf(tlf) => map(bool::parse_with_tlf(input, tlf), Value::Bool),
-            tlf if OctetStr::check_tlf(tlf) => map(OctetStr::parse_with_tlf(input, tlf), Value::Bytes),
-            tlf if u8::check_tlf(tlf) => map(u8::parse_with_tlf(input, tlf), Value::U8),
-            tlf if u16::check_tlf(tlf) => map(u16::parse_with_tlf(input, tlf), Value::U16),
-            tlf if u32::check_tlf(tlf) => map(u32::parse_with_tlf(input, tlf), Value::U32),
-            tlf if u64::check_tlf(tlf) => map(u64::parse_with_tlf(input, tlf), Value::U64),
-            tlf if i8::check_tlf(tlf) => map(i8::parse_with_tlf(input, tlf), Value::I8),
-            tlf if i16::check_tlf(tlf) => map(i16::parse_with_tlf(input, tlf), Value::I16),
-            tlf if i32::check_tlf(tlf) => map(i32::parse_with_tlf(input, tlf), Value::I32),
-            tlf if i64::check_tlf(tlf) => map(i64::parse_with_tlf(input, tlf), Value::I64),
-            tlf if ListType::check_tlf(tlf) => map(ListType::parse_with_tlf(input, tlf), Value::List),
-            _ => Err(ParseError::TlfMismatch(core::any::type_name::<Self>()))
         }
     }
 }
