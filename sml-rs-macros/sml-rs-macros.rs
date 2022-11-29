@@ -61,7 +61,7 @@ fn struct_derive_macro_2(strukt: syn::DataStruct, ident: syn::Ident, generics: s
 
         let field_expr = if field_ty_str.contains("OctetStr") {
             quote!(
-                &OctetStrFormatter(#field_expr)
+                &crate::parser::OctetStrFormatter(#field_expr)
             )
         } else {
             quote!(
@@ -87,23 +87,6 @@ fn struct_derive_macro_2(strukt: syn::DataStruct, ident: syn::Ident, generics: s
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
                 let mut x = f.debug_struct(stringify!(#strukt_name));
                 #(#fields)*
-                // x.field("obj_name", &OctetStrFormatter(&self.obj_name));
-                // if let Some(e) = &self.status {
-                //     x.field("status", &e);
-                // }
-                // if let Some(e) = &self.val_time {
-                //     x.field("val_time", e);
-                // }
-                // if let Some(e) = &self.unit {
-                //     x.field("unit", e);
-                // }
-                // if let Some(e) = &self.scaler {
-                //     x.field("scaler", e);
-                // }
-                // x.field("value", &self.value);
-                // if let Some(e) = &self.value_signature {
-                //     x.field("value_signature", &OctetStrFormatter(e));
-                // }
                 x.finish()
             }
         }

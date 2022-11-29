@@ -43,6 +43,7 @@ impl<'i> SmlParse<'i> for File<'i> {
     }
 }
 
+#[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, CompactDebug)]
 pub struct Message<'i> {
     pub transaction_id: OctetStr<'i>,
@@ -51,6 +52,7 @@ pub struct Message<'i> {
     pub message_body: MessageBody<'i>,
 }
 
+#[cfg(feature = "alloc")]
 impl<'i> SmlParse<'i> for Message<'i> {
     fn parse(input: &'i [u8]) -> ResTy<Self> {
         let input_orig = input.clone();
@@ -97,7 +99,7 @@ impl<'i> SmlParse<'i> for EndOfSmlMessage {
     }
 }
 
-
+#[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum MessageBody<'i> {
     #[tag(0x00000101)]
@@ -108,6 +110,7 @@ pub enum MessageBody<'i> {
     GetListResponse(GetListResponse<'i>),
 }
 
+#[cfg(feature = "alloc")]
 impl<'i> core::fmt::Debug for MessageBody<'i> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -133,8 +136,9 @@ pub struct CloseResponse<'i> {
     global_signature: Option<Signature<'i>>,
 }
 
-type Signature<'i> = OctetStr<'i>;
+pub type Signature<'i> = OctetStr<'i>;
 
+#[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 pub struct GetListResponse<'i> {
     pub client_id: Option<OctetStr<'i>>,

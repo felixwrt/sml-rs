@@ -60,6 +60,8 @@ fn test_files() {
             // write!(s, "{:?}\n", result.map(|x| x.len())).unwrap();
             write!(s, "{:#?}\n", result.map(|x| {
                 let res = sml_rs::parser::domain::File::parse_complete(x);
+                let res_streaming = sml_rs::parser::streaming::ParseState::new(x).collect();
+                assert_eq!(res, res_streaming);
                 res.expect("Error while parsing:").messages
             })).unwrap();
         }

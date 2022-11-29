@@ -8,6 +8,7 @@ pub mod num;
 pub mod octet_string;
 pub mod tlf;
 pub mod domain;
+pub mod streaming;
 
 /// Error type used by the parser
 #[derive(Debug, PartialEq, Eq)]
