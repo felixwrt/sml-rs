@@ -48,6 +48,7 @@ fn test_repo_validation()  {
     }
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn test_files() {
     insta::glob!("libsml-testing/*.bin", |path| {

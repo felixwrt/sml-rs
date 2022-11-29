@@ -20,7 +20,17 @@ fn main() -> Result<(), std::io::Error> {
             Ok(None) => {}
             Ok(Some(decoded_bytes)) => {
                 use sml_rs::parser::SmlParse;
+                
+                #[cfg(feature="alloc")]
                 println!("{:#?}", sml_rs::parser::domain::File::parse_complete(decoded_bytes));
+                
+                #[cfg(not(feature="alloc"))]
+                {
+                    let mut parser = sml_rs::parser::streaming::ParseState::new(decoded_bytes);
+                    while let Some(x) = parser.next() {
+                        println!("{:#?}", x);
+                    }
+                }
             }
             Err(e) => {
                 println!("Err({:?})", e);

@@ -5,7 +5,7 @@ use crate::CRC_X25;
 
 use super::{ParseError, domain::{ListEntry, EndOfSmlMessage, OpenResponse, CloseResponse, Time, Signature}, octet_string::OctetStr, SmlParse, ResTy, tlf::{TypeLengthField, Ty}};
 
-use super::domain::File;
+use super::domain;
 
 
 pub struct ParseState<'i> {
@@ -68,9 +68,8 @@ impl<'i> ParseState<'i> {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn collect(mut self) -> Result<File<'i>, ParseError> {
+    pub fn collect(mut self) -> Result<domain::File<'i>, ParseError> {
         use crate::parser::domain::GetListResponse;
-        use super::domain;
 
         let mut msgs = alloc::vec::Vec::new();
 
@@ -119,7 +118,7 @@ impl<'i> ParseState<'i> {
             }
         }
 
-        Ok(File {
+        Ok(domain::File {
             messages: msgs
         })
     }
