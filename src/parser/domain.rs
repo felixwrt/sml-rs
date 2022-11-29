@@ -7,27 +7,10 @@ use crate::CRC_X25;
 
 use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter, SmlParseTlf, NumberFormatter};
 
-// NOTE: removed because it doesn't seem to be used in any devices
-// type Timestamp = u32; // unix timestamp
-
-// NOTE: removed because it doesn't seem to be used in any devices
-// #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
-// pub struct TimestampLocal {
-//     // localtime = timestamp + local_offset + season_time_offset
-//     timestamp: Timestamp,
-//     local_offset: i16,       // in minutes
-//     season_time_offset: i16, // in minutes
-// }
-
 #[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum Time {
     #[tag(0x01)]
     SecIndex(u32),
-    // NOTE: removed because it doesn't seem to be used in any devices
-    // #[tag(0x02)]
-    // Timestamp(Timestamp),
-    // #[tag(0x03)]
-    // LocalTimestamp(TimestampLocal),
 }
 
 impl ::core::fmt::Debug for Time {
@@ -60,7 +43,7 @@ impl<'i> SmlParse<'i> for File<'i> {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, CompactDebug)]
 pub struct Message<'i> {
     pub transaction_id: OctetStr<'i>,
     pub group_id: u8,
@@ -101,17 +84,6 @@ impl<'i> SmlParse<'i> for Message<'i> {
     }
 }
 
-impl<'i> ::core::fmt::Debug for Message<'i> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Message")
-            .field("transaction_id", &OctetStrFormatter(self.transaction_id))
-            .field("group_id", &self.group_id)
-            .field("abort_on_error", &self.abort_on_error)
-            .field("message_body", &self.message_body)
-        .finish()
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EndOfSmlMessage;
 
@@ -146,7 +118,7 @@ impl<'i> core::fmt::Debug for MessageBody<'i> {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 pub struct OpenResponse<'i> {
     codepage: Option<OctetStr<'i>>,
     client_id: Option<OctetStr<'i>>,
@@ -156,46 +128,14 @@ pub struct OpenResponse<'i> {
     sml_version: Option<u8>,
 }
 
-impl<'i> ::core::fmt::Debug for OpenResponse<'i> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        let mut x = f.debug_struct("OpenResponse");
-        if let Some(e) = &self.codepage {
-            x.field("codepage", &OctetStrFormatter(e));
-        }
-        if let Some(e) = &self.client_id {
-            x.field("client_id", &OctetStrFormatter(e));
-        }
-        x.field("req_file_id", &OctetStrFormatter(self.req_file_id));
-        x.field("server_id", &OctetStrFormatter(self.server_id));
-        if let Some(e) = &self.ref_time {
-            x.field("ref_time", e);
-        }
-        if let Some(e) = &self.sml_version {
-            x.field("sml_version", e);
-        }
-        x.finish()
-    }
-}
-
-
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 pub struct CloseResponse<'i> {
     global_signature: Option<Signature<'i>>,
 }
 
-impl<'i> ::core::fmt::Debug for CloseResponse<'i> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        let mut x = f.debug_struct("CloseResponse");
-        if let Some(e) = &self.global_signature {
-            x.field("global_signature", &OctetStrFormatter(e));
-        }
-        x.finish()
-    }
-}
-
 type Signature<'i> = OctetStr<'i>;
 
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 pub struct GetListResponse<'i> {
     pub client_id: Option<OctetStr<'i>>,
     pub server_id: OctetStr<'i>,
@@ -205,31 +145,6 @@ pub struct GetListResponse<'i> {
     pub list_signature: Option<Signature<'i>>,
     pub act_gateway_time: Option<Time>,
 }
-
-impl<'i> ::core::fmt::Debug for GetListResponse<'i> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        let mut x = f.debug_struct("GetListResponse");
-        if let Some(e) = &self.client_id {
-            x.field("client_id", &OctetStrFormatter(e));
-        }
-        x.field("server_id", &OctetStrFormatter(self.server_id));
-        if let Some(e) = &self.list_name {
-            x.field("list_name", &OctetStrFormatter(e));
-        }
-        if let Some(e) = &self.act_sensor_time {
-            x.field("act_sensor_time", e);
-        }
-        x.field("val_list", &self.val_list);
-        if let Some(e) = &self.list_signature {
-            x.field("list_signature", e);
-        }
-        if let Some(e) = &self.act_gateway_time {
-            x.field("act_gateway_time", e);
-        }
-        x.finish()
-    }
-}
-
 
 #[cfg(feature = "alloc")]
 pub type List<'i> = alloc::vec::Vec<ListEntry<'i>>;
