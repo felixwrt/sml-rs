@@ -48,8 +48,8 @@ fn test_repo_validation() {
 #[cfg(feature = "alloc")]
 #[test]
 fn test_files() {
-    use std::fmt::Write;
     use sml_rs::parser::SmlParse;
+    use std::fmt::Write;
 
     insta::glob!("libsml-testing/*.bin", |path| {
         let bytes = std::fs::read(path).unwrap();
