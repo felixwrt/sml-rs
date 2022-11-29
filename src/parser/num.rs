@@ -1,20 +1,26 @@
 //! Parsers for number types and booleans
 
 use super::{
-    take_byte, take_n,
+    map, take_byte, take_n,
     tlf::{Ty, TypeLengthField},
     ResTy, SmlParseTlf,
-    map
 };
 
-fn parse_num<'i, const SIZE: usize, const IS_SIGNED: bool>(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, [u8; SIZE]> {
+fn parse_num<'i, const SIZE: usize, const IS_SIGNED: bool>(
+    input: &'i [u8],
+    tlf: &TypeLengthField,
+) -> ResTy<'i, [u8; SIZE]> {
     // read bytes
     let (input, bytes) = take_n(input, tlf.len as usize)?;
 
     // determine fill bytes depending on the type and sign of the number
     let fill_byte = if IS_SIGNED {
         let is_negative = bytes[0] > 0x7F;
-        if is_negative { 0xFF } else { 0x00 }
+        if is_negative {
+            0xFF
+        } else {
+            0x00
+        }
     } else {
         0x00
     };
@@ -41,10 +47,10 @@ macro_rules! impl_num {
                 fn check_tlf(tlf: &TypeLengthField) -> bool {
                     // size of the number type (in bytes)
                     const SIZE: usize = core::mem::size_of::<$t>();
-                    
+
                     tlf.ty == $int_ty && tlf.len as usize <= SIZE && tlf.len != 0
                 }
-            
+
                 fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
                     // size of the number type (in bytes)
                     const SIZE: usize = core::mem::size_of::<$t>();

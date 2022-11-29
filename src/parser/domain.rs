@@ -1,11 +1,15 @@
 //! SML domain types and their parser implementations.
 #![allow(missing_docs)]
 
-use sml_rs_macros::{SmlParse, CompactDebug};
+use sml_rs_macros::{CompactDebug, SmlParse};
 
-use crate::CRC_X25;
+use super::{
+    map, octet_string::OctetStr, take_byte, tlf::TypeLengthField, NumberFormatter,
+    OctetStrFormatter, ParseError, ResTy, SmlParse,
+};
 
-use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter, SmlParseTlf, NumberFormatter};
+#[cfg(feature = "alloc")]
+use super::SmlParseTlf;
 
 #[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum Time {
@@ -36,10 +40,8 @@ impl<'i> SmlParse<'i> for File<'i> {
             messages.push(msg);
             input = new_input;
         }
-        
-        Ok((input, File {
-            messages
-        }))
+
+        Ok((input, File { messages }))
     }
 }
 
@@ -55,23 +57,26 @@ pub struct Message<'i> {
 #[cfg(feature = "alloc")]
 impl<'i> SmlParse<'i> for Message<'i> {
     fn parse(input: &'i [u8]) -> ResTy<Self> {
+        #[allow(clippy::clone_double_ref)]
         let input_orig = input.clone();
         let (input, tlf) = TypeLengthField::parse(input)?;
-        if tlf.ty != Ty::ListOf || tlf.len != 6 {
+        if tlf.ty != super::tlf::Ty::ListOf || tlf.len != 6 {
             return Err(ParseError::TlfMismatch("Message"));
         }
         let (input, transaction_id) = OctetStr::parse(input)?;
         let (input, group_id) = u8::parse(input)?;
         let (input, abort_on_error) = u8::parse(input)?;
         let (input, message_body) = MessageBody::parse(input)?;
-        
+
         let num_bytes_read = input_orig.len() - input.len();
-        
+
         let (input, crc) = u16::parse(input)?;
         let (input, _) = EndOfSmlMessage::parse(input)?;
 
         // validate crc16
-        let digest = CRC_X25.checksum(&input_orig[0..num_bytes_read]).swap_bytes();
+        let digest = crate::CRC_X25
+            .checksum(&input_orig[0..num_bytes_read])
+            .swap_bytes();
         if digest != crc {
             return Err(ParseError::CrcMismatch);
         }
@@ -156,7 +161,7 @@ pub type List<'i> = alloc::vec::Vec<ListEntry<'i>>;
 #[cfg(feature = "alloc")]
 impl<'i> SmlParseTlf<'i> for List<'i> {
     fn check_tlf(tlf: &TypeLengthField) -> bool {
-        matches!(tlf.ty, Ty::ListOf)
+        matches!(tlf.ty, super::tlf::Ty::ListOf)
     }
 
     fn parse_with_tlf(mut input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
@@ -169,7 +174,6 @@ impl<'i> SmlParseTlf<'i> for List<'i> {
         Ok((input, v))
     }
 }
-
 
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 pub struct ListEntry<'i> {

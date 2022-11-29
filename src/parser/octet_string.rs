@@ -38,8 +38,8 @@ impl<'i> SmlParseTlf<'i> for OctetStr<'i> {
 #[cfg(test)]
 mod test {
 
-    use crate::parser::SmlParse;
     use super::*;
+    use crate::parser::SmlParse;
     use hex_literal::hex;
 
     #[test]

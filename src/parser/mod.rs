@@ -4,11 +4,11 @@ use core::{fmt::Debug, ops::Deref};
 
 use self::tlf::TypeLengthField;
 
+pub mod domain;
 pub mod num;
 pub mod octet_string;
-pub mod tlf;
-pub mod domain;
 pub mod streaming;
+pub mod tlf;
 
 /// Error type used by the parser
 #[derive(Debug, PartialEq, Eq)]
@@ -85,8 +85,6 @@ impl<'i, T: SmlParseTlf<'i>> SmlParse<'i> for T {
     }
 }
 
-
-
 impl<'i, T: SmlParse<'i>> SmlParse<'i> for Option<T> {
     fn parse(input: &'i [u8]) -> ResTy<Self> {
         if let Some(0x01u8) = input.first() {
@@ -119,7 +117,7 @@ fn take_n(input: &[u8], n: usize) -> ResTy<&[u8]> {
     Ok((&input[n..], &input[..n]))
 }
 
-fn map<'i, O1, O2>(val: ResTy<'i, O1>, mut f: impl FnMut(O1) -> O2) -> ResTy<'i, O2> {
+fn map<O1, O2>(val: ResTy<O1>, mut f: impl FnMut(O1) -> O2) -> ResTy<O2> {
     val.map(|(input, x)| (input, f(x)))
 }
 

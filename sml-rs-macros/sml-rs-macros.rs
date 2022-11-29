@@ -6,8 +6,12 @@ use quote::quote;
 pub fn sml_parse_macro(input: TokenStream) -> TokenStream {
     let derive_input = syn::parse_macro_input!(input as syn::DeriveInput);
     match derive_input.data {
-        syn::Data::Struct(strukt) => struct_derive_macro(strukt, derive_input.ident, derive_input.generics),
-        syn::Data::Enum(enum_) => enum_derive_macro(enum_, derive_input.ident, derive_input.generics),
+        syn::Data::Struct(strukt) => {
+            struct_derive_macro(strukt, derive_input.ident, derive_input.generics)
+        }
+        syn::Data::Enum(enum_) => {
+            enum_derive_macro(enum_, derive_input.ident, derive_input.generics)
+        }
         _ => quote!(compile_error!(
             "SmlParse can only be applied to structs and enums."
         ))
@@ -19,8 +23,12 @@ pub fn sml_parse_macro(input: TokenStream) -> TokenStream {
 pub fn compact_debug_macro(input: TokenStream) -> TokenStream {
     let derive_input = syn::parse_macro_input!(input as syn::DeriveInput);
     match derive_input.data {
-        syn::Data::Struct(strukt) => struct_derive_macro_2(strukt, derive_input.ident, derive_input.generics),
-        syn::Data::Enum(enum_) => enum_derive_macro(enum_, derive_input.ident, derive_input.generics),
+        syn::Data::Struct(strukt) => {
+            struct_derive_macro_2(strukt, derive_input.ident, derive_input.generics)
+        }
+        syn::Data::Enum(enum_) => {
+            enum_derive_macro(enum_, derive_input.ident, derive_input.generics)
+        }
         _ => quote!(compile_error!(
             "SmlParse can only be applied to structs and enums."
         ))
@@ -28,7 +36,11 @@ pub fn compact_debug_macro(input: TokenStream) -> TokenStream {
     }
 }
 
-fn struct_derive_macro_2(strukt: syn::DataStruct, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+fn struct_derive_macro_2(
+    strukt: syn::DataStruct,
+    ident: syn::Ident,
+    generics: syn::Generics,
+) -> TokenStream {
     use quote::ToTokens;
 
     let strukt_name = ident;
@@ -54,7 +66,7 @@ fn struct_derive_macro_2(strukt: syn::DataStruct, ident: syn::Ident, generics: s
         let name = field.ident.unwrap();
 
         let field_expr = if field_ty_str.starts_with("Option") {
-            quote!( &e )
+            quote!(&e)
         } else {
             quote!( &self.#name )
         };
@@ -94,8 +106,11 @@ fn struct_derive_macro_2(strukt: syn::DataStruct, ident: syn::Ident, generics: s
     toks.into()
 }
 
-
-fn struct_derive_macro(strukt: syn::DataStruct, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+fn struct_derive_macro(
+    strukt: syn::DataStruct,
+    ident: syn::Ident,
+    generics: syn::Generics,
+) -> TokenStream {
     let strukt_name = ident;
     let strukt_generics = generics;
 
@@ -130,7 +145,7 @@ fn struct_derive_macro(strukt: syn::DataStruct, ident: syn::Ident, generics: syn
             fn check_tlf(tlf: &TypeLengthField) -> bool {
                 *tlf == crate::parser::tlf::TypeLengthField::new(crate::parser::tlf::Ty::ListOf, #num_fields as u32)
             }
-        
+
             fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
                 #(#fields)*
 
@@ -144,7 +159,11 @@ fn struct_derive_macro(strukt: syn::DataStruct, ident: syn::Ident, generics: syn
     toks.into()
 }
 
-fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+fn enum_derive_macro(
+    enum_: syn::DataEnum,
+    ident: syn::Ident,
+    generics: syn::Generics,
+) -> TokenStream {
     use quote::ToTokens;
     // TODO: improve error handling
 
@@ -163,7 +182,13 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
         else {
             return enum_derive_macro_implicit(&enum_, name, generics);
         };
-        let tag_value = u32::from_str_radix(attr.to_string().trim_start_matches("(0x").trim_end_matches(')'), 16).expect("Couldn't parse tag");
+        let tag_value = u32::from_str_radix(
+            attr.to_string()
+                .trim_start_matches("(0x")
+                .trim_end_matches(')'),
+            16,
+        )
+        .expect("Couldn't parse tag");
         // if one of the tags is out of range for u8, it should be u32 instead
         let tag = proc_macro2::Literal::u32_unsuffixed(tag_value);
         if tag_value > 255 {
@@ -187,21 +212,25 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
         quote!(
             *tlf == crate::parser::tlf::TypeLengthField::new(crate::parser::tlf::Ty::Unsigned, 4)
         )
-    } else { quote!( false ) };
+    } else {
+        quote!(false)
+    };
 
     let holley_workaround = if name == "Time" {
         quote!(
             // Workaround for Holley DTZ541:
             // For the `Time` type, this meter doesn't respect the spec.
             // Intead of a TLF of type ListOf and length 2, it directly sends an u32 integer,
-            // which is encoded by a TLF of Unsigned and length 4 followed by four bytes containing 
-            // the data. 
+            // which is encoded by a TLF of Unsigned and length 4 followed by four bytes containing
+            // the data.
             if #holley_workaround_check {
                 let (input, bytes) = crate::parser::take::<4>(input)?;
                 return Ok((input, Time::SecIndex(u32::from_be_bytes(bytes.clone()))));
             }
         )
-    } else { quote!() };
+    } else {
+        quote!()
+    };
 
     let tag_ty = if is_u32 { quote!(u32) } else { quote!(u8) };
 
@@ -211,7 +240,7 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
             fn check_tlf(tlf: &TypeLengthField) -> bool {
                 (tlf.ty == crate::parser::tlf::Ty::ListOf && tlf.len == 2) || #holley_workaround_check
             }
-        
+
             fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
                 #holley_workaround
 
@@ -230,8 +259,11 @@ fn enum_derive_macro(enum_: syn::DataEnum, ident: syn::Ident, generics: syn::Gen
     toks.into()
 }
 
-
-fn enum_derive_macro_implicit(enum_: &syn::DataEnum, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+fn enum_derive_macro_implicit(
+    enum_: &syn::DataEnum,
+    ident: syn::Ident,
+    generics: syn::Generics,
+) -> TokenStream {
     let mut variant_lines = vec![];
 
     for variant in &enum_.variants {
@@ -252,7 +284,7 @@ fn enum_derive_macro_implicit(enum_: &syn::DataEnum, ident: syn::Ident, generics
             fn check_tlf(tlf: &TypeLengthField) -> bool {
                 true
             }
-        
+
             fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
                 match tlf {
                     #(#variant_lines)*

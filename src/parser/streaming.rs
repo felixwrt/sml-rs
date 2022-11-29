@@ -3,10 +3,12 @@ use sml_rs_macros::{CompactDebug, SmlParse};
 
 use crate::CRC_X25;
 
-use super::{ParseError, domain::{ListEntry, EndOfSmlMessage, OpenResponse, CloseResponse, Time, Signature}, octet_string::OctetStr, SmlParse, ResTy, tlf::{TypeLengthField, Ty}};
-
-use super::domain;
-
+use super::{
+    domain::{CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
+    octet_string::OctetStr,
+    tlf::{Ty, TypeLengthField},
+    ParseError, ResTy, SmlParse,
+};
 
 pub struct ParseState<'i> {
     input: &'i [u8],
@@ -16,14 +18,18 @@ pub struct ParseState<'i> {
 
 impl<'i> ParseState<'i> {
     pub fn new(input: &'i [u8]) -> Self {
-        ParseState { input, msg_input: &[], pending_list_entries: 0 }
+        ParseState {
+            input,
+            msg_input: &[],
+            pending_list_entries: 0,
+        }
     }
 
     fn parse_next(&mut self) -> Result<Option<IterResult<'i>>, ParseError> {
         if self.input.is_empty() && self.pending_list_entries == 0 {
             return Ok(None);
         }
-        
+
         Ok(Some(match self.pending_list_entries {
             0 => {
                 self.msg_input = self.input;
@@ -44,7 +50,9 @@ impl<'i> ParseState<'i> {
                 self.input = input;
 
                 // validate crc16
-                let digest = CRC_X25.checksum(&self.msg_input[0..num_bytes_read]).swap_bytes();
+                let digest = CRC_X25
+                    .checksum(&self.msg_input[0..num_bytes_read])
+                    .swap_bytes();
                 if digest != crc {
                     return Err(ParseError::CrcMismatch);
                 }
@@ -61,19 +69,20 @@ impl<'i> ParseState<'i> {
             x => {
                 let (input, le) = ListEntry::parse(self.input)?;
                 self.input = input;
-                self.pending_list_entries = x-1;
+                self.pending_list_entries = x - 1;
                 IterResult::ListEntry(le)
             }
         }))
     }
 
     #[cfg(feature = "alloc")]
-    pub fn collect(mut self) -> Result<domain::File<'i>, ParseError> {
+    pub fn collect(self) -> Result<super::domain::File<'i>, ParseError> {
+        use super::domain;
         use crate::parser::domain::GetListResponse;
 
         let mut msgs = alloc::vec::Vec::new();
 
-        while let Some(res) = self.next() {
+        for res in self {
             let res = dbg!(res)?;
             match res {
                 IterResult::MessageStart(msg) => {
@@ -81,16 +90,16 @@ impl<'i> ParseState<'i> {
                         MessageBody::OpenResponse(x) => domain::MessageBody::OpenResponse(x),
                         MessageBody::CloseResponse(x) => domain::MessageBody::CloseResponse(x),
                         MessageBody::GetListResponse(x) => {
-                            domain::MessageBody::GetListResponse(GetListResponse { 
-                                client_id: x.client_id, 
-                                server_id: x.server_id, 
-                                list_name: x.list_name, 
-                                act_sensor_time: x.act_sensor_time, 
-                                val_list: alloc::vec::Vec::with_capacity(x.num_vals as usize), 
-                                list_signature: None, 
-                                act_gateway_time: None, 
+                            domain::MessageBody::GetListResponse(GetListResponse {
+                                client_id: x.client_id,
+                                server_id: x.server_id,
+                                list_name: x.list_name,
+                                act_sensor_time: x.act_sensor_time,
+                                val_list: alloc::vec::Vec::with_capacity(x.num_vals as usize),
+                                list_signature: None,
+                                act_gateway_time: None,
                             })
-                        },
+                        }
                     };
                     let res = domain::Message {
                         transaction_id: msg.transaction_id,
@@ -99,28 +108,30 @@ impl<'i> ParseState<'i> {
                         message_body: body,
                     };
                     msgs.push(res);
-                },
-                IterResult::GetListResponseEnd(x) => {
-                    match msgs.last_mut() {
-                        Some(domain::Message { message_body: domain::MessageBody::GetListResponse(glr), .. }) => {
-                            glr.list_signature = x.list_signature;
-                            glr.act_gateway_time = x.act_gateway_time;
-                        },
-                        _ => unreachable!()
+                }
+                IterResult::GetListResponseEnd(x) => match msgs.last_mut() {
+                    Some(domain::Message {
+                        message_body: domain::MessageBody::GetListResponse(glr),
+                        ..
+                    }) => {
+                        glr.list_signature = x.list_signature;
+                        glr.act_gateway_time = x.act_gateway_time;
                     }
+                    _ => unreachable!(),
                 },
                 IterResult::ListEntry(x) => match msgs.last_mut() {
-                    Some(domain::Message { message_body: domain::MessageBody::GetListResponse(glr), .. }) => {
+                    Some(domain::Message {
+                        message_body: domain::MessageBody::GetListResponse(glr),
+                        ..
+                    }) => {
                         glr.val_list.push(x);
-                    },
-                    _ => unreachable!()
+                    }
+                    _ => unreachable!(),
                 },
             }
         }
 
-        Ok(domain::File {
-            messages: msgs
-        })
+        Ok(domain::File { messages: msgs })
     }
 }
 
@@ -135,7 +146,7 @@ impl<'i> Iterator for ParseState<'i> {
         match res {
             Ok(None) => None,
             Ok(Some(x)) => Some(Ok(x)),
-            Err(e) => Some(Err(e))
+            Err(e) => Some(Err(e)),
         }
     }
 }
@@ -175,8 +186,6 @@ impl<'i> SmlParse<'i> for MessageStart<'i> {
         Ok((input, val))
     }
 }
-
-
 
 #[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum MessageBody<'i> {
@@ -221,7 +230,7 @@ impl<'i> crate::parser::SmlParseTlf<'i> for GetListResponseStart<'i> {
         let (input, act_sensor_time) = <Option<Time>>::parse(input)?;
         let (input, tlf) = TypeLengthField::parse(input)?;
         if !matches!(tlf.ty, Ty::ListOf) {
-            return Err(ParseError::TlfMismatch(core::any::type_name::<Self>()))
+            return Err(ParseError::TlfMismatch(core::any::type_name::<Self>()));
         }
         let val = GetListResponseStart {
             client_id,

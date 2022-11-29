@@ -1,14 +1,11 @@
-use std::fmt::Write;
 use std::iter::FromIterator;
 use std::{
     collections::HashSet,
     ffi::{OsStr, OsString},
 };
 
-use sml_rs::parser::SmlParse;
-
 #[test]
-fn test_repo_validation()  {
+fn test_repo_validation() {
     let dir = std::fs::read_dir("./tests/libsml-testing").expect("test folder does not exist");
     let mut bin_filenames = HashSet::new();
     let mut hex_filenames = HashSet::new();
@@ -51,6 +48,9 @@ fn test_repo_validation()  {
 #[cfg(feature = "alloc")]
 #[test]
 fn test_files() {
+    use std::fmt::Write;
+    use sml_rs::parser::SmlParse;
+
     insta::glob!("libsml-testing/*.bin", |path| {
         let bytes = std::fs::read(path).unwrap();
 
@@ -59,12 +59,17 @@ fn test_files() {
         let mut s = String::new();
         while let Some(result) = decoder.next() {
             // write!(s, "{:?}\n", result.map(|x| x.len())).unwrap();
-            write!(s, "{:#?}\n", result.map(|x| {
-                let res = sml_rs::parser::domain::File::parse_complete(x);
-                let res_streaming = sml_rs::parser::streaming::ParseState::new(x).collect();
-                assert_eq!(res, res_streaming);
-                res.expect("Error while parsing:").messages
-            })).unwrap();
+            write!(
+                s,
+                "{:#?}\n",
+                result.map(|x| {
+                    let res = sml_rs::parser::domain::File::parse_complete(x);
+                    let res_streaming = sml_rs::parser::streaming::ParseState::new(x).collect();
+                    assert_eq!(res, res_streaming);
+                    res.expect("Error while parsing:").messages
+                })
+            )
+            .unwrap();
         }
         insta::assert_snapshot!(s);
     });
