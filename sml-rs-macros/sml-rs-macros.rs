@@ -15,6 +15,103 @@ pub fn sml_parse_macro(input: TokenStream) -> TokenStream {
     }
 }
 
+#[proc_macro_derive(CompactDebug)]
+pub fn compact_debug_macro(input: TokenStream) -> TokenStream {
+    let derive_input = syn::parse_macro_input!(input as syn::DeriveInput);
+    match derive_input.data {
+        syn::Data::Struct(strukt) => struct_derive_macro_2(strukt, derive_input.ident, derive_input.generics),
+        syn::Data::Enum(enum_) => enum_derive_macro(enum_, derive_input.ident, derive_input.generics),
+        _ => quote!(compile_error!(
+            "SmlParse can only be applied to structs and enums."
+        ))
+        .into(),
+    }
+}
+
+fn struct_derive_macro_2(strukt: syn::DataStruct, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
+    use quote::ToTokens;
+
+    let strukt_name = ident;
+    let strukt_generics = generics;
+
+    let nf = match strukt.fields {
+        syn::Fields::Named(nf) => nf,
+        _ => {
+            return quote!(compile_error!(
+                "SmlParse cannot be applied to tuple structs."
+            ))
+            .into();
+        }
+    };
+
+    let mut fields = vec![];
+
+    for field in nf.named {
+        let field_ty = field.ty;
+
+        let field_ty_str = field_ty.to_token_stream().to_string();
+
+        let name = field.ident.unwrap();
+
+        let field_expr = if field_ty_str.starts_with("Option") {
+            quote!( &e )
+        } else {
+            quote!( &self.#name )
+        };
+
+        let field_expr = if field_ty_str.contains("OctetStr") {
+            quote!(
+                &OctetStrFormatter(#field_expr)
+            )
+        } else {
+            quote!(
+                #field_expr
+            )
+        };
+
+        fields.push(if field_ty_str.starts_with("Option") {
+            quote! {
+                if let Some(e) = &self.#name {
+                    x.field(stringify!(#name), #field_expr);
+                }
+            }
+        } else {
+            quote! {
+                x.field(stringify!(#name), #field_expr);
+            }
+        });
+    }
+
+    let toks = quote!(
+        impl<'i> core::fmt::Debug for #strukt_name #strukt_generics {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                let mut x = f.debug_struct(stringify!(#strukt_name));
+                #(#fields)*
+                // x.field("obj_name", &OctetStrFormatter(&self.obj_name));
+                // if let Some(e) = &self.status {
+                //     x.field("status", &e);
+                // }
+                // if let Some(e) = &self.val_time {
+                //     x.field("val_time", e);
+                // }
+                // if let Some(e) = &self.unit {
+                //     x.field("unit", e);
+                // }
+                // if let Some(e) = &self.scaler {
+                //     x.field("scaler", e);
+                // }
+                // x.field("value", &self.value);
+                // if let Some(e) = &self.value_signature {
+                //     x.field("value_signature", &OctetStrFormatter(e));
+                // }
+                x.finish()
+            }
+        }
+    );
+    toks.into()
+}
+
+
 fn struct_derive_macro(strukt: syn::DataStruct, ident: syn::Ident, generics: syn::Generics) -> TokenStream {
     let strukt_name = ident;
     let strukt_generics = generics;

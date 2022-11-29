@@ -1,11 +1,11 @@
 //! SML domain types and their parser implementations.
 #![allow(missing_docs)]
 
-use sml_rs_macros::SmlParse;
+use sml_rs_macros::{SmlParse, CompactDebug};
 
 use crate::CRC_X25;
 
-use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter, DebugToDisplayAdapter, SmlParseTlf};
+use super::{SmlParse, ResTy, tlf::{TypeLengthField, Ty}, ParseError, octet_string::OctetStr, take_byte, map, OctetStrFormatter, SmlParseTlf, NumberFormatter};
 
 // NOTE: removed because it doesn't seem to be used in any devices
 // type Timestamp = u32; // unix timestamp
@@ -252,7 +252,7 @@ impl<'i> SmlParseTlf<'i> for List<'i> {
 }
 
 
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 pub struct ListEntry<'i> {
     pub obj_name: OctetStr<'i>,
     pub status: Option<Status>,
@@ -263,31 +263,7 @@ pub struct ListEntry<'i> {
     pub value_signature: Option<Signature<'i>>,
 }
 
-impl<'i> ::core::fmt::Debug for ListEntry<'i> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        let mut x = f.debug_struct("ListEntry");
-        x.field("obj_name", &OctetStrFormatter(&self.obj_name));
-        if let Some(e) = &self.status {
-            x.field("status", &DebugToDisplayAdapter(&e));
-        }
-        if let Some(e) = &self.val_time {
-            x.field("val_time", e);
-        }
-        if let Some(e) = &self.unit {
-            x.field("unit", e);
-        }
-        if let Some(e) = &self.scaler {
-            x.field("scaler", e);
-        }
-        x.field("value", &DebugToDisplayAdapter(&self.value));
-        if let Some(e) = &self.value_signature {
-            x.field("value_signature", &OctetStrFormatter(e));
-        }
-        x.finish()
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum Status {
     Status8(u8),
     Status16(u16),
@@ -295,13 +271,13 @@ pub enum Status {
     Status64(u64),
 }
 
-impl ::core::fmt::Display for Status {
+impl ::core::fmt::Debug for Status {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Status8(x) => write!(f, "{}", x),
-            Self::Status16(x) => write!(f, "{}", x),
-            Self::Status32(x) => write!(f, "{}", x),
-            Self::Status64(x) => write!(f, "{}", x),
+            Self::Status8(x) => write!(f, "{:?}", NumberFormatter(x)),
+            Self::Status16(x) => write!(f, "{:?}", NumberFormatter(x)),
+            Self::Status32(x) => write!(f, "{:?}", NumberFormatter(x)),
+            Self::Status64(x) => write!(f, "{:?}", NumberFormatter(x)),
         }
     }
 }
@@ -309,7 +285,7 @@ impl ::core::fmt::Display for Status {
 // see IEC 62056-62
 pub type Unit = u8; // proper enum?
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone, SmlParse)]
 pub enum Value<'i> {
     Bool(bool),
     Bytes(OctetStr<'i>),
@@ -324,19 +300,19 @@ pub enum Value<'i> {
     List(ListType),
 }
 
-impl<'i> core::fmt::Display for Value<'i> {
+impl<'i> core::fmt::Debug for Value<'i> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Bool(arg0) => write!(f, "{:?}", arg0),
             Self::Bytes(arg0) => write!(f, "{:?}", OctetStrFormatter(arg0)),
-            Self::I8(arg0) => write!(f, "{:?}", arg0),
-            Self::I16(arg0) => write!(f, "{:?}", arg0),
-            Self::I32(arg0) => write!(f, "{:?}", arg0),
-            Self::I64(arg0) => write!(f, "{:?}", arg0),
-            Self::U8(arg0) => write!(f, "{:?}", arg0),
-            Self::U16(arg0) => write!(f, "{:?}", arg0),
-            Self::U32(arg0) => write!(f, "{:?}", arg0),
-            Self::U64(arg0) => write!(f, "{:?}", arg0),
+            Self::I8(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::I16(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::I32(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::I64(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::U8(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::U16(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::U32(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
+            Self::U64(arg0) => write!(f, "{:?}", NumberFormatter(arg0)),
             Self::List(arg0) => write!(f, "{:?}", arg0),
         }
     }

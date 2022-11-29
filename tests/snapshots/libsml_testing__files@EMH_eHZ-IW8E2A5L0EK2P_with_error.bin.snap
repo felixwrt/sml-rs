@@ -33,28 +33,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956927,
+                        value: 27956927i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956927,
+                        value: 27956927i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1367,
+                        value: 1367i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -62,7 +62,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -110,28 +110,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956928,
+                        value: 27956928i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956928,
+                        value: 27956928i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1368,
+                        value: 1368i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -139,7 +139,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -187,28 +187,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956929,
+                        value: 27956929i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956929,
+                        value: 27956929i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1365,
+                        value: 1365i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -216,7 +216,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -264,28 +264,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956930,
+                        value: 27956930i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956930,
+                        value: 27956930i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1366,
+                        value: 1366i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -293,7 +293,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -341,28 +341,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956931,
+                        value: 27956931i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956931,
+                        value: 27956931i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1368,
+                        value: 1368i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -370,7 +370,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -418,28 +418,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956932,
+                        value: 27956932i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956932,
+                        value: 27956932i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1362,
+                        value: 1362i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -447,7 +447,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -495,28 +495,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956933,
+                        value: 27956933i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956933,
+                        value: 27956933i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1366,
+                        value: 1366i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -524,7 +524,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -572,28 +572,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956934,
+                        value: 27956934i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956934,
+                        value: 27956934i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1365,
+                        value: 1365i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -601,7 +601,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -649,28 +649,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956935,
+                        value: 27956935i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956935,
+                        value: 27956935i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1364,
+                        value: 1364i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -678,7 +678,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -726,28 +726,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956936,
+                        value: 27956936i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956936,
+                        value: 27956936i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1366,
+                        value: 1366i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -755,7 +755,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],
@@ -803,28 +803,28 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 0, 255],
-                        status: 386,
+                        status: 386u32,
                         unit: 30,
                         scaler: -1,
-                        value: 27956937,
+                        value: 27956937i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 1, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 27956937,
+                        value: 27956937i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 8, 2, 255],
                         unit: 30,
                         scaler: -1,
-                        value: 0,
+                        value: 0i64,
                     },
                     ListEntry {
                         obj_name: [1, 0, 16, 7, 0, 255],
                         unit: 27,
                         scaler: -1,
-                        value: 1364,
+                        value: 1364i32,
                     },
                     ListEntry {
                         obj_name: [129, 129, 199, 130, 5, 255],
@@ -832,7 +832,7 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 4],
-                        value: 637,
+                        value: 637u16,
                     },
                     ListEntry {
                         obj_name: [1, 0, 96, 50, 2, 6],

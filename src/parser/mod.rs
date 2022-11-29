@@ -1,6 +1,6 @@
 //! This module implements the SML parser
 
-use core::fmt::{Display, Debug};
+use core::{fmt::Debug, ops::Deref};
 
 use self::tlf::TypeLengthField;
 
@@ -124,16 +124,17 @@ fn map<'i, O1, O2>(val: ResTy<'i, O1>, mut f: impl FnMut(O1) -> O2) -> ResTy<'i,
 
 struct OctetStrFormatter<'i>(&'i [u8]);
 
+// formats a slice using the compact single-line output even when the parent element should be formatted using "{:#?}"
 impl<'i> Debug for OctetStrFormatter<'i> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:?}", self.0)
     }
 }
 
-struct DebugToDisplayAdapter<'i>(&'i dyn Display);
+struct NumberFormatter<T: Debug, U: Deref<Target = T>>(U);
 
-impl<'i> Debug for DebugToDisplayAdapter<'i> {
+impl<T: Debug, U: Deref<Target = T>> Debug for NumberFormatter<T, U> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{:?}{}", self.0.deref(), core::any::type_name::<T>())
     }
 }

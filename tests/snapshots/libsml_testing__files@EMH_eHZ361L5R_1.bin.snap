@@ -31,10 +31,10 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 2, 8, 1, 255],
-                        status: 130,
+                        status: 130u8,
                         unit: 30,
                         scaler: -1,
-                        value: 1144274020,
+                        value: 1144274020u64,
                     },
                     ListEntry {
                         obj_name: [0, 0, 96, 1, 255, 255],
@@ -42,10 +42,10 @@ Ok(
                     },
                     ListEntry {
                         obj_name: [1, 0, 1, 7, 1, 255],
-                        status: 130,
+                        status: 130u8,
                         unit: 27,
                         scaler: -4,
-                        value: -7697170,
+                        value: -7697170i32,
                     },
                 ],
             },
