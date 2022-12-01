@@ -83,7 +83,7 @@ impl<'i> SmlParse<'i> for Message<'i> {
         let (input, _) = EndOfSmlMessage::parse(input)?;
 
         // validate crc16
-        let digest = crate::CRC_X25
+        let digest = crate::util::CRC_X25
             .checksum(&input_orig[0..num_bytes_read])
             .swap_bytes();
         if digest != crc {

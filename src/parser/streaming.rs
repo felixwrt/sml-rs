@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 use sml_rs_macros::{CompactDebug, SmlParse};
 
-use crate::CRC_X25;
+use crate::util::CRC_X25;
 
 use super::{
     domain::{CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},

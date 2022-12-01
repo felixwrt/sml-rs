@@ -30,7 +30,7 @@
 
 use core::borrow::Borrow;
 
-use crate::{Buffer, OutOfMemory, CRC_X25};
+use crate::util::{self, Buffer, OutOfMemory, CRC_X25};
 
 struct Padding(u8);
 
@@ -611,7 +611,7 @@ impl<B: Buffer> Decoder<B> {
 pub fn decode(
     iter: impl IntoIterator<Item = impl Borrow<u8>>,
 ) -> alloc::vec::Vec<Result<alloc::vec::Vec<u8>, DecodeErr>> {
-    let mut decoder: Decoder<crate::VecBuf> = Decoder::new();
+    let mut decoder: Decoder<util::VecBuf> = Decoder::new();
     let mut res = alloc::vec::Vec::new();
     for b in iter.into_iter() {
         match decoder.push_byte(*b.borrow()) {
@@ -720,11 +720,11 @@ mod tests {
     fn test_encoding<const N: usize>(bytes: &[u8], exp_encoded_bytes: &[u8; N]) {
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode::<crate::ArrayBuf<N>>(bytes).expect("ran out of memory"),
+            &encode::<util::ArrayBuf<N>>(bytes).expect("ran out of memory"),
         );
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode_streaming(bytes).collect::<crate::ArrayBuf<N>>(),
+            &encode_streaming(bytes).collect::<util::ArrayBuf<N>>(),
         );
         #[cfg(feature = "alloc")]
         assert_eq_hex!(alloc::vec![Ok(bytes.to_vec())], decode(exp_encoded_bytes));
@@ -783,7 +783,7 @@ mod tests {
 #[cfg(test)]
 mod decode_tests {
     use super::*;
-    use crate::ArrayBuf;
+    use util::ArrayBuf;
     use hex_literal::hex;
     use DecodeErr::*;
 
@@ -991,6 +991,6 @@ mod decode_tests {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
         let exp = &[Ok(hex!("12345678").as_slice())];
 
-        test_parse_input::<crate::VecBuf>(&bytes, exp);
+        test_parse_input::<util::VecBuf>(&bytes, exp);
     }
 }
