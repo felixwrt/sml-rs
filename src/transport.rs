@@ -195,7 +195,7 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 /// ### Using `heapless::Vec`
 ///
 /// ```
-/// # use sml_rs::{OutOfMemory, transport::encode};
+/// # use sml_rs::{util::OutOfMemory, transport::encode};
 /// # let bytes = [0x12, 0x34, 0x56, 0x78];
 /// # let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// let encoded = encode::<heapless::Vec<u8, 20>>(&bytes);
@@ -721,11 +721,11 @@ mod tests {
     fn test_encoding<const N: usize>(bytes: &[u8], exp_encoded_bytes: &[u8; N]) {
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode::<util::ArrayBuf<N>>(bytes).expect("ran out of memory"),
+            &encode::<crate::util::ArrayBuf<N>>(bytes).expect("ran out of memory"),
         );
         compare_encoded_bytes(
             exp_encoded_bytes,
-            &encode_streaming(bytes).collect::<util::ArrayBuf<N>>(),
+            &encode_streaming(bytes).collect::<crate::util::ArrayBuf<N>>(),
         );
         #[cfg(feature = "alloc")]
         assert_eq_hex!(alloc::vec![Ok(bytes.to_vec())], decode(exp_encoded_bytes));
@@ -784,8 +784,8 @@ mod tests {
 #[cfg(test)]
 mod decode_tests {
     use super::*;
+    use crate::util::ArrayBuf;
     use hex_literal::hex;
-    use util::ArrayBuf;
     use DecodeErr::*;
 
     fn test_parse_input<B: Buffer>(bytes: &[u8], exp: &[Result<&[u8], DecodeErr>]) {
