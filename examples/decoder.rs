@@ -21,10 +21,7 @@ fn main() -> Result<(), std::io::Error> {
             Ok(Some(decoded_bytes)) => {
                 #[cfg(feature = "alloc")]
                 {
-                    println!(
-                        "{:#?}",
-                        sml_rs::parser::parse(decoded_bytes)
-                    );
+                    println!("{:#?}", sml_rs::parser::parse(decoded_bytes));
                 }
 
                 #[cfg(not(feature = "alloc"))]

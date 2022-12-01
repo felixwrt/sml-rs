@@ -116,8 +116,8 @@ impl<'i> SmlParse<'i> for EndOfSmlMessage {
 #[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, SmlParse)]
 /// SML message body
-/// 
-/// Hint: this type only implements the message types specified by SML that are 
+///
+/// Hint: this type only implements the message types specified by SML that are
 /// used in real-world power meters.
 pub enum MessageBody<'i> {
     /// `SML_PublicOpen.Res` message

@@ -12,7 +12,6 @@ mod tlf;
 
 pub use tlf::TlfParseError;
 
-
 pub use octet_string::OctetStr;
 
 #[cfg(feature = "alloc")]
@@ -40,10 +39,11 @@ pub enum ParseError {
 }
 
 type ResTy<'i, O> = Result<(&'i [u8], O), ParseError>;
+#[allow(dead_code)]
 type ResTyComplete<'i, O> = Result<O, ParseError>;
 
 /// Parses a slice of bytes into an SML message.
-/// 
+///
 /// *This function is available only if sml-rs is built with the `"alloc"` feature.*
 #[cfg(feature = "alloc")]
 pub fn parse(input: &[u8]) -> Result<File, ParseError> {

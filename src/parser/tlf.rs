@@ -27,7 +27,6 @@ impl From<TlfParseError> for ParseError {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct TypeLengthField {
     pub ty: Ty,
