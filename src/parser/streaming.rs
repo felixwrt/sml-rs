@@ -103,7 +103,7 @@ impl<'i> ParseState<'i> {
                     };
                     let res = domain::Message {
                         transaction_id: msg.transaction_id,
-                        group_id: msg.group_id,
+                        group_no: msg.group_no,
                         abort_on_error: msg.abort_on_error,
                         message_body: body,
                     };
@@ -161,7 +161,7 @@ pub enum IterResult<'i> {
 #[derive(PartialEq, Eq, Clone, CompactDebug)]
 pub struct MessageStart<'i> {
     pub transaction_id: OctetStr<'i>,
-    pub group_id: u8,
+    pub group_no: u8,
     pub abort_on_error: u8, // this should probably be an enum
     pub message_body: MessageBody<'i>,
 }
@@ -173,13 +173,13 @@ impl<'i> SmlParse<'i> for MessageStart<'i> {
             return Err(ParseError::TlfMismatch("Message"));
         }
         let (input, transaction_id) = OctetStr::parse(input)?;
-        let (input, group_id) = u8::parse(input)?;
+        let (input, group_no) = u8::parse(input)?;
         let (input, abort_on_error) = u8::parse(input)?;
         let (input, message_body) = MessageBody::parse(input)?;
 
         let val = MessageStart {
             transaction_id,
-            group_id,
+            group_no,
             abort_on_error,
             message_body,
         };

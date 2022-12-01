@@ -21,10 +21,9 @@ fn main() -> Result<(), std::io::Error> {
             Ok(Some(decoded_bytes)) => {
                 #[cfg(feature = "alloc")]
                 {
-                    use sml_rs::parser::SmlParse;
                     println!(
                         "{:#?}",
-                        sml_rs::parser::domain::File::parse_complete(decoded_bytes)
+                        sml_rs::parser::parse(decoded_bytes)
                     );
                 }
 

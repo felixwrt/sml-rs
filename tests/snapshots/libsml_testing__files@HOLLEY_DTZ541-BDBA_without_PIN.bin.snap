@@ -7,7 +7,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 0, 1],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 req_file_id: [0, 0, 1, 108, 84, 176],
@@ -17,7 +17,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 0, 2],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -46,7 +46,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 0, 3],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },

@@ -12,7 +12,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 185],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -24,7 +24,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 186],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -81,7 +81,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 187],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -91,7 +91,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 188],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -103,7 +103,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 189],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -160,7 +160,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 190],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -170,7 +170,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 191],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -182,7 +182,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 192],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -239,7 +239,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 193],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -249,7 +249,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 194],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -261,7 +261,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 195],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -318,7 +318,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 196],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -328,7 +328,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 197],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -340,7 +340,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 198],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -397,7 +397,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 199],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -407,7 +407,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 200],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -419,7 +419,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 201],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -476,7 +476,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 202],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -486,7 +486,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 203],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -498,7 +498,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 204],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -555,7 +555,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 205],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -565,7 +565,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 206],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -577,7 +577,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 207],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -634,7 +634,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 208],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -644,7 +644,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 209],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -656,7 +656,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 210],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -713,7 +713,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 211],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -723,7 +723,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 212],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -735,7 +735,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 213],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -792,7 +792,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 214],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -802,7 +802,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 215],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -814,7 +814,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 216],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -871,7 +871,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 217],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -881,7 +881,7 @@ Ok(
     [
         Message {
             transaction_id: [0, 23, 210, 218],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -893,7 +893,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 219],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 client_id: [255, 255, 255, 255, 255, 255],
@@ -950,7 +950,7 @@ Ok(
         },
         Message {
             transaction_id: [0, 23, 210, 220],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },

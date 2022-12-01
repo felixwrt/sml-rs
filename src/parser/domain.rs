@@ -1,5 +1,4 @@
 //! SML domain types and their parser implementations.
-#![allow(missing_docs)]
 
 use sml_rs_macros::{CompactDebug, SmlParse};
 
@@ -12,7 +11,9 @@ use super::{
 use super::SmlParseTlf;
 
 #[derive(PartialEq, Eq, Clone, SmlParse)]
+/// SML Time type
 pub enum Time {
+    /// usually the number of seconds since the power meter was installed
     #[tag(0x01)]
     SecIndex(u32),
 }
@@ -27,7 +28,9 @@ impl ::core::fmt::Debug for Time {
 
 #[cfg(feature = "alloc")]
 #[derive(Debug, PartialEq, Eq, Clone)]
+/// Holds multiple `Messages`
 pub struct File<'i> {
+    /// Vector of `Messsages`
     pub messages: alloc::vec::Vec<Message<'i>>,
 }
 
@@ -47,10 +50,16 @@ impl<'i> SmlParse<'i> for File<'i> {
 
 #[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, CompactDebug)]
+/// An SML message
 pub struct Message<'i> {
+    /// transaction identifier
     pub transaction_id: OctetStr<'i>,
-    pub group_id: u8,
-    pub abort_on_error: u8, // this should probably be an enum
+    /// allows grouping of SML messages
+    pub group_no: u8,
+    /// describes how to handle the Message in case of errors
+    // this should probably be an enum
+    pub abort_on_error: u8,
+    /// main content of the message
     pub message_body: MessageBody<'i>,
 }
 
@@ -64,7 +73,7 @@ impl<'i> SmlParse<'i> for Message<'i> {
             return Err(ParseError::TlfMismatch("Message"));
         }
         let (input, transaction_id) = OctetStr::parse(input)?;
-        let (input, group_id) = u8::parse(input)?;
+        let (input, group_no) = u8::parse(input)?;
         let (input, abort_on_error) = u8::parse(input)?;
         let (input, message_body) = MessageBody::parse(input)?;
 
@@ -83,7 +92,7 @@ impl<'i> SmlParse<'i> for Message<'i> {
 
         let val = Message {
             transaction_id,
-            group_id,
+            group_no,
             abort_on_error,
             message_body,
         };
@@ -92,7 +101,7 @@ impl<'i> SmlParse<'i> for Message<'i> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct EndOfSmlMessage;
+pub(crate) struct EndOfSmlMessage;
 
 impl<'i> SmlParse<'i> for EndOfSmlMessage {
     fn parse(input: &'i [u8]) -> ResTy<Self> {
@@ -106,11 +115,18 @@ impl<'i> SmlParse<'i> for EndOfSmlMessage {
 
 #[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, SmlParse)]
+/// SML message body
+/// 
+/// Hint: this type only implements the message types specified by SML that are 
+/// used in real-world power meters.
 pub enum MessageBody<'i> {
+    /// `SML_PublicOpen.Res` message
     #[tag(0x00000101)]
     OpenResponse(OpenResponse<'i>),
+    /// `SML_PublicClose.Res` message
     #[tag(0x00000201)]
     CloseResponse(CloseResponse<'i>),
+    /// `SML_GetList.Res` message
     #[tag(0x00000701)]
     GetListResponse(GetListResponse<'i>),
 }
@@ -127,35 +143,53 @@ impl<'i> core::fmt::Debug for MessageBody<'i> {
 }
 
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+/// `SML_PublicOpen.Res` message
 pub struct OpenResponse<'i> {
+    /// alternative codepage. Defaults to `ISO 8859-15`
     codepage: Option<OctetStr<'i>>,
+    /// identification of the client
     client_id: Option<OctetStr<'i>>,
+    /// identification of the request/response pair
     req_file_id: OctetStr<'i>,
+    /// identification of the server
     server_id: OctetStr<'i>,
+    /// reference time
     ref_time: Option<Time>,
+    /// version of the SML protocol. Defaults to `1`
     sml_version: Option<u8>,
 }
 
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+/// `SML_PublicClose.Res` message
 pub struct CloseResponse<'i> {
     global_signature: Option<Signature<'i>>,
 }
 
+/// SML signature type
 pub type Signature<'i> = OctetStr<'i>;
 
 #[cfg(feature = "alloc")]
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+/// `SML_GetList.Res` message
 pub struct GetListResponse<'i> {
+    /// identification of the client
     pub client_id: Option<OctetStr<'i>>,
+    /// identification of the server
     pub server_id: OctetStr<'i>,
+    /// identification of the client
     pub list_name: Option<OctetStr<'i>>,
+    /// optional sensor time information
     pub act_sensor_time: Option<Time>,
+    /// list of data values
     pub val_list: List<'i>,
+    /// signature of the list - whatever that means?!
     pub list_signature: Option<Signature<'i>>,
+    /// optional gateway time information
     pub act_gateway_time: Option<Time>,
 }
 
 #[cfg(feature = "alloc")]
+/// vector of SML list entries
 pub type List<'i> = alloc::vec::Vec<ListEntry<'i>>;
 
 #[cfg(feature = "alloc")]
@@ -176,21 +210,34 @@ impl<'i> SmlParseTlf<'i> for List<'i> {
 }
 
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+/// SML ListEntry type
 pub struct ListEntry<'i> {
+    /// name of the entry
     pub obj_name: OctetStr<'i>,
+    /// status of the entry, content is unspecified in SML
     pub status: Option<Status>,
+    /// time when the value was obtained
     pub val_time: Option<Time>,
+    /// code of the value's unit according to DLMS-Unit-List (see IEC 62056-62)
     pub unit: Option<Unit>,
+    /// scaler of the value. Calculation: `value = self.value * 10 ^ self.scaler`
     pub scaler: Option<i8>,
+    /// the raw value. See `scaler` and `unit` for how to interpret the value
     pub value: Value<'i>,
+    /// signature of the value?!
     pub value_signature: Option<Signature<'i>>,
 }
 
 #[derive(PartialEq, Eq, Clone, SmlParse)]
+/// SML status type. Meaning of status values is not specified in SML.
 pub enum Status {
+    /// `u8` status
     Status8(u8),
+    /// `u16` status
     Status16(u16),
+    /// `u32` status
     Status32(u32),
+    /// `u64` status
     Status64(u64),
 }
 
@@ -205,10 +252,12 @@ impl ::core::fmt::Debug for Status {
     }
 }
 
-// see IEC 62056-62
+/// unit code according to DLMS-Unit-List (see IEC 62056-62)
 pub type Unit = u8; // proper enum?
 
 #[derive(PartialEq, Eq, Clone, SmlParse)]
+/// SML value type
+#[allow(missing_docs)]
 pub enum Value<'i> {
     Bool(bool),
     Bytes(OctetStr<'i>),
@@ -242,7 +291,9 @@ impl<'i> core::fmt::Debug for Value<'i> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+/// SML ListType type
 pub enum ListType {
+    /// variant containing time information
     #[tag(0x01)]
     Time(Time),
 }

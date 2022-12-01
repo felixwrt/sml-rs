@@ -6,6 +6,28 @@ use super::{take_byte, SmlParse};
 
 use super::ResTy;
 
+/// Error type used when parsing a `TypeLengthField`
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TlfParseError {
+    /// The length field of a TLF overflowed
+    TlfLengthOverflow,
+    /// The TLF uses values reserved for future usage
+    TlfReserved,
+    /// The length field of a TLF underflowed
+    TlfLengthUnderflow,
+    /// The type field of a byte following the first TLF byte isn't set to `000`
+    TlfNextByteTypeMismatch,
+    /// The TLF's type field contains an invalid value
+    TlfInvalidTy,
+}
+
+impl From<TlfParseError> for ParseError {
+    fn from(x: TlfParseError) -> Self {
+        ParseError::InvalidTlf(x)
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct TypeLengthField {
     pub ty: Ty,
@@ -14,7 +36,7 @@ pub(crate) struct TypeLengthField {
 
 impl TypeLengthField {
     #[allow(unused)]
-    pub fn new(ty: Ty, len: u32) -> TypeLengthField {
+    pub(crate) fn new(ty: Ty, len: u32) -> TypeLengthField {
         TypeLengthField { ty, len }
     }
 }
@@ -26,7 +48,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
 
         // reserved for future usages
         if matches!(ty, Ty::Boolean) && has_more_bytes {
-            return Err(ParseError::TlfReserved);
+            return Err(TlfParseError::TlfReserved.into());
         }
 
         while has_more_bytes {
@@ -39,7 +61,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
             len = match len.checked_shl(4) {
                 Some(l) => l,
                 None => {
-                    return Err(ParseError::TlfLengthOverflow);
+                    return Err(TlfParseError::TlfLengthOverflow.into());
                 }
             };
             len += len_new & 0b1111;
@@ -51,7 +73,7 @@ impl<'i> SmlParse<'i> for TypeLengthField {
             len = match len.checked_sub(tlf_len) {
                 Some(l) => l,
                 None => {
-                    return Err(ParseError::TlfLengthUnderflow);
+                    return Err(TlfParseError::TlfLengthUnderflow.into());
                 }
             }
         }
@@ -77,7 +99,7 @@ fn tlf_first_byte(input: &[u8]) -> ResTy<(bool, Ty, u32)> {
 fn tlf_next_byte(input: &[u8]) -> ResTy<(bool, u32)> {
     let (input, (has_more_bytes, ty, len)) = tlf_byte(input)?;
     if ty != 0x00 {
-        return Err(ParseError::TlfNextByteTypeMismatch);
+        return Err(TlfParseError::TlfNextByteTypeMismatch.into());
     }
     Ok((input, (has_more_bytes, len)))
 }
@@ -100,7 +122,7 @@ impl Ty {
             0b110 => Ty::Unsigned,
             0b111 => Ty::ListOf,
             _ => {
-                return Err(ParseError::TlfInvalidTy);
+                return Err(TlfParseError::TlfInvalidTy.into());
             }
         })
     }

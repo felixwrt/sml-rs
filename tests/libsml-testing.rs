@@ -48,7 +48,6 @@ fn test_repo_validation() {
 #[cfg(feature = "alloc")]
 #[test]
 fn test_files() {
-    use sml_rs::parser::SmlParse;
     use std::fmt::Write;
 
     insta::glob!("libsml-testing/*.bin", |path| {
@@ -63,7 +62,7 @@ fn test_files() {
                 s,
                 "{:#?}\n",
                 result.map(|x| {
-                    let res = sml_rs::parser::domain::File::parse_complete(x);
+                    let res = sml_rs::parser::parse(x);
                     let res_streaming = sml_rs::parser::streaming::ParseState::new(x).collect();
                     assert_eq!(res, res_streaming);
                     res.expect("Error while parsing:").messages

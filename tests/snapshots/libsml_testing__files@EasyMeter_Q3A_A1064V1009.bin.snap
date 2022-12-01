@@ -22,7 +22,7 @@ Ok(
     [
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 154, 247],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [69, 83, 89],
@@ -32,7 +32,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 154, 248],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [9, 1, 69, 83, 89, 17, 3, 181, 153, 165],
@@ -120,7 +120,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 154, 249],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -130,7 +130,7 @@ Ok(
     [
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 154, 250],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [69, 83, 89],
@@ -140,7 +140,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 154, 251],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [9, 1, 69, 83, 89, 17, 3, 181, 153, 165],
@@ -228,7 +228,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 154, 252],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -258,7 +258,7 @@ Ok(
     [
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 155, 3],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [69, 83, 89],
@@ -268,7 +268,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 155, 4],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [9, 1, 69, 83, 89, 17, 3, 181, 153, 165],
@@ -356,7 +356,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 155, 5],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -366,7 +366,7 @@ Ok(
     [
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 155, 6],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 client_id: [69, 83, 89],
@@ -376,7 +376,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 155, 7],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [9, 1, 69, 83, 89, 17, 3, 181, 153, 165],
@@ -464,7 +464,7 @@ Ok(
         },
         Message {
             transaction_id: [69, 83, 89, 65, 153, 165, 2, 234, 155, 8],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },

@@ -7,7 +7,7 @@ Ok(
     [
         Message {
             transaction_id: [19, 49, 180, 196],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 req_file_id: [6, 101, 230, 236],
@@ -18,7 +18,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 197],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
@@ -63,7 +63,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 198],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -73,7 +73,7 @@ Ok(
     [
         Message {
             transaction_id: [19, 49, 180, 199],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 req_file_id: [6, 101, 230, 237],
@@ -84,7 +84,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 200],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
@@ -129,7 +129,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 201],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -139,7 +139,7 @@ Ok(
     [
         Message {
             transaction_id: [19, 49, 180, 202],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 req_file_id: [6, 101, 230, 238],
@@ -150,7 +150,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 203],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
@@ -195,7 +195,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 204],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },
@@ -205,7 +205,7 @@ Ok(
     [
         Message {
             transaction_id: [19, 49, 180, 205],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: OpenResponse {
                 req_file_id: [6, 101, 230, 239],
@@ -216,7 +216,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 206],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: GetListResponse {
                 server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
@@ -261,7 +261,7 @@ Ok(
         },
         Message {
             transaction_id: [19, 49, 180, 207],
-            group_id: 0,
+            group_no: 0,
             abort_on_error: 0,
             message_body: CloseResponse,
         },

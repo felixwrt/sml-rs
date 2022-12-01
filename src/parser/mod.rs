@@ -2,35 +2,33 @@
 
 use core::{fmt::Debug, ops::Deref};
 
-use self::tlf::TypeLengthField;
+use tlf::TypeLengthField;
 
-pub mod domain;
-pub mod num;
-pub mod octet_string;
+mod domain;
+mod num;
+mod octet_string;
 pub mod streaming;
-pub mod tlf;
+mod tlf;
+
+pub use tlf::TlfParseError;
+
+
+pub use octet_string::OctetStr;
+
+#[cfg(feature = "alloc")]
+pub use octet_string::OctetString;
+
+pub use domain::*;
 
 /// Error type used by the parser
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError {
     /// There are additional bytes in the input while the parser expects EOF
     LeftoverInput,
     /// The parser expected additional bytes but encountered an EOF
     UnexpectedEOF,
-    /// Type field of TLF doesn't match OctetString
-    OctetStrTlfTypeMismatch,
-    /// The length field of a TLF overflowed
-    TlfLengthOverflow,
-    /// The TLF uses values reserved for future usage
-    TlfReserved,
-    /// The length field of a TLF underflowed
-    TlfLengthUnderflow,
-    /// The type field of a byte following the first TLF byte isn't set to `000`
-    TlfNextByteTypeMismatch,
-    /// The TLF's type field contains an invalid value
-    TlfInvalidTy,
-    /// TLF doesn't match the number type being parsed
-    NumTlfMismatch,
+    /// An error occurred while parsing a `TypeLengthField`
+    InvalidTlf(TlfParseError),
     /// TLF mismatch while parsing struct / enum
     TlfMismatch(&'static str),
     /// CRC mismatch,
@@ -44,8 +42,16 @@ pub enum ParseError {
 type ResTy<'i, O> = Result<(&'i [u8], O), ParseError>;
 type ResTyComplete<'i, O> = Result<O, ParseError>;
 
+/// Parses a slice of bytes into an SML message.
+/// 
+/// *This function is available only if sml-rs is built with the `"alloc"` feature.*
+#[cfg(feature = "alloc")]
+pub fn parse(input: &[u8]) -> Result<File, ParseError> {
+    File::parse_complete(input)
+}
+
 /// SmlParse is the main trait used to parse bytes into SML data structures.
-pub trait SmlParse<'i>
+pub(crate) trait SmlParse<'i>
 where
     Self: Sized,
 {
