@@ -59,7 +59,7 @@ enum EncoderState {
     End(i8),
 }
 
-/// An iterator that encoder the bytes of an underlying iterator using the SML Transport Protocol v1.
+/// An iterator that encodes the bytes of an underlying iterator using the SML Transport Protocol v1.
 pub struct Encoder<I>
 where
     I: Iterator<Item = u8>,

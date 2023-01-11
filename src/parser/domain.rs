@@ -40,6 +40,7 @@ impl<'i> SmlParse<'i> for File<'i> {
         let mut messages = alloc::vec::Vec::new();
         while !input.is_empty() {
             let (new_input, msg) = Message::parse(input)?;
+            println!("{:x?}", &input[..input.len()-new_input.len()]);
             messages.push(msg);
             input = new_input;
         }
@@ -162,7 +163,8 @@ pub struct OpenResponse<'i> {
 #[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
 /// `SML_PublicClose.Res` message
 pub struct CloseResponse<'i> {
-    global_signature: Option<Signature<'i>>,
+    /// optional signature
+    pub global_signature: Option<Signature<'i>>,
 }
 
 /// SML signature type
