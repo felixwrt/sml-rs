@@ -1,20 +1,17 @@
 //! SML domain types and their parser implementations.
 
-use sml_rs_macros::{CompactDebug, SmlParse};
-
 use super::{
-    map, octet_string::OctetStr, take_byte, tlf::TypeLengthField, NumberFormatter,
-    OctetStrFormatter, ParseError, ResTy, SmlParse,
+    octet_string::OctetStr, take_byte, tlf::TypeLengthField, NumberFormatter, OctetStrFormatter,
+    ParseError, ResTy, SmlParse,
 };
 
 #[cfg(feature = "alloc")]
 use super::SmlParseTlf;
 
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone)]
 /// SML Time type
 pub enum Time {
     /// usually the number of seconds since the power meter was installed
-    #[tag(0x01)]
     SecIndex(u32),
 }
 
@@ -50,7 +47,7 @@ impl<'i> SmlParse<'i> for File<'i> {
 }
 
 #[cfg(feature = "alloc")]
-#[derive(PartialEq, Eq, Clone, CompactDebug)]
+#[derive(PartialEq, Eq, Clone)]
 /// An SML message
 pub struct Message<'i> {
     /// transaction identifier
@@ -115,20 +112,17 @@ impl<'i> SmlParse<'i> for EndOfSmlMessage {
 }
 
 #[cfg(feature = "alloc")]
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone)]
 /// SML message body
 ///
 /// Hint: this type only implements the message types specified by SML that are
 /// used in real-world power meters.
 pub enum MessageBody<'i> {
     /// `SML_PublicOpen.Res` message
-    #[tag(0x00000101)]
     OpenResponse(OpenResponse<'i>),
     /// `SML_PublicClose.Res` message
-    #[tag(0x00000201)]
     CloseResponse(CloseResponse<'i>),
     /// `SML_GetList.Res` message
-    #[tag(0x00000701)]
     GetListResponse(GetListResponse<'i>),
 }
 
@@ -143,24 +137,24 @@ impl<'i> core::fmt::Debug for MessageBody<'i> {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+#[derive(PartialEq, Eq, Clone)]
 /// `SML_PublicOpen.Res` message
 pub struct OpenResponse<'i> {
     /// alternative codepage. Defaults to `ISO 8859-15`
-    codepage: Option<OctetStr<'i>>,
+    pub codepage: Option<OctetStr<'i>>,
     /// identification of the client
-    client_id: Option<OctetStr<'i>>,
+    pub client_id: Option<OctetStr<'i>>,
     /// identification of the request/response pair
-    req_file_id: OctetStr<'i>,
+    pub req_file_id: OctetStr<'i>,
     /// identification of the server
-    server_id: OctetStr<'i>,
+    pub server_id: OctetStr<'i>,
     /// reference time
-    ref_time: Option<Time>,
+    pub ref_time: Option<Time>,
     /// version of the SML protocol. Defaults to `1`
-    sml_version: Option<u8>,
+    pub sml_version: Option<u8>,
 }
 
-#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+#[derive(PartialEq, Eq, Clone)]
 /// `SML_PublicClose.Res` message
 pub struct CloseResponse<'i> {
     /// optional signature
@@ -171,7 +165,7 @@ pub struct CloseResponse<'i> {
 pub type Signature<'i> = OctetStr<'i>;
 
 #[cfg(feature = "alloc")]
-#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+#[derive(PartialEq, Eq, Clone)]
 /// `SML_GetList.Res` message
 pub struct GetListResponse<'i> {
     /// identification of the client
@@ -211,7 +205,7 @@ impl<'i> SmlParseTlf<'i> for List<'i> {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, SmlParse, CompactDebug)]
+#[derive(PartialEq, Eq, Clone)]
 /// SML ListEntry type
 pub struct ListEntry<'i> {
     /// name of the entry
@@ -230,7 +224,7 @@ pub struct ListEntry<'i> {
     pub value_signature: Option<Signature<'i>>,
 }
 
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone)]
 /// SML status type. Meaning of status values is not specified in SML.
 pub enum Status {
     /// `u8` status
@@ -257,7 +251,7 @@ impl ::core::fmt::Debug for Status {
 /// unit code according to DLMS-Unit-List (see IEC 62056-62)
 pub type Unit = u8; // proper enum?
 
-#[derive(PartialEq, Eq, Clone, SmlParse)]
+#[derive(PartialEq, Eq, Clone)]
 /// SML value type
 #[allow(missing_docs)]
 pub enum Value<'i> {
@@ -292,10 +286,9 @@ impl<'i> core::fmt::Debug for Value<'i> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, SmlParse)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 /// SML ListType type
 pub enum ListType {
     /// variant containing time information
-    #[tag(0x01)]
     Time(Time),
 }

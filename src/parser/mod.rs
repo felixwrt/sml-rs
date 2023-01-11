@@ -30,6 +30,7 @@ use core::{fmt::Debug, ops::Deref};
 use tlf::TypeLengthField;
 
 mod domain;
+mod gen;
 mod num;
 mod octet_string;
 mod tlf;
