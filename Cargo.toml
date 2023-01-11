@@ -14,6 +14,7 @@ license = "MIT OR Apache-2.0"
 edition = "2021"
 
 [features]
+default = ["alloc"]
 alloc = []
 
 [dependencies]
@@ -34,3 +35,8 @@ opt-level = 3
 
 [profile.dev.package.similar]
 opt-level = 3
+
+[[example]]
+name = "decoder"
+path = "examples/decoder.rs"
+required-features = ["alloc"]

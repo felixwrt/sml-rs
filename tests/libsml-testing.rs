@@ -63,8 +63,6 @@ fn test_files() {
                 "{:#?}\n",
                 result.map(|x| {
                     let res = sml_rs::parser::parse(x);
-                    let res_streaming = sml_rs::parser::streaming::ParseState::new(x).collect();
-                    assert_eq!(res, res_streaming);
                     res.expect("Error while parsing:").messages
                 })
             )

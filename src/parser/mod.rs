@@ -7,7 +7,6 @@ use tlf::TypeLengthField;
 mod domain;
 mod num;
 mod octet_string;
-pub mod streaming;
 mod tlf;
 
 pub use tlf::TlfParseError;
