@@ -37,7 +37,6 @@ impl<'i> SmlParse<'i> for File<'i> {
         let mut messages = alloc::vec::Vec::new();
         while !input.is_empty() {
             let (new_input, msg) = Message::parse(input)?;
-            println!("{:x?}", &input[..input.len() - new_input.len()]);
             messages.push(msg);
             input = new_input;
         }

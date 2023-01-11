@@ -1,9 +1,10 @@
 //! This crate is a WIP implementation of the Smart Message Language (SML).
 //!
 //! # Feature flags
+//! - **`std`** (default) — Remove this feature to make the library `no_std` compatible.
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
 //!
-// #![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 

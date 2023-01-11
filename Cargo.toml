@@ -8,7 +8,8 @@ license = "MIT OR Apache-2.0"
 edition = "2021"
 
 [features]
-default = ["alloc"]
+default = ["std"]
+std = ["alloc"]
 alloc = []
 
 [dependencies]
