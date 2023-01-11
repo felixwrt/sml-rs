@@ -1,23 +1,23 @@
 //! This module implements the SML parser
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```
 //! use sml_rs::parser::{parse, File, Message, MessageBody, CloseResponse};
-//! 
+//!
 //! let bytes = [0x76, 0x5, 0xdd, 0x43, 0x44, 0x0, 0x62, 0x0, 0x62, 0x0, 0x72, 0x63, 0x2, 0x1, 0x71, 0x1, 0x63, 0xfd, 0x56, 0x0];
-//! 
+//!
 //! // parse the input data
 //! let result = parse(&bytes);
-//! 
+//!
 //! let expected = File {
 //!     messages: vec![
-//!         Message { 
-//!             transaction_id: &[221, 67, 68, 0], 
-//!             group_no: 0, 
-//!             abort_on_error: 0, 
-//!             message_body: MessageBody::CloseResponse(CloseResponse { 
-//!                 global_signature: None 
+//!         Message {
+//!             transaction_id: &[221, 67, 68, 0],
+//!             group_no: 0,
+//!             abort_on_error: 0,
+//!             message_body: MessageBody::CloseResponse(CloseResponse {
+//!                 global_signature: None
 //!             })
 //!         }
 //!     ]
