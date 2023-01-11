@@ -45,11 +45,17 @@ jobs:
         with:
           command: test
 
-      - name: Run cargo test (all features)
+      - name: Run cargo test (no default features)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features
+          args: --no-default-features
+
+      - name: Run cargo test ("alloc" feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features=alloc
 
   lints:
     name: Lints

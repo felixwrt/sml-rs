@@ -1,9 +1,120 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/eBZ_DD3_DD3BZ06DTA-SMZ1_without_PIN.bin
 ---
-Ok(214)
-Ok(214)
+Ok(
+    [
+        Message {
+            transaction_id: [3, 80, 113, 23],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [101, 66, 90, 68, 68, 51],
+                server_id: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120],
+            },
+        },
+        Message {
+            transaction_id: [3, 80, 113, 24],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120],
+                act_sensor_time: SecIndex(44780538),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 66, 90],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 4469u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 4468u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [3, 80, 113, 25],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [3, 80, 113, 29],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [101, 66, 90, 68, 68, 51],
+                server_id: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120],
+            },
+        },
+        Message {
+            transaction_id: [3, 80, 113, 30],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120],
+                act_sensor_time: SecIndex(44780539),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 66, 90],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 4469u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 4468u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [3, 80, 113, 31],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 

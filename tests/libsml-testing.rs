@@ -1,19 +1,16 @@
-use std::fmt::Write;
 use std::iter::FromIterator;
 use std::{
     collections::HashSet,
     ffi::{OsStr, OsString},
 };
 
-use anyhow::{bail, Result};
-
 #[test]
-fn test_repo_validation() -> Result<()> {
+fn test_repo_validation() {
     let dir = std::fs::read_dir("./tests/libsml-testing").expect("test folder does not exist");
     let mut bin_filenames = HashSet::new();
     let mut hex_filenames = HashSet::new();
     for entry in dir {
-        let entry = entry?.path();
+        let entry = entry.unwrap().path();
         match (entry.file_stem(), entry.extension().and_then(OsStr::to_str)) {
             (Some(name), Some("bin")) => {
                 bin_filenames.insert(name.to_os_string());
@@ -28,7 +25,7 @@ fn test_repo_validation() -> Result<()> {
     assert_eq!(bin_filenames, hex_filenames);
 
     if bin_filenames.is_empty() {
-        bail!("There are no test files in ./tests/libsml-testing. You probably need to initialize the git submodule. Try `git submodule init && git submodule update`.\n")
+        panic!("There are no test files in ./tests/libsml-testing. You probably need to initialize the git submodule. Try `git submodule init && git submodule update`.\n")
     }
 
     // check that bin and hex files contain the same content
@@ -46,12 +43,13 @@ fn test_repo_validation() -> Result<()> {
 
         assert_eq!(bin_bytes, hex_bytes);
     }
-
-    Ok(())
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn test_files() {
+    use std::fmt::Write;
+
     insta::glob!("libsml-testing/*.bin", |path| {
         let bytes = std::fs::read(path).unwrap();
 
@@ -59,7 +57,16 @@ fn test_files() {
 
         let mut s = String::new();
         while let Some(result) = decoder.next() {
-            write!(s, "{:?}\n", result.map(|x| x.len())).unwrap();
+            // write!(s, "{:?}\n", result.map(|x| x.len())).unwrap();
+            write!(
+                s,
+                "{:#?}\n",
+                result.map(|x| {
+                    let res = sml_rs::parser::parse(x);
+                    res.expect("Error while parsing:").messages
+                })
+            )
+            .unwrap();
         }
         insta::assert_snapshot!(s);
     });

@@ -1,12 +1,267 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/eBZ_DD3_DD32R06DTA-SMZ1.bin
 ---
-Err(DiscardedBytes(119))
-Ok(237)
-Ok(237)
-Ok(237)
-Ok(237)
+Err(
+    DiscardedBytes(
+        119,
+    ),
+)
+Ok(
+    [
+        Message {
+            transaction_id: [1, 22, 232, 135],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [101, 66, 90, 68, 68, 51],
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 136],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                act_sensor_time: SecIndex(104569093),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 66, 90],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 13024u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 13023u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 137],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [1, 22, 232, 141],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [101, 66, 90, 68, 68, 51],
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 142],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                act_sensor_time: SecIndex(104569094),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 66, 90],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 13024u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 13023u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 143],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [1, 22, 232, 147],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [101, 66, 90, 68, 68, 51],
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 148],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                act_sensor_time: SecIndex(104569095),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 66, 90],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 13024u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 13023u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 149],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [1, 22, 232, 153],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [101, 66, 90, 68, 68, 51],
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 154],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                act_sensor_time: SecIndex(104569096),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 66, 90],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 13024u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 13023u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 65920u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 1u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [1, 22, 232, 155],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 

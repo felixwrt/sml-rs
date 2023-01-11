@@ -1,20 +1,815 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/EMH_eHZ-HW8E2A5L0EK2P.bin
 ---
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Ok(299)
-Err(DiscardedBytes(304))
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 182],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 146],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 183],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010874),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916488i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914476i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1635i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 186],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 188],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 148],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 189],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010877),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916489i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914477i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1633i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 192],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 194],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 150],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 195],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010879),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916490i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914478i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1634i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 198],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 200],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 152],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 201],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010881),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916491i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914479i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1636i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 204],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 206],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 154],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 207],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010883),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916492i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914480i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1636i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 210],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 212],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 156],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 213],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010885),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916493i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914481i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1633i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 216],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 218],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 158],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 219],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010888),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916494i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914482i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1653i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 222],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 224],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 160],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 225],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010890),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916495i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914483i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1658i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 228],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 230],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 162],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 231],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010892),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916496i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914484i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1636i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 234],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 236],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 164],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 237],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010894),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916497i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914485i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1641i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 240],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 242],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 166],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 243],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010896),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916498i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914486i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1632i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 246],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 248],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 40, 6, 234, 252, 168],
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 249],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                act_sensor_time: SecIndex(116010899),
+                val_list: [
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 3, 255],
+                        value: [69, 77, 72],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 0, 9, 255],
+                        value: [6, 69, 77, 72, 1, 2, 113, 83, 200, 198],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 386u16,
+                        unit: 30,
+                        scaler: -1,
+                        value: 83916499i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 83914487i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: -1,
+                        value: 2012i64,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 15, 7, 0, 255],
+                        unit: 27,
+                        scaler: -1,
+                        value: 1641i32,
+                    },
+                    ListEntry {
+                        obj_name: [129, 129, 199, 130, 5, 255],
+                        value: [40, 171, 219, 244, 65, 165, 239, 99, 53, 236, 56, 189, 156, 14, 10, 121, 3, 13, 165, 244, 164, 215, 57, 95, 105, 82, 239, 122, 11, 15, 243, 252, 209, 55, 248, 102, 209, 20, 21, 76, 240, 169, 82, 66, 222, 170, 177, 125],
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 40, 4, 130, 245, 252],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Err(
+    DiscardedBytes(
+        304,
+    ),
+)
 

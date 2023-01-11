@@ -1,9 +1,126 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/ISKRA_MT631-D2A51-V22-K0z_without_PIN.bin
 ---
-Ok(214)
-Ok(214)
+Ok(
+    [
+        Message {
+            transaction_id: [19, 0, 136, 145],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [6, 85, 130, 219],
+                server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
+                ref_time: SecIndex(106267790),
+                sml_version: 1,
+            },
+        },
+        Message {
+            transaction_id: [19, 0, 136, 146],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
+                list_name: [1, 0, 98, 10, 255, 255],
+                act_sensor_time: SecIndex(106267790),
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [73, 83, 75],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 1835012u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 16786u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 4u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 16782u16,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [19, 0, 136, 147],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [19, 0, 136, 148],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [6, 85, 130, 220],
+                server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
+                ref_time: SecIndex(106267791),
+                sml_version: 1,
+            },
+        },
+        Message {
+            transaction_id: [19, 0, 136, 149],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
+                list_name: [1, 0, 98, 10, 255, 255],
+                act_sensor_time: SecIndex(106267791),
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [73, 83, 75],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 73, 83, 75, 0, 4, 84, 169, 95],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 1835012u32,
+                        unit: 30,
+                        scaler: 3,
+                        value: 16786u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 4u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        unit: 30,
+                        scaler: 3,
+                        value: 16782u16,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [19, 0, 136, 150],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 

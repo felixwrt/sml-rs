@@ -1,8 +1,55 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/HOLLEY_DTZ541-BDBA_without_PIN.bin
 ---
-Ok(196)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 1, 108, 84, 176],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 13, 107, 230],
+                ref_time: SecIndex(23876784),
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                client_id: [255, 255, 255, 255, 255, 255],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 13, 107, 230],
+                list_name: [1, 0, 98, 10, 255, 255],
+                act_sensor_time: SecIndex(23876784),
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 13, 107, 230],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(23876784),
+                        unit: 30,
+                        scaler: 3,
+                        value: 2324u16,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
 

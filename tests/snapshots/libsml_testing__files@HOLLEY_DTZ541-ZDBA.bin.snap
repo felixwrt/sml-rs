@@ -1,15 +1,1068 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 80
 expression: s
 input_file: tests/libsml-testing/HOLLEY_DTZ541-ZDBA.bin
 ---
-Ok(510)
-Ok(510)
-Ok(510)
-Ok(510)
-Ok(510)
-Ok(510)
-Ok(510)
-Err(DiscardedBytes(400))
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 3],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347075),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347075),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773601u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347075),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 460i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2323u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2325u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2325u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 106u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 174u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 120u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 240u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 298u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 312u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 5],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347077),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347077),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773603u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347077),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 459i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2323u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2325u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 107u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 174u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 121u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 240u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 298u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 312u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 6],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347078),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347078),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773605u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347078),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 460i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2324u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 107u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 174u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 120u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 241u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 298u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 312u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 8],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347080),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347080),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773607u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347080),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 468i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2324u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 107u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 174u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 119u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 240u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 299u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 313u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 10],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347082),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347082),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773609u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347082),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 463i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2324u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 106u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 175u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 120u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 241u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 298u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 313u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 11],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347083),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347083),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773611u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347083),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 460i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2324u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2325u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 106u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 174u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 119u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 240u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 298u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 312u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Ok(
+    [
+        Message {
+            transaction_id: [0, 0, 1],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: OpenResponse {
+                req_file_id: [0, 0, 0, 20, 142, 13],
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 2],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: GetListResponse {
+                server_id: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                val_list: [
+                    ListEntry {
+                        obj_name: [1, 0, 96, 50, 1, 1],
+                        value: [72, 76, 89],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 1, 0, 255],
+                        value: [10, 1, 72, 76, 89, 2, 0, 3, 169, 16],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 1, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347085),
+                        unit: 30,
+                        scaler: -1,
+                        value: 0u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 1, 8, 2, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347085),
+                        unit: 30,
+                        scaler: -1,
+                        value: 1773613u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 2, 8, 0, 255],
+                        status: 1835268u32,
+                        val_time: SecIndex(1347085),
+                        unit: 30,
+                        scaler: -1,
+                        value: 3149260u32,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 16, 7, 0, 255],
+                        unit: 27,
+                        scaler: 0,
+                        value: 462i16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 32, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2324u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 52, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2326u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 72, 7, 0, 255],
+                        unit: 35,
+                        scaler: -1,
+                        value: 2325u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 31, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 107u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 51, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 174u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 71, 7, 0, 255],
+                        unit: 33,
+                        scaler: -2,
+                        value: 91u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 1, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 120u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 2, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 240u8,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 4, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 298u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 15, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 312u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 81, 7, 26, 255],
+                        unit: 8,
+                        scaler: 0,
+                        value: 288u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 14, 7, 0, 255],
+                        unit: 44,
+                        scaler: -1,
+                        value: 500u16,
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 0, 2, 0, 0],
+                        value: [49, 46, 48, 50, 46, 48, 48, 55],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 90, 2, 1],
+                        value: [65, 48, 49, 65],
+                    },
+                    ListEntry {
+                        obj_name: [1, 0, 96, 5, 0, 255],
+                        value: 1835268u32,
+                    },
+                ],
+            },
+        },
+        Message {
+            transaction_id: [0, 0, 3],
+            group_no: 0,
+            abort_on_error: 0,
+            message_body: CloseResponse,
+        },
+    ],
+)
+Err(
+    DiscardedBytes(
+        400,
+    ),
+)
 
