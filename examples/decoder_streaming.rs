@@ -11,7 +11,7 @@ use std::io::Read;
 fn main() -> Result<(), std::io::Error> {
     let stdin = std::io::stdin().lock();
 
-    let mut decoder = sml_rs::transport::Decoder::<Vec<u8>>::new();
+    let mut decoder = sml_rs::transport::Decoder::<heapless::Vec<u8, 1024>>::new();
 
     for res in stdin.bytes() {
         let b = res?;
@@ -19,16 +19,21 @@ fn main() -> Result<(), std::io::Error> {
         match decoder.push_byte(b) {
             Ok(None) => {}
             Ok(Some(decoded_bytes)) => {
-                println!("{:#?}", sml_rs::parser::complete::parse(decoded_bytes));
+                println!("Decoded {} bytes. Parsing SML:", decoded_bytes.len());
+                let parser = sml_rs::parser::streaming::Parser::new(decoded_bytes);
+                for item in parser {
+                    println!("{:#?}", item);
+                }
+                println!("\n\n")
             }
             Err(e) => {
-                println!("Err({:?})", e);
+                println!("Error decoding transmission: {:?}", e);
             }
         }
     }
 
     if let Some(e) = decoder.finalize() {
-        println!("Err({:?})", e);
+        println!("Error decoding transmission: {:?}", e);
     }
 
     Ok(())

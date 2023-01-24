@@ -1,6 +1,6 @@
 [package]
 name = "sml-rs"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 description = "Smart Message Language (SML) parser written in Rust"
 repository = "https://github.com/fkohlgrueber/sml-rs"
@@ -34,3 +34,7 @@ opt-level = 3
 name = "decoder"
 path = "examples/decoder.rs"
 required-features = ["alloc"]
+
+[[example]]
+name = "decoder-streaming"
+path = "examples/decoder_streaming.rs"

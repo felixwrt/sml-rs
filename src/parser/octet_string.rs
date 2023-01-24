@@ -6,21 +6,21 @@ use super::{
     ResTy, SmlParseTlf,
 };
 
-#[cfg(feature = "alloc")]
-/// OctetString is the owned version of a sequence of bytes.
-pub type OctetString = alloc::vec::Vec<u8>;
+// #[cfg(feature = "alloc")]
+// /// OctetString is the owned version of a sequence of bytes.
+// pub type OctetString = alloc::vec::Vec<u8>;
 
-#[cfg(feature = "alloc")]
-impl<'i> SmlParseTlf<'i> for OctetString {
-    fn check_tlf(tlf: &TypeLengthField) -> bool {
-        OctetStr::check_tlf(tlf)
-    }
+// #[cfg(feature = "alloc")]
+// impl<'i> SmlParseTlf<'i> for OctetString {
+//     fn check_tlf(tlf: &TypeLengthField) -> bool {
+//         OctetStr::check_tlf(tlf)
+//     }
 
-    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
-        let (input, octet_str) = OctetStr::parse_with_tlf(input, tlf)?;
-        Ok((input, octet_str.to_vec()))
-    }
-}
+//     fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+//         let (input, octet_str) = OctetStr::parse_with_tlf(input, tlf)?;
+//         Ok((input, octet_str.to_vec()))
+//     }
+// }
 
 /// OctetStr is the borrowed version of a sequence of bytes.
 pub type OctetStr<'i> = &'i [u8];
