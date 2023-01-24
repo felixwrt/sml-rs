@@ -1,9 +1,9 @@
 [package]
 name = "sml-rs"
-version = "0.2.0"
-authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+version = "0.2.1"
+authors = ["Felix Wirth <felix@wirth.one>"]
 description = "Smart Message Language (SML) parser written in Rust"
-repository = "https://github.com/fkohlgrueber/sml-rs"
+repository = "https://github.com/felixwrt/sml-rs"
 license = "MIT OR Apache-2.0"
 edition = "2021"
 

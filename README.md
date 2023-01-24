@@ -3,7 +3,7 @@
   <p>
     <a href="https://crates.io/crates/sml-rs"><img alt="Crate Info" src="https://img.shields.io/crates/v/sml-rs.svg?style=flat-square"/></a>
     <a href="https://docs.rs/sml-rs/"><img alt="API Docs" src="https://img.shields.io/docsrs/sml-rs.svg?style=flat-square"/></a>
-    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/fkohlgrueber/sml-rs/quickstart.yml?branch=main&label=CI&style=flat-square"/>
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/felixwrt/sml-rs/quickstart.yml?branch=main&label=CI&style=flat-square"/>
     <img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2023?style=flat-square"/>
   </p>
 </div>
@@ -39,8 +39,7 @@ The following list shows the goals guiding development of the library. While we 
 
 ## Spec
 
-- SML V1.04 Spec [[pdf]](https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03109/TR-03109-1_Anlage_Feinspezifikation_Drahtgebundene_LMN-Schnittstelle_Teilb.pdf;jsessionid=F2323041EE7292926D80680DA407BA3F.internet082?__blob=publicationFile&v=1) [[archive.org]](https://web.archive.org/web/20211217153839/https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03109/TR-03109-1_Anlage_Feinspezifikation_Drahtgebundene_LMN-Schnittstelle_Teilb.pdf;jsessionid=F2323041EE7292926D80680DA407BA3F.internet082?__blob=publicationFile&v=1)
-
+- SML V1.04 Spec [[pdf]][smlpdf] [[archive.org]][smlarchive]
 
 ## Implementation status
 
@@ -73,3 +72,6 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
 </sub>
+
+[smlpdf]: https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03109/TR-03109-1_Anlage_Feinspezifikation_Drahtgebundene_LMN-Schnittstelle_Teilb.pdf;jsessionid=F2323041EE7292926D80680DA407BA3F.internet082?__blob=publicationFile&v=1
+[smlarchive]: https://web.archive.org/web/20211217153839/https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03109/TR-03109-1_Anlage_Feinspezifikation_Drahtgebundene_LMN-Schnittstelle_Teilb.pdf;jsessionid=F2323041EE7292926D80680DA407BA3F.internet082?__blob=publicationFile&v=1
