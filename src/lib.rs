@@ -11,7 +11,6 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
 pub mod parser;
 pub mod transport;
 pub mod util;

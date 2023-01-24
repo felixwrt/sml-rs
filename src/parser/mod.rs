@@ -1,48 +1,120 @@
-//! This module implements the SML parser
-//!
+//! Parsers for SML messages.
+//! 
+//! This module contains parsers for the SML protocol. The `complete` module contains an easy to use allocating
+//! parser. The `streaming` module contains a flexible non-allocating parser. See the discussion below for a 
+//! comparison of the two parsers:
+//! 
+//! # Which parser should I choose?
+//! 
+//! The SML protocol defines two data structures that can hold multiple elements. An SML File can 
+//! contain multiple SML Messages and the "SML_GetList.Res" message contains a list of values. 
+//! Because of these two elements, the size of an SML File cannot be known at compile time. 
+//! 
+//! The parser in the `complete` module uses dynamic memory allocations `alloc::vec::Vec` for SML 
+//! Messages and SML Values. This makes the usage straight-forward and if you're using `sml-rs` on
+//! a hosted platform, this is most likely the parser you'll want to use.
+//! 
+//! The parser in the `streaming` module works differently and therefore doesn't require dynamic 
+//! memory allocations. Instead of returning a single data structure representing the whole SML File,
+//! this parser produces a stream of events that each have a size known at compile time. Depending on the
+//! input, the parser will produce a different number of events, which is how different numbers of SML 
+//! Messages / Values can be handled. If you're using `sml-rs` on a microcontroller and don't want to use 
+//! an allocator, this is the parser you'll want to use.
+//! 
 //! # Examples
-//!
+//! 
+//! ## Using `complete::parse`
+//! 
+//! ```rust
+//! # use sml_rs::parser::complete;
+//! let bytes: &[u8] = &[ /*...*/ ];
+//! 
+//! println!("{:#?}", complete::parse(&bytes).expect("error while parsing"));
 //! ```
-//! use sml_rs::parser::{parse, File, Message, MessageBody, CloseResponse};
-//!
-//! let bytes = [0x76, 0x5, 0xdd, 0x43, 0x44, 0x0, 0x62, 0x0, 0x62, 0x0, 0x72, 0x63, 0x2, 0x1, 0x71, 0x1, 0x63, 0xfd, 0x56, 0x0];
-//!
-//! // parse the input data
-//! let result = parse(&bytes);
-//!
-//! let expected = File {
-//!     messages: vec![
+//! 
+//! Output (stripped-down to the relevant parts):
+//! ```text
+//! File {
+//!     messages: [
 //!         Message {
-//!             transaction_id: &[221, 67, 68, 0],
-//!             group_no: 0,
-//!             abort_on_error: 0,
-//!             message_body: MessageBody::CloseResponse(CloseResponse {
-//!                 global_signature: None
-//!             })
-//!         }
-//!     ]
-//! };
-//! assert_eq!(result, Ok(expected))
+//!             message_body: OpenResponse {
+//!                 ref_time: SecIndex(23876784),
+//!                 ...
+//!             },
+//!             ...
+//!         },
+//!         Message {
+//!             message_body: GetListResponse {
+//!                 val_list: [
+//!                     ListEntry { ... },
+//!                     ListEntry { ... },
+//!                     ListEntry { ... },
+//!                 ],
+//!             },
+//!             ...
+//!         },
+//!         Message {
+//!             message_body: CloseResponse,
+//!             ...
+//!         },
+//!     ],
+//! }
 //! ```
+//!
+//! ## Using `streaming::Parser`
+//! ```rust
+//! # use sml_rs::parser::streaming;
+//! let bytes: &[u8] = &[ /*...*/ ];
+//! 
+//! let parser = streaming::Parser::new(bytes);
+//! for item in parser {
+//!     println!("- {:#?}", item.expect("error while parsing"));
+//! }
+//! ```
+//! 
+//! Output (stripped-down to the relevant parts):
+//! ```text
+//! - MessageStart(MessageStart {
+//!     message_body: OpenResponse {
+//!         ref_time: SecIndex(23876784),
+//!         ...
+//!     },
+//!     ...
+//! })
+//! - MessageStart(MessageStart {
+//!     message_body: GetListResponseStart {
+//!         num_values: 3,
+//!         ...
+//!     },
+//!     ...
+//! })
+//! - ListEntry(ListEntry { ... })
+//! - ListEntry(ListEntry { ... })
+//! - ListEntry(ListEntry { ... })
+//! - GetListResponseEnd(GetListResponseEnd)
+//! - MessageStart(MessageStart {
+//!     message_body: CloseResponse,
+//!     ...
+//! })
+//! ```
+//! 
+//! 
 
 use core::{fmt::Debug, ops::Deref};
 
 use tlf::TypeLengthField;
 
-mod domain;
-mod gen;
 mod num;
 mod octet_string;
 mod tlf;
+#[cfg(feature = "alloc")]
+pub mod complete;
+pub mod common;
+pub mod streaming;
 
 pub use tlf::TlfParseError;
 
 pub use octet_string::OctetStr;
-
-#[cfg(feature = "alloc")]
-pub use octet_string::OctetString;
-
-pub use domain::*;
 
 /// Error type used by the parser
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -66,14 +138,6 @@ pub enum ParseError {
 type ResTy<'i, O> = Result<(&'i [u8], O), ParseError>;
 #[allow(dead_code)]
 type ResTyComplete<'i, O> = Result<O, ParseError>;
-
-/// Parses a slice of bytes into an SML message.
-///
-/// *This function is available only if sml-rs is built with the `"alloc"` feature.*
-#[cfg(feature = "alloc")]
-pub fn parse(input: &[u8]) -> Result<File, ParseError> {
-    File::parse_complete(input)
-}
 
 /// SmlParse is the main trait used to parse bytes into SML data structures.
 pub(crate) trait SmlParse<'i>

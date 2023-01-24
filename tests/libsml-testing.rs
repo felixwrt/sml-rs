@@ -62,7 +62,7 @@ fn test_files() {
                 s,
                 "{:#?}\n",
                 result.map(|x| {
-                    let res = sml_rs::parser::parse(x);
+                    let res = sml_rs::parser::complete::parse(x);
                     res.expect("Error while parsing:").messages
                 })
             )
