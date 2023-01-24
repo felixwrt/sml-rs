@@ -82,65 +82,6 @@ impl<'i> Parser<'i> {
             }
         }))
     }
-
-    #[cfg(feature = "alloc")]
-    pub fn collect(self) -> Result<super::complete::File<'i>, ParseError> {
-        use super::complete;
-        use complete::GetListResponse;
-
-        let mut msgs = alloc::vec::Vec::new();
-
-        for res in self {
-            let res = dbg!(res)?;
-            match res {
-                ParseEvent::MessageStart(msg) => {
-                    let body = match msg.message_body {
-                        MessageBody::OpenResponse(x) => complete::MessageBody::OpenResponse(x),
-                        MessageBody::CloseResponse(x) => complete::MessageBody::CloseResponse(x),
-                        MessageBody::GetListResponse(x) => {
-                            complete::MessageBody::GetListResponse(GetListResponse {
-                                client_id: x.client_id,
-                                server_id: x.server_id,
-                                list_name: x.list_name,
-                                act_sensor_time: x.act_sensor_time,
-                                val_list: alloc::vec::Vec::with_capacity(x.num_vals as usize),
-                                list_signature: None,
-                                act_gateway_time: None,
-                            })
-                        }
-                    };
-                    let res = complete::Message {
-                        transaction_id: msg.transaction_id,
-                        group_no: msg.group_no,
-                        abort_on_error: msg.abort_on_error,
-                        message_body: body,
-                    };
-                    msgs.push(res);
-                }
-                ParseEvent::GetListResponseEnd(x) => match msgs.last_mut() {
-                    Some(complete::Message {
-                        message_body: complete::MessageBody::GetListResponse(glr),
-                        ..
-                    }) => {
-                        glr.list_signature = x.list_signature;
-                        glr.act_gateway_time = x.act_gateway_time;
-                    }
-                    _ => unreachable!(),
-                },
-                ParseEvent::ListEntry(x) => match msgs.last_mut() {
-                    Some(complete::Message {
-                        message_body: complete::MessageBody::GetListResponse(glr),
-                        ..
-                    }) => {
-                        glr.val_list.push(x);
-                    }
-                    _ => unreachable!(),
-                },
-            }
-        }
-
-        Ok(complete::File { messages: msgs })
-    }
 }
 
 impl<'i> Iterator for Parser<'i> {
