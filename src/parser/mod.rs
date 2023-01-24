@@ -1,4 +1,4 @@
-//! Parsers for SML messages.
+//! SML parsers.
 //!
 //! This module contains parsers for the SML protocol. The `complete` module contains an easy to use allocating
 //! parser. The `streaming` module contains a flexible non-allocating parser. See the discussion below for a
