@@ -1,22 +1,19 @@
 //! Flexible parser that doesn't require dynamic memory allocations.
-//! 
-//! 
+//!
+//!
 
 use crate::util::CRC_X25;
 
 use super::{
-    common::{EndOfSmlMessage, ListEntry, Signature, Time, OpenResponse, CloseResponse},
+    common::{CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
     octet_string::OctetStr,
     tlf::{self, Ty, TypeLengthField},
-    ParseError, ResTy, SmlParse, SmlParseTlf, OctetStrFormatter,
+    OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,
 };
 
-
 /// Incremental parser for SML messages.
-/// 
-/// TODO!
-/// 
-/// Compared to the other parser, this one doesn't require dynamic memory allocations. 
+///
+/// See the `parser` module for a discussion of the differences between the different parsers.
 pub struct Parser<'i> {
     input: &'i [u8],
     msg_input: &'i [u8],
@@ -112,13 +109,13 @@ pub enum ParseEvent<'i> {
 }
 
 /// Contains the start of an SML message.
-/// 
-/// For message types that have a known size (e.g. `OpenResponse`), the `MessageStart` type 
+///
+/// For message types that have a known size (e.g. `OpenResponse`), the `MessageStart` type
 /// contains the whole message. For messages with dynamic size (e.g. `GetListResponse`), the
-/// `MessageStart` type only contains the data read until the start of the dynamically-sized 
-/// data. The dynamically-sized elements (`ListEntry` in the case of `GetListResponse`) are 
-/// returned as separate events by the parser. For some message types (e.g. `GetListResponse`), 
-/// there's a separate event produced when the message has been parsed completely 
+/// `MessageStart` type only contains the data read until the start of the dynamically-sized
+/// data. The dynamically-sized elements (`ListEntry` in the case of `GetListResponse`) are
+/// returned as separate events by the parser. For some message types (e.g. `GetListResponse`),
+/// there's a separate event produced when the message has been parsed completely
 /// (`GetListResponseEnd` in case of `GetListResponse`).
 #[derive(PartialEq, Eq, Clone)]
 pub struct MessageStart<'i> {
@@ -128,7 +125,7 @@ pub struct MessageStart<'i> {
     pub group_no: u8,
     /// describes how to handle the Message in case of errors
     // this should probably be an enum
-    pub abort_on_error: u8, 
+    pub abort_on_error: u8,
     /// main content of the message
     pub message_body: MessageBody<'i>,
 }
@@ -165,14 +162,12 @@ impl<'i> core::fmt::Debug for MessageStart<'i> {
     }
 }
 
-
 #[derive(PartialEq, Eq, Clone)]
 /// SML message body
 ///
 /// Hint: this type only implements the message types specified by SML that are
 /// used in real-world power meters.
-pub enum MessageBody<'i>
-{
+pub enum MessageBody<'i> {
     /// `SML_PublicOpen.Res` message
     OpenResponse(OpenResponse<'i>),
     /// `SML_PublicClose.Res` message
@@ -181,8 +176,7 @@ pub enum MessageBody<'i>
     GetListResponse(GetListResponseStart<'i>),
 }
 
-impl<'i> core::fmt::Debug for MessageBody<'i> 
-{
+impl<'i> core::fmt::Debug for MessageBody<'i> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::OpenResponse(arg0) => arg0.fmt(f),
@@ -192,8 +186,7 @@ impl<'i> core::fmt::Debug for MessageBody<'i>
     }
 }
 
-impl<'i> SmlParseTlf<'i> for MessageBody<'i> 
-{
+impl<'i> SmlParseTlf<'i> for MessageBody<'i> {
     fn check_tlf(tlf: &TypeLengthField) -> bool {
         tlf.ty == tlf::Ty::ListOf && tlf.len == 2
     }
@@ -217,7 +210,6 @@ impl<'i> SmlParseTlf<'i> for MessageBody<'i>
         }
     }
 }
-
 
 #[derive(PartialEq, Eq, Clone)]
 /// Start event of a `GetListResponse` message.
@@ -278,7 +270,6 @@ impl<'i> core::fmt::Debug for GetListResponseStart<'i> {
         x.finish()
     }
 }
-
 
 /// End event of a `GetListResponse` message.
 #[derive(PartialEq, Eq, Clone)]

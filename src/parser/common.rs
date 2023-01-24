@@ -1,8 +1,11 @@
 //! Types used by both parsers.
 
 pub use super::OctetStr;
-use super::{SmlParse, ResTy, take_byte, ParseError, NumberFormatter, OctetStrFormatter, SmlParseTlf, tlf::{TypeLengthField, Ty}, take, map};
-
+use super::{
+    map, take, take_byte,
+    tlf::{Ty, TypeLengthField},
+    NumberFormatter, OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,
+};
 
 #[derive(PartialEq, Eq, Clone)]
 /// `SML_PublicOpen.Res` message
@@ -65,7 +68,6 @@ impl<'i> core::fmt::Debug for OpenResponse<'i> {
         x.finish()
     }
 }
-
 
 #[derive(PartialEq, Eq, Clone)]
 /// SML ListEntry type
@@ -136,7 +138,6 @@ impl<'i> core::fmt::Debug for ListEntry<'i> {
     }
 }
 
-
 #[derive(PartialEq, Eq, Clone)]
 /// SML value type
 #[allow(missing_docs)]
@@ -199,7 +200,6 @@ impl<'i> core::fmt::Debug for Value<'i> {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// SML ListType type
 pub enum ListType {
@@ -223,7 +223,6 @@ impl<'i> SmlParseTlf<'i> for ListType {
         }
     }
 }
-
 
 #[derive(PartialEq, Eq, Clone)]
 /// SML status type. Meaning of status values is not specified in SML.
@@ -265,10 +264,8 @@ impl ::core::fmt::Debug for Status {
     }
 }
 
-
 /// unit code according to DLMS-Unit-List (see IEC 62056-62)
 pub type Unit = u8; // proper enum?
-
 
 #[derive(PartialEq, Eq, Clone)]
 /// `SML_PublicClose.Res` message
@@ -299,7 +296,6 @@ impl<'i> core::fmt::Debug for CloseResponse<'i> {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct EndOfSmlMessage;
 
@@ -313,7 +309,6 @@ impl<'i> SmlParse<'i> for EndOfSmlMessage {
     }
 }
 
-
 #[derive(PartialEq, Eq, Clone)]
 /// SML Time type
 pub enum Time {
@@ -323,8 +318,7 @@ pub enum Time {
 
 impl<'i> SmlParseTlf<'i> for Time {
     fn check_tlf(tlf: &TypeLengthField) -> bool {
-        (tlf.ty == Ty::ListOf && tlf.len == 2)
-            || *tlf == TypeLengthField::new(Ty::Unsigned, 4)
+        (tlf.ty == Ty::ListOf && tlf.len == 2) || *tlf == TypeLengthField::new(Ty::Unsigned, 4)
     }
 
     fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
@@ -357,8 +351,5 @@ impl ::core::fmt::Debug for Time {
     }
 }
 
-
 /// SML signature type
 pub type Signature<'i> = OctetStr<'i>;
-
-

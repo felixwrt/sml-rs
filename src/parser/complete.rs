@@ -1,5 +1,5 @@
 //! Simple to use SML parser that uses dynamic memory allocations (requires `alloc` feature)
-//! 
+//!
 //! # Examples
 //!
 //! ```
@@ -27,7 +27,11 @@
 
 use core::fmt::Debug;
 
-use super::{SmlParse, ResTy, OctetStr, tlf::{TypeLengthField, Ty}, ParseError, OctetStrFormatter, SmlParseTlf, common::{OpenResponse, CloseResponse, EndOfSmlMessage, Time, Signature, ListEntry}};
+use super::{
+    common::{CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
+    tlf::{Ty, TypeLengthField},
+    OctetStr, OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// Top-level SML type. Holds multiple `Messages`.
@@ -180,7 +184,6 @@ pub struct GetListResponse<'i> {
     pub act_gateway_time: Option<Time>,
 }
 
-
 impl<'i> SmlParseTlf<'i> for GetListResponse<'i> {
     fn check_tlf(tlf: &TypeLengthField) -> bool {
         *tlf == TypeLengthField::new(Ty::ListOf, 7usize as u32)
@@ -249,7 +252,6 @@ impl<'i> SmlParseTlf<'i> for List<'i> {
         Ok((input, v))
     }
 }
-
 
 /// Parses a slice of bytes into an SML File.
 ///

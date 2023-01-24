@@ -1,77 +1,82 @@
 //! Parsers for SML messages.
-//! 
+//!
 //! This module contains parsers for the SML protocol. The `complete` module contains an easy to use allocating
-//! parser. The `streaming` module contains a flexible non-allocating parser. See the discussion below for a 
+//! parser. The `streaming` module contains a flexible non-allocating parser. See the discussion below for a
 //! comparison of the two parsers:
-//! 
+//!
 //! # Which parser should I choose?
-//! 
-//! The SML protocol defines two data structures that can hold multiple elements. An SML File can 
-//! contain multiple SML Messages and the "SML_GetList.Res" message contains a list of values. 
-//! Because of these two elements, the size of an SML File cannot be known at compile time. 
-//! 
-//! The parser in the `complete` module uses dynamic memory allocations `alloc::vec::Vec` for SML 
+//!
+//! The SML protocol defines two data structures that can hold multiple elements. An SML File can
+//! contain multiple SML Messages and the "SML_GetList.Res" message contains a list of values.
+//! Because of these two elements, the size of an SML File cannot be known at compile time.
+//!
+//! The parser in the `complete` module uses dynamic memory allocations `alloc::vec::Vec` for SML
 //! Messages and SML Values. This makes the usage straight-forward and if you're using `sml-rs` on
 //! a hosted platform, this is most likely the parser you'll want to use.
-//! 
-//! The parser in the `streaming` module works differently and therefore doesn't require dynamic 
+//!
+//! The parser in the `streaming` module works differently and therefore doesn't require dynamic
 //! memory allocations. Instead of returning a single data structure representing the whole SML File,
 //! this parser produces a stream of events that each have a size known at compile time. Depending on the
-//! input, the parser will produce a different number of events, which is how different numbers of SML 
-//! Messages / Values can be handled. If you're using `sml-rs` on a microcontroller and don't want to use 
+//! input, the parser will produce a different number of events, which is how different numbers of SML
+//! Messages / Values can be handled. If you're using `sml-rs` on a microcontroller and don't want to use
 //! an allocator, this is the parser you'll want to use.
-//! 
+//!
 //! # Examples
-//! 
-//! ## Using `complete::parse`
-//! 
-//! ```rust
-//! # use sml_rs::parser::complete;
-//! let bytes: &[u8] = &[ /*...*/ ];
-//! 
-//! println!("{:#?}", complete::parse(&bytes).expect("error while parsing"));
-//! ```
-//! 
-//! Output (stripped-down to the relevant parts):
-//! ```text
-//! File {
-//!     messages: [
-//!         Message {
-//!             message_body: OpenResponse {
-//!                 ref_time: SecIndex(23876784),
-//!                 ...
-//!             },
-//!             ...
-//!         },
-//!         Message {
-//!             message_body: GetListResponse {
-//!                 val_list: [
-//!                     ListEntry { ... },
-//!                     ListEntry { ... },
-//!                     ListEntry { ... },
-//!                 ],
-//!             },
-//!             ...
-//!         },
-//!         Message {
-//!             message_body: CloseResponse,
-//!             ...
-//!         },
-//!     ],
-//! }
-//! ```
+//!
+#![cfg_attr(
+    feature = "alloc",
+    doc = r##"
+## Using `complete::parse`
+
+```rust
+# use sml_rs::parser::complete;
+let bytes: &[u8] = &[ /*...*/ ];
+
+println!("{:#?}", complete::parse(&bytes).expect("error while parsing"));
+```
+
+Output (stripped-down to the relevant parts):
+```text
+File {
+    messages: [
+        Message {
+            message_body: OpenResponse {
+                ref_time: SecIndex(23876784),
+                ...
+            },
+            ...
+        },
+        Message {
+            message_body: GetListResponse {
+                val_list: [
+                    ListEntry { ... },
+                    ListEntry { ... },
+                    ListEntry { ... },
+                ],
+            },
+            ...
+        },
+        Message {
+            message_body: CloseResponse,
+            ...
+        },
+    ],
+}
+```
+"##
+)]
 //!
 //! ## Using `streaming::Parser`
 //! ```rust
 //! # use sml_rs::parser::streaming;
 //! let bytes: &[u8] = &[ /*...*/ ];
-//! 
+//!
 //! let parser = streaming::Parser::new(bytes);
 //! for item in parser {
 //!     println!("- {:#?}", item.expect("error while parsing"));
 //! }
 //! ```
-//! 
+//!
 //! Output (stripped-down to the relevant parts):
 //! ```text
 //! - MessageStart(MessageStart {
@@ -97,20 +102,20 @@
 //!     ...
 //! })
 //! ```
-//! 
-//! 
+//!
+//!
 
 use core::{fmt::Debug, ops::Deref};
 
 use tlf::TypeLengthField;
 
-mod num;
-mod octet_string;
-mod tlf;
+pub mod common;
 #[cfg(feature = "alloc")]
 pub mod complete;
-pub mod common;
+mod num;
+mod octet_string;
 pub mod streaming;
+mod tlf;
 
 pub use tlf::TlfParseError;
 
