@@ -20,6 +20,7 @@ heapless = "0.7.13"
 insta = { version = "1.21.0", features = ["yaml", "glob"] }
 hex-literal = "0.3.4"
 hex = "0.4.3"
+serialport = "4.2.0"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -38,3 +39,7 @@ required-features = ["alloc"]
 [[example]]
 name = "decoder-streaming"
 path = "examples/decoder_streaming.rs"
+
+[[example]]
+name = "serialport"
+path = "examples/serialport.rs"
