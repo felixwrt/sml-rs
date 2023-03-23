@@ -1,0 +1,15 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 94
+expression: s
+input_file: tests/libsml-testing/EMH_eHZ-HW8E2A5L0EK2P_2.bin
+---
+PowerMeterTransmission:
+  server_id: [6, 69, 77, 72, 1, 2, 113, 88, 32, 81]
+  time: Some(245817516)
+  values:
+    1-0:1.8.0 = 13312484.9 Wh
+    1-0:1.8.1 = 13312484.9 Wh
+    1-0:1.8.2 = 0.0 Wh
+    1-0:15.7.0 = 139.4 W
+

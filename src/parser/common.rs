@@ -155,6 +155,29 @@ pub enum Value<'i> {
     List(ListType),
 }
 
+impl<'i> Value<'i> {
+    /// Converts to `i64` if possible.
+    ///
+    /// Returns `None` for non-numeric values (`Bool`, `Bytes`, `List`). For `U64` values,
+    /// returns the value if it fits into `i64`, `None` otherwise. All other numeric values
+    /// are guaranteed to fit into `i64` and will always return `Some(x)`.
+    pub fn as_i64(&self) -> Option<i64> {
+        match self {
+            Value::Bool(_) => None,
+            Value::Bytes(_) => None,
+            Value::I8(n) => Some((*n).into()),
+            Value::I16(n) => Some((*n).into()),
+            Value::I32(n) => Some((*n).into()),
+            Value::I64(n) => Some(*n),
+            Value::U8(n) => Some((*n).into()),
+            Value::U16(n) => Some((*n).into()),
+            Value::U32(n) => Some((*n).into()),
+            Value::U64(n) => (*n).try_into().ok(),
+            Value::List(_) => None,
+        }
+    }
+}
+
 impl<'i> SmlParseTlf<'i> for Value<'i> {
     fn check_tlf(_tlf: &TypeLengthField) -> bool {
         true

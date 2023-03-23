@@ -2,7 +2,14 @@
 
 use core::{fmt::Display, time::Duration};
 
-use crate::parser::{common::Time, OctetStr};
+use crate::parser::{
+    common::Time,
+    streaming::{self, MessageBody, MessageStart, ParseEvent, Parser},
+    OctetStr, ParseError,
+};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 /// Wrapper type for a number of seconds.
 ///
@@ -120,7 +127,7 @@ impl Display for Unit {
 }
 
 /// A physical quantity built from a `value`, a `scaler` and a `unit`.
-/// 
+///
 /// Calculation of the quantity: `value * 10 ^ scaler`
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(missing_docs)]
@@ -134,29 +141,45 @@ impl Display for Value {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let value = i128::from(self.value);
         if self.scaler >= 0 {
-            write!(f, "{} {}", value * 10i128.pow(self.scaler as u32), self.unit)
+            write!(
+                f,
+                "{} {}",
+                value * 10i128.pow(self.scaler as u32),
+                self.unit
+            )
         } else {
             let num_a = value / 10i128.pow((-self.scaler) as u32);
             let num_b = value.abs() % 10i128.pow((-self.scaler) as u32);
-            write!(f, "{}.{:0width$} {}", num_a, num_b, self.unit, width=(-self.scaler) as usize)
+            write!(
+                f,
+                "{}.{:0width$} {}",
+                num_a,
+                num_b,
+                self.unit,
+                width = (-self.scaler) as usize
+            )
         }
     }
 }
 
 /// A code as defined in [OBIS][obis]
-/// 
+///
 /// See [here][obiscode] for a description of OBIS Codes.
-/// 
+///
 /// [obis]: https://de.wikipedia.org/wiki/OBIS-Kennzahlen
 /// [obiscode]: https://onemeter.com/docs/device/obis/
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObisCode {
-    inner: [u8; 5]
+    inner: [u8; 5],
 }
 
 impl Display for ObisCode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}-{}:{}.{}.{}", self.inner[0], self.inner[1], self.inner[2], self.inner[3], self.inner[4])
+        write!(
+            f,
+            "{}-{}:{}.{}.{}",
+            self.inner[0], self.inner[1], self.inner[2], self.inner[3], self.inner[4]
+        )
     }
 }
 
@@ -170,5 +193,161 @@ impl ObisCode {
             return None;
         };
         Some(ObisCode { inner: vals })
+    }
+}
+
+/// Error type used by the application layer
+#[derive(Debug)]
+pub enum AppError {
+    /// Expected another message in the SML transmission but encountered an EOF
+    UnexpectedEof,
+    /// Found message type that wasn't expected
+    UnexpectedMessage,
+    /// Error from the underlying parser
+    ParseError(ParseError),
+}
+
+impl From<ParseError> for AppError {
+    fn from(value: ParseError) -> Self {
+        AppError::ParseError(value)
+    }
+}
+
+/// High-Level data structure containing data received from a power meter.
+///
+/// This data structure is designed for ease-of-use, containing only information
+/// that's used by usual power meters. It should cover most use cases.
+///
+/// The `parser` module provides lower-level data structures that can be used
+/// to access data not exposed by this API.
+///
+/// *This function is available only if sml-rs is built with the `"alloc"` feature.*
+#[cfg(feature = "alloc")]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PowerMeterTransmission {
+    /// identification of the server
+    pub server_id: Vec<u8>,
+    /// time information (optional)
+    pub time: Option<SecIndex>,
+    /// vector of obis codes and their values
+    pub values: Vec<(ObisCode, Value)>,
+}
+
+#[cfg(feature = "alloc")]
+impl Display for PowerMeterTransmission {
+    /// **Hint:** The output format used is unstable and may change at any time.
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        writeln!(f, "PowerMeterTransmission:")?;
+        writeln!(f, "  server_id: {:?}", &self.server_id)?;
+        writeln!(f, "  time: {:?}", self.time.map(|x| x.as_u32()))?;
+        writeln!(f, "  values:")?;
+        for (obis_code, val) in &self.values {
+            writeln!(f, "    {} = {}", obis_code, val)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PowerMeterTransmission {
+    fn expect_next_message<'i>(parser: &'i mut Parser) -> Result<MessageBody<'i>, AppError> {
+        let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
+        let ParseEvent::MessageStart(MessageStart { message_body, ..}) = evt else {
+            return Err(AppError::UnexpectedMessage);
+        };
+        Ok(message_body)
+    }
+
+    /// Parse a slice of bytes into a `PowerMeterTransmission`
+    // TODO: possible improvement: add warnings when values are omitted
+    // TODO: possible improvement: add warnings for cases that are currently debug asserts
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, AppError> {
+        let mut parser = streaming::Parser::new(bytes);
+
+        let MessageBody::OpenResponse(or) = Self::expect_next_message(&mut parser)? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        let server_id = or.server_id.to_vec();
+
+        // time information can be contained in three different spots:
+        // - OpenResponse::ref_time
+        // - GetListResponse::act_sensor_time
+        // - ListEntry::val_time
+        // Use `act_sensor_time` if available since that's the most commonly used
+        // attribute. If it's not available, try to use `ref_time`. If that's also
+        // not available, use `val_time`.
+        let ref_time = or.ref_time.map(SecIndex::from);
+
+        let MessageBody::GetListResponse(glr) = Self::expect_next_message(&mut parser)? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        // server_id in OpenResponse and GetListResponse match
+        debug_assert_eq!(server_id, glr.server_id);
+
+        let act_sensor_time = glr.act_sensor_time.map(SecIndex::from);
+        // assert that if both `act_sensor_time` and `ref_time` are set, they contain the same value
+        if let (Some(t1), Some(t2)) = (act_sensor_time, ref_time) {
+            debug_assert_eq!(t1, t2)
+        }
+
+        let mut values = Vec::new();
+        let mut val_time = None;
+        loop {
+            let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
+            match evt {
+                ParseEvent::ListEntry(le) => {
+                    let curr_val_time = le.val_time.map(SecIndex::from);
+                    // assert that all `val_time`s are equal
+                    if let (Some(t1), Some(t2)) = (val_time, curr_val_time) {
+                        debug_assert_eq!(t1, t2)
+                    }
+                    val_time = val_time.or(curr_val_time);
+
+                    // ignore values of type Bool, Bytes or List
+                    let Some(val) = le.value.as_i64() else {
+                        continue;
+                    };
+
+                    let Some(obis_code) = ObisCode::from_octet_str(le.obj_name) else {
+                        continue;
+                    };
+
+                    let Some(unit) = le.unit.and_then(Unit::from_u8) else {
+                        continue;
+                    };
+
+                    values.push((
+                        obis_code,
+                        Value {
+                            value: val,
+                            unit,
+                            scaler: le.scaler.unwrap_or(0),
+                        },
+                    ));
+                }
+                ParseEvent::GetListResponseEnd(_) => {
+                    break;
+                }
+                ParseEvent::MessageStart(_) => unreachable!(),
+            }
+        }
+
+        let MessageBody::CloseResponse(_) = Self::expect_next_message(&mut parser)? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        if parser.next().is_some() {
+            return Err(AppError::UnexpectedMessage);
+        }
+
+        let time = act_sensor_time.or(ref_time).or(val_time);
+
+        Ok(PowerMeterTransmission {
+            server_id,
+            time,
+            values,
+        })
     }
 }
