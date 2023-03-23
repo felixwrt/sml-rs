@@ -1,0 +1,14 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/DZG_DVS-7420.2V.G2_mtr1_error.bin
+---
+Decoder error: DiscardedBytes(227)
+Decoder error: DiscardedBytes(481)
+Decoder error: DiscardedBytes(242)
+Decoder error: DiscardedBytes(241)
+Decoder error: DiscardedBytes(242)
+Decoder error: DiscardedBytes(163)
+Decoder error: DiscardedBytes(463)
+Decoder error: DiscardedBytes(138)
+

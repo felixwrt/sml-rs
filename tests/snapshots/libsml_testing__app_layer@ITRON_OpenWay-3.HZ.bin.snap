@@ -1,0 +1,12 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/ITRON_OpenWay-3.HZ.bin
+---
+PowerMeterTransmission:
+  server_id: [10, 1, 73, 84, 82, 0, 3, 72, 245, 142]
+  time: Some(53687960)
+  values:
+    1-0:1.8.0 = 8189594.9 Wh
+    1-0:16.7.0 = 613 W
+

@@ -1,0 +1,116 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/EMH_mME40-AE6AKF0K0.bin
+---
+Decoder error: DiscardedBytes(2)
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005970)
+  values:
+    1-0:1.8.0 = 428896.4 Wh
+    1-0:36.7.0 = 2353 W
+    1-0:56.7.0 = 65 W
+    1-0:76.7.0 = 205 W
+    1-0:16.7.0 = 2623 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005971)
+  values:
+    1-0:1.8.0 = 428897.1 Wh
+    1-0:36.7.0 = 2351 W
+    1-0:56.7.0 = 64 W
+    1-0:76.7.0 = 202 W
+    1-0:16.7.0 = 2619 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005972)
+  values:
+    1-0:1.8.0 = 428897.9 Wh
+    1-0:36.7.0 = 2346 W
+    1-0:56.7.0 = 65 W
+    1-0:76.7.0 = 202 W
+    1-0:16.7.0 = 2614 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005973)
+  values:
+    1-0:1.8.0 = 428898.6 Wh
+    1-0:36.7.0 = 2337 W
+    1-0:56.7.0 = 65 W
+    1-0:76.7.0 = 200 W
+    1-0:16.7.0 = 2602 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005974)
+  values:
+    1-0:1.8.0 = 428899.3 Wh
+    1-0:36.7.0 = 2332 W
+    1-0:56.7.0 = 65 W
+    1-0:76.7.0 = 199 W
+    1-0:16.7.0 = 2597 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005975)
+  values:
+    1-0:1.8.0 = 428900.0 Wh
+    1-0:36.7.0 = 2324 W
+    1-0:56.7.0 = 66 W
+    1-0:76.7.0 = 199 W
+    1-0:16.7.0 = 2591 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005976)
+  values:
+    1-0:1.8.0 = 428900.7 Wh
+    1-0:36.7.0 = 2317 W
+    1-0:56.7.0 = 67 W
+    1-0:76.7.0 = 199 W
+    1-0:16.7.0 = 2584 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005977)
+  values:
+    1-0:1.8.0 = 428901.5 Wh
+    1-0:36.7.0 = 2309 W
+    1-0:56.7.0 = 69 W
+    1-0:76.7.0 = 200 W
+    1-0:16.7.0 = 2579 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005978)
+  values:
+    1-0:1.8.0 = 428902.2 Wh
+    1-0:36.7.0 = 2302 W
+    1-0:56.7.0 = 67 W
+    1-0:76.7.0 = 200 W
+    1-0:16.7.0 = 2570 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005979)
+  values:
+    1-0:1.8.0 = 428902.9 Wh
+    1-0:36.7.0 = 2297 W
+    1-0:56.7.0 = 68 W
+    1-0:76.7.0 = 200 W
+    1-0:16.7.0 = 2566 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005980)
+  values:
+    1-0:1.8.0 = 428903.6 Wh
+    1-0:36.7.0 = 2294 W
+    1-0:56.7.0 = 69 W
+    1-0:76.7.0 = 202 W
+    1-0:16.7.0 = 2566 W
+PowerMeterTransmission:
+  server_id: [10, 1, 69, 77, 72, 0, 0, 161, 189, 52]
+  time: Some(2005981)
+  values:
+    1-0:1.8.0 = 428904.3 Wh
+    1-0:36.7.0 = 2294 W
+    1-0:56.7.0 = 70 W
+    1-0:76.7.0 = 202 W
+    1-0:16.7.0 = 2567 W
+Decoder error: DiscardedBytes(158)
+

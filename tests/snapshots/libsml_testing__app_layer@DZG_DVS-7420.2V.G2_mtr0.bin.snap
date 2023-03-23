@@ -1,0 +1,14 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/DZG_DVS-7420.2V.G2_mtr0.bin
+---
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 3, 158, 32, 84]
+  time: Some(9424052)
+  values:
+    1-0:1.8.0 = 607447.1 Wh
+    1-0:2.8.0 = 1266728.6 Wh
+    1-0:16.7.0 = 215.99 W
+Decoder error: DiscardedBytes(56)
+
