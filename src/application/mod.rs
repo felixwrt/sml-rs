@@ -2,7 +2,7 @@
 
 use core::{fmt::Display, time::Duration};
 
-use crate::parser::common::Time;
+use crate::parser::{common::Time, OctetStr};
 
 /// Wrapper type for a number of seconds.
 ///
@@ -116,5 +116,59 @@ impl Unit {
 impl Display for Unit {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+
+/// A physical quantity built from a `value`, a `scaler` and a `unit`.
+/// 
+/// Calculation of the quantity: `value * 10 ^ scaler`
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(missing_docs)]
+pub struct Value {
+    pub value: i64,
+    pub unit: Unit,
+    pub scaler: i8,
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let value = i128::from(self.value);
+        if self.scaler >= 0 {
+            write!(f, "{} {}", value * 10i128.pow(self.scaler as u32), self.unit)
+        } else {
+            let num_a = value / 10i128.pow((-self.scaler) as u32);
+            let num_b = value.abs() % 10i128.pow((-self.scaler) as u32);
+            write!(f, "{}.{:0width$} {}", num_a, num_b, self.unit, width=(-self.scaler) as usize)
+        }
+    }
+}
+
+/// A code as defined in [OBIS][obis]
+/// 
+/// See [here][obiscode] for a description of OBIS Codes.
+/// 
+/// [obis]: https://de.wikipedia.org/wiki/OBIS-Kennzahlen
+/// [obiscode]: https://onemeter.com/docs/device/obis/
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ObisCode {
+    inner: [u8; 5]
+}
+
+impl Display for ObisCode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}-{}:{}.{}.{}", self.inner[0], self.inner[1], self.inner[2], self.inner[3], self.inner[4])
+    }
+}
+
+impl ObisCode {
+    /// Tries to parse an octet string into an obis code.
+    pub fn from_octet_str(value: OctetStr<'_>) -> Option<Self> {
+        if value.len() != 6 || value[5] != 255 {
+            return None;
+        }
+        let Ok(vals) = value[..5].try_into() else {
+            return None;
+        };
+        Some(ObisCode { inner: vals })
     }
 }
