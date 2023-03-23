@@ -1,6 +1,6 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 94
+assertion_line: 95
 expression: s
 input_file: tests/libsml-testing/DrNeuhaus_SMARTY_ix-130.bin
 ---

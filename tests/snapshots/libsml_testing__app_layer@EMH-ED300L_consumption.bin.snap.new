@@ -1,6 +1,6 @@
 ---
 source: tests/libsml-testing.rs
-assertion_line: 94
+assertion_line: 95
 expression: s
 input_file: tests/libsml-testing/EMH-ED300L_consumption.bin
 ---
