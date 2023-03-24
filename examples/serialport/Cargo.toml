@@ -1,0 +1,16 @@
+[package]
+name = "sml-rs-serialport-example"
+version = "0.1.0"
+authors = ["Felix Wirth <felix@wirth.one>"]
+description = "Example of using `sml-rs` with `serialport`"
+repository = "https://github.com/felixwrt/sml-rs"
+license = "MIT OR Apache-2.0"
+edition = "2021"
+
+[[bin]]
+name = "sml-rs-serialport-example"
+path = "serialport.rs"
+
+[dependencies]
+sml-rs = { path = "../../" }
+serialport = { version = "4.2.0" }
