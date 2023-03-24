@@ -1,0 +1,107 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/dzg_dwsb20_2th_3byte.bin
+---
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049601)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016204.9 Wh
+    1-0:16.7.0 = -788.51 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049602)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016205.1 Wh
+    1-0:16.7.0 = -787.14 W
+Decoder error: InvalidMessage { checksum_mismatch: (45849, 40211), end_esc_misaligned: true, num_padding_bytes: 1 }
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049604)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016205.5 Wh
+    1-0:16.7.0 = -761.72 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049605)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016205.7 Wh
+    1-0:16.7.0 = -786.84 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049606)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016205.9 Wh
+    1-0:16.7.0 = -785.39 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049607)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016206.2 Wh
+    1-0:16.7.0 = -778.68 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049608)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016206.4 Wh
+    1-0:16.7.0 = -788.30 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049609)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016206.6 Wh
+    1-0:16.7.0 = -784.41 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049610)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016206.8 Wh
+    1-0:16.7.0 = -780.20 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049611)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016207.0 Wh
+    1-0:16.7.0 = -777.60 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049612)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016207.2 Wh
+    1-0:16.7.0 = -768.67 W
+Decoder error: InvalidMessage { checksum_mismatch: (48183, 52421), end_esc_misaligned: true, num_padding_bytes: 1 }
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049614)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016207.7 Wh
+    1-0:16.7.0 = -769.22 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049615)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016207.9 Wh
+    1-0:16.7.0 = -776.02 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5049616)
+  values:
+    1-0:1.8.0 = 142429.8 Wh
+    1-0:2.8.0 = 2016208.1 Wh
+    1-0:16.7.0 = -760.47 W
+Decoder error: DiscardedBytes(68)
+

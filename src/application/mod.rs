@@ -298,7 +298,7 @@ impl PowerMeterTransmission {
             let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
             match evt {
                 ParseEvent::ListEntry(le) => {
-                    let curr_val_time = le.val_time.map(SecIndex::from);
+                    let curr_val_time = le.val_time.map(SecIndex::from).filter(|x| x.as_u32() != 0);
                     // assert that all `val_time`s are equal
                     if let (Some(t1), Some(t2)) = (val_time, curr_val_time) {
                         debug_assert_eq!(t1, t2)
