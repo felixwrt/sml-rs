@@ -386,7 +386,7 @@ impl<B: Buffer> Decoder<B> {
     /// - `Ok(true)` if a complete message is ready.
     /// - `Ok(false)` when more bytes are necessary to complete parsing a message.
     /// - `Err(_)` if an error occurred during parsing
-    fn _push_byte(&mut self, b: u8) -> Result<bool, DecodeErr> {
+    pub(crate) fn _push_byte(&mut self, b: u8) -> Result<bool, DecodeErr> {
         use DecodeState::*;
         self.raw_msg_len += 1;
         match self.state {
@@ -567,7 +567,7 @@ impl<B: Buffer> Decoder<B> {
         Ok(false)
     }
 
-    fn borrow_buf(&self) -> &[u8] {
+    pub(crate) fn borrow_buf(&self) -> &[u8] {
         if !matches!(self.state, DecodeState::Done) {
             panic!("Reading from the internal buffer is only allowed when a complete message is present (DecodeState::Done). Found state {:?}.", self.state);
         }
