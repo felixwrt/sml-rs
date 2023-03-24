@@ -1,6 +1,6 @@
 //! utility stuff
 
-use core::{ops::Deref, fmt::Debug};
+use core::{fmt::Debug, ops::Deref};
 
 pub(crate) static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
@@ -62,7 +62,6 @@ impl Buffer for VecBuf {
     }
 }
 
-
 /// Byte buffer backed by an array.
 pub struct ArrayBuf<const N: usize> {
     buffer: [u8; N],
@@ -71,9 +70,9 @@ pub struct ArrayBuf<const N: usize> {
 
 impl<const N: usize> Default for ArrayBuf<N> {
     fn default() -> Self {
-        Self { 
-            buffer: [0; N], 
-            num_elements: 0 
+        Self {
+            buffer: [0; N],
+            num_elements: 0,
         }
     }
 }
@@ -89,8 +88,6 @@ impl<const N: usize> PartialEq for ArrayBuf<N> {
         **self == **other
     }
 }
-
-
 
 impl<const N: usize> Deref for ArrayBuf<N> {
     type Target = [u8];
@@ -110,7 +107,7 @@ impl<const N: usize> FromIterator<u8> for ArrayBuf<N> {
     }
 }
 
-impl<const N: usize>  Buffer for ArrayBuf<N> {
+impl<const N: usize> Buffer for ArrayBuf<N> {
     fn push(&mut self, b: u8) -> Result<(), OutOfMemory> {
         if self.num_elements == N {
             Err(OutOfMemory)
