@@ -177,6 +177,7 @@ mod test_arraybuf {
     #[cfg(feature = "alloc")]
     #[test]
     fn test_debug() {
+        use alloc::format;
         let mut buf: ArrayBuf<5> = (10..13).collect();
         assert_eq!(&format!("{:?}", buf), "[10, 11, 12]");
         assert_eq!(&format!("{:x?}", buf), "[a, b, c]");
