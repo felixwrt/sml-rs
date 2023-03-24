@@ -11,7 +11,7 @@ use std::io::Read;
 fn main() -> Result<(), std::io::Error> {
     let stdin = std::io::stdin().lock();
 
-    let mut decoder = sml_rs::transport::Decoder::<heapless::Vec<u8, 1024>>::new();
+    let mut decoder = sml_rs::transport::Decoder::<sml_rs::util::ArrayBuf<1024>>::new();
 
     for res in stdin.bytes() {
         let b = res?;
