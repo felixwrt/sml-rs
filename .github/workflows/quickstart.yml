@@ -57,6 +57,12 @@ jobs:
           command: test
           args: --no-default-features --features=alloc
 
+      - name: Build serialport example
+        uses: actions-rs/cargo@v1
+        with:
+          command: build 
+          args: -p sml-rs-serialport-example
+
   lints:
     name: Lints
     runs-on: ubuntu-latest
