@@ -19,13 +19,12 @@ fn main() -> std::io::Result<()> {
         .expect("Failed to open port");
 
     let mut reader = sml_rs::SmlBuilder::with_vec_buffer().from_reader(port);
-    
+
     loop {
         match reader.read_parsed() {
             Ok(parsed) => println!("{:#?}", parsed),
             Err(e) => println!("{e:?}"),
         }
-        
     }
 }
 
