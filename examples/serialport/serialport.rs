@@ -1,6 +1,6 @@
 //! Reads data from a serial port and prints the contained sml messages to stdout
 
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::time::Duration;
 
 use serialport::{Parity, SerialPortInfo, SerialPortType, StopBits, UsbPortInfo};
@@ -18,27 +18,15 @@ fn main() -> std::io::Result<()> {
         .open()
         .expect("Failed to open port");
 
-    let mut decoder = sml_rs::transport::Decoder::<Vec<u8>>::new();
-
-    for res in port.bytes() {
-        let byte = res?;
-
-        match decoder.push_byte(byte) {
-            Ok(None) => {}
-            Ok(Some(decoded_bytes)) => {
-                println!("{:#?}", sml_rs::parser::complete::parse(decoded_bytes));
-            }
-            Err(e) => {
-                println!("Err({:?})", e);
-            }
+    let mut reader = sml_rs::SmlBuilder::with_vec_buffer().from_reader(port);
+    
+    loop {
+        match reader.read_parsed() {
+            Ok(parsed) => println!("{:#?}", parsed),
+            Err(e) => println!("{e:?}"),
         }
+        
     }
-
-    if let Some(e) = decoder.finalize() {
-        println!("Err({:?})", e);
-    }
-
-    Ok(())
 }
 
 fn select_port(ports: &[SerialPortInfo]) -> std::io::Result<&String> {

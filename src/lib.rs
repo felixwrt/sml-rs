@@ -31,12 +31,13 @@ pub mod parser;
 pub mod transport;
 pub mod util;
 
-pub enum ReadDecodedError<E> {
+#[derive(Debug)]
+pub enum ReadDecodedError<E: core::fmt::Debug> {
     DecodeErr(DecodeErr),
     IoErr(E),
 }
 
-impl<E> From<E> for ReadDecodedError<E> {
+impl<E: core::fmt::Debug> From<E> for ReadDecodedError<E> {
     fn from(value: E) -> Self {
         ReadDecodedError::IoErr(value)
     }
@@ -48,13 +49,14 @@ impl<E> From<E> for ReadDecodedError<E> {
 //     }
 // }
 
-pub enum ReadParsedError<E> {
+#[derive(Debug)]
+pub enum ReadParsedError<E: core::fmt::Debug> {
     ParseErr(ParseError),
     DecodeErr(DecodeErr),
     IoErr(E),
 }
 
-impl<E> From<ReadDecodedError<E>> for ReadParsedError<E> {
+impl<E: core::fmt::Debug> From<ReadDecodedError<E>> for ReadParsedError<E> {
     fn from(value: ReadDecodedError<E>) -> Self {
         match value {
             ReadDecodedError::DecodeErr(x) => ReadParsedError::DecodeErr(x),
@@ -63,7 +65,7 @@ impl<E> From<ReadDecodedError<E>> for ReadParsedError<E> {
     }
 }
 
-impl<E> From<ParseError> for ReadParsedError<E> {
+impl<E: core::fmt::Debug> From<ParseError> for ReadParsedError<E> {
     fn from(value: ParseError) -> Self {
         ReadParsedError::ParseErr(value)
     }
@@ -76,7 +78,7 @@ pub trait ByteSource {
 }
 
 #[cfg(feature = "std")]
-struct IoReader<R: std::io::Read> {
+pub struct IoReader<R: std::io::Read> {
     inner: R
 }
 
@@ -93,7 +95,7 @@ where R: std::io::Read {
 }
 
 #[cfg(feature = "embedded_hal")]
-struct EhReader<R: embedded_hal::serial::Read<u8, Error = E>, E> {
+pub struct EhReader<R: embedded_hal::serial::Read<u8, Error = E>, E> {
     inner: R
 }
 
@@ -146,7 +148,7 @@ impl<R: embedded_hal::serial::Read<u8, Error = E>, E, Buf: Buffer> SmlReader<EhR
     }
 }
 
-impl<R: ByteSource<Error = E>, E, Buf: Buffer> SmlReader<R, Buf> {
+impl<R: ByteSource<Error = E>, E: core::fmt::Debug, Buf: Buffer> SmlReader<R, Buf> {
     pub fn read_decoded(&mut self) -> Result<&[u8], ReadDecodedError<E>> {
         loop {
             let b = self.reader.read()?;
@@ -167,33 +169,33 @@ type DefaultBuffer = alloc::vec::Vec<u8>;
 #[cfg(not(feature = "alloc"))]
 type DefaultBuffer = ArrayBuf<{8*1024}>;
 
-struct SmlBuilder<Buf: Buffer=DefaultBuffer> {
+pub struct SmlBuilder<Buf: Buffer=DefaultBuffer> {
     buf: PhantomData<Buf>
 }
 
 impl SmlBuilder {
-    const fn with_static_buffer<const N: usize>() -> SmlBuilder<ArrayBuf<N>> {
+    pub const fn with_static_buffer<const N: usize>() -> SmlBuilder<ArrayBuf<N>> {
         SmlBuilder { buf: PhantomData }
     }
 
     #[cfg(feature = "alloc")]
-    const fn with_vec_buffer() -> SmlBuilder<alloc::vec::Vec<u8>> {
+    pub const fn with_vec_buffer() -> SmlBuilder<alloc::vec::Vec<u8>> {
         SmlBuilder { buf: PhantomData }
     }
 }
 
 impl<Buf: Buffer> SmlBuilder<Buf> {
     #[cfg(feature = "std")]
-    fn from_reader<R: std::io::Read>(self, reader: R) -> SmlReader<IoReader<R>, Buf> {
+    pub fn from_reader<R: std::io::Read>(self, reader: R) -> SmlReader<IoReader<R>, Buf> {
         SmlReader { reader: IoReader { inner: reader }, decoder: Default::default() }
     }
 
     #[cfg(feature = "embedded_hal")]
-    fn from_eh_reader<R: embedded_hal::serial::Read<u8, Error = E>, E>(self, reader: R) -> SmlReader<EhReader<R, E>, Buf> {
+    pub fn from_eh_reader<R: embedded_hal::serial::Read<u8, Error = E>, E>(self, reader: R) -> SmlReader<EhReader<R, E>, Buf> {
         SmlReader { reader: EhReader { inner: reader }, decoder: Default::default() }
     }
 
-    fn from_array_reader<const N: usize>(self, reader: [u8; N]) -> SmlReader<ArrayReader<N>, Buf> {
+    pub fn from_array_reader<const N: usize>(self, reader: [u8; N]) -> SmlReader<ArrayReader<N>, Buf> {
         SmlReader { reader: ArrayReader { inner: reader, idx: 0 }, decoder: Default::default() }
     }
 }
