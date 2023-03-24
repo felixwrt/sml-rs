@@ -149,7 +149,6 @@ mod test_arraybuf {
     #[test]
     fn test_basic() {
         let mut buf: ArrayBuf<5> = (0..3).collect();
-        assert_eq!(&format!("{:?}", buf), "[0, 1, 2]");
         assert_eq!(buf.len(), 3);
         assert_eq!(buf.push(10), Ok(()));
         assert_eq!(buf.len(), 4);
@@ -173,6 +172,16 @@ mod test_arraybuf {
         assert_eq!(buf.extend_from_slice(&[25, 26, 27]), Err(OutOfMemory));
         buf.clear();
         assert_eq!(&*buf, &[]);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn test_debug() {
+        let mut buf: ArrayBuf<5> = (10..13).collect();
+        assert_eq!(&format!("{:?}", buf), "[10, 11, 12]");
+        assert_eq!(&format!("{:x?}", buf), "[a, b, c]");
+        buf.clear();
+        assert_eq!(&format!("{:?}", buf), "[]");
     }
 
     #[test]
