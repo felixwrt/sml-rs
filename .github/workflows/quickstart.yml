@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install `libudev-dev`
-        - run: sudo apt install libudev-dev
+        run: sudo apt install libudev-dev
 
       - name: Checkout sources
         uses: actions/checkout@v3
