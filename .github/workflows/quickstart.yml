@@ -57,6 +57,25 @@ jobs:
           command: test
           args: --no-default-features --features=alloc
 
+  build_examples:
+    name: Build Examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install `libudev-dev`
+        - run: sudo apt install libudev-dev
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
       - name: Build serialport example
         uses: actions-rs/cargo@v1
         with:
