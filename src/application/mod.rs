@@ -197,7 +197,7 @@ impl ObisCode {
 }
 
 /// Error type used by the application layer
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AppError {
     /// Expected another message in the SML transmission but encountered an EOF
     UnexpectedEof,
@@ -205,11 +205,134 @@ pub enum AppError {
     UnexpectedMessage,
     /// Error from the underlying parser
     ParseError(ParseError),
+    /// An expected value wasn't found
+    ValueNotFound,
 }
 
 impl From<ParseError> for AppError {
     fn from(value: ParseError) -> Self {
         AppError::ParseError(value)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// WIP
+pub struct PowerMeterTransmission2<const N: usize> {
+    /// identification of the server
+    // pub server_id: Vec<u8>,
+    /// time information (optional)
+    pub time: Option<SecIndex>,
+    /// vector of obis codes and their values
+    pub values: [Value; N],
+}
+
+impl<const N: usize> PowerMeterTransmission2<N> {
+    fn expect_next_message<'i>(parser: &'i mut Parser) -> Result<MessageBody<'i>, AppError> {
+        let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
+        let ParseEvent::MessageStart(MessageStart { message_body, ..}) = evt else {
+            return Err(AppError::UnexpectedMessage);
+        };
+        Ok(message_body)
+    }
+
+    /// Parse a slice of bytes into a `PowerMeterTransmission`
+    // TODO: possible improvement: add warnings when values are omitted
+    // TODO: possible improvement: add warnings for cases that are currently debug asserts
+    pub fn from_bytes(bytes: &[u8], obis_codes: [ObisCode; N]) -> Result<Self, AppError> {
+        let mut parser = streaming::Parser::new(bytes);
+
+        let MessageBody::OpenResponse(or) = Self::expect_next_message(&mut parser)? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        // let server_id = or.server_id.to_vec();
+
+        // time information can be contained in three different spots:
+        // - OpenResponse::ref_time
+        // - GetListResponse::act_sensor_time
+        // - ListEntry::val_time
+        // Use `act_sensor_time` if available since that's the most commonly used
+        // attribute. If it's not available, try to use `ref_time`. If that's also
+        // not available, use `val_time`.
+        let ref_time = or.ref_time.map(SecIndex::from);
+
+        let MessageBody::GetListResponse(glr) = Self::expect_next_message(&mut parser)? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        // server_id in OpenResponse and GetListResponse match
+        // debug_assert_eq!(server_id, glr.server_id);
+
+        let act_sensor_time = glr.act_sensor_time.map(SecIndex::from);
+        // assert that if both `act_sensor_time` and `ref_time` are set, they contain the same value
+        if let (Some(t1), Some(t2)) = (act_sensor_time, ref_time) {
+            debug_assert_eq!(t1, t2)
+        }
+
+        const DEFAULT: Option<Value> = None;
+        let mut values = [DEFAULT; N];
+        let mut val_time = None;
+        loop {
+            let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
+            match evt {
+                ParseEvent::ListEntry(le) => {
+                    let curr_val_time = le.val_time.map(SecIndex::from).filter(|x| x.as_u32() != 0);
+                    // assert that all `val_time`s are equal
+                    if let (Some(t1), Some(t2)) = (val_time, curr_val_time) {
+                        debug_assert_eq!(t1, t2)
+                    }
+                    val_time = val_time.or(curr_val_time);
+
+                    // ignore values of type Bool, Bytes or List
+                    let Some(val) = le.value.as_i64() else {
+                        continue;
+                    };
+
+                    let Some(obis_code) = ObisCode::from_octet_str(le.obj_name) else {
+                        continue;
+                    };
+
+                    // continue if the elements' obis code is not in the array of expected ones
+                    let Some(idx) = obis_codes.iter().position(|x| *x == obis_code) else {
+                        continue;
+                    };
+
+                    let Some(unit) = le.unit.and_then(Unit::from_u8) else {
+                        continue;
+                    };
+
+                    values[idx] = Some(Value {
+                        value: val,
+                        unit,
+                        scaler: le.scaler.unwrap_or(0),
+                    });
+                }
+                ParseEvent::GetListResponseEnd(_) => {
+                    break;
+                }
+                ParseEvent::MessageStart(_) => unreachable!(),
+            }
+        }
+        if values.iter().any(|x| x.is_none()) {
+            return Err(AppError::ValueNotFound);
+        }
+        let values = values.map(|x| x.unwrap());
+
+        let MessageBody::CloseResponse(_) = Self::expect_next_message(&mut parser)? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        if parser.next().is_some() {
+            return Err(AppError::UnexpectedMessage);
+        }
+
+        let time = act_sensor_time.or(ref_time).or(val_time);
+
+        Ok(PowerMeterTransmission2 {
+            // server_id,
+            time,
+            values,
+        })
     }
 }
 
@@ -223,7 +346,7 @@ impl From<ParseError> for AppError {
 ///
 /// *This function is available only if sml-rs is built with the `"alloc"` feature.*
 #[cfg(feature = "alloc")]
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PowerMeterTransmission {
     /// identification of the server
     pub server_id: Vec<u8>,
@@ -350,4 +473,54 @@ impl PowerMeterTransmission {
             values,
         })
     }
+}
+
+#[test]
+fn test_app_layer_no_alloc() {
+    use crate::util::ArrayBuf;
+    let bytes = include_bytes!("../../tests/libsml-testing/DZG_DVS-7412.2_jmberg.bin");
+    let mut decoder = crate::transport::decode_streaming::<ArrayBuf<8000>>(bytes);
+    let msg = decoder.next().unwrap().unwrap();
+    let res = PowerMeterTransmission2::from_bytes(
+        msg,
+        [
+            ObisCode::from_octet_str(&[1, 0, 16, 7, 0, 255]).unwrap(),
+            ObisCode::from_octet_str(&[1, 0, 1, 8, 0, 255]).unwrap(),
+        ],
+    );
+
+    let expected = PowerMeterTransmission2 {
+        time: Some(SecIndex::new(99043543)),
+        values: [
+            Value {
+                value: -29912,
+                unit: Unit::Watt,
+                scaler: -2,
+            },
+            Value {
+                value: 54301577,
+                unit: Unit::WattHour,
+                scaler: -1,
+            },
+        ],
+    };
+
+    assert_eq!(Ok(expected), res);
+}
+
+#[test]
+fn test_app_layer_no_alloc_missing_value() {
+    use crate::util::ArrayBuf;
+    let bytes = include_bytes!("../../tests/libsml-testing/DZG_DVS-7412.2_jmberg.bin");
+    let mut decoder = crate::transport::decode_streaming::<ArrayBuf<8000>>(bytes);
+    let msg = decoder.next().unwrap().unwrap();
+    let res = PowerMeterTransmission2::from_bytes(
+        msg,
+        [
+            ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]).unwrap(),
+            ObisCode::from_octet_str(&[1, 0, 1, 8, 0, 255]).unwrap(),
+        ],
+    );
+
+    assert_eq!(Err(AppError::ValueNotFound), res);
 }
