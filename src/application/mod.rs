@@ -185,14 +185,63 @@ impl Display for ObisCode {
 
 impl ObisCode {
     /// Tries to parse an octet string into an obis code.
-    pub fn from_octet_str(value: OctetStr<'_>) -> Option<Self> {
+    pub const fn from_octet_str(value: OctetStr<'_>) -> Option<Self> {
         if value.len() != 6 || value[5] != 255 {
             return None;
         }
-        let Ok(vals) = value[..5].try_into() else {
-            return None;
-        };
+        // doesn't look nice, but also works in const contexts
+        let mut vals = [0u8; 5];
+        let mut idx = 0;
+        while idx < 5 {
+            vals[idx] = value[idx];
+            idx += 1;
+        }
         Some(ObisCode { inner: vals })
+    }
+
+    /// Parses an Obis Code from a string such as `"1-0:1.8.0"`
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use sml_rs::application::ObisCode;
+    /// let code = ObisCode::from_str("1-2:3.4.5");
+    /// assert_eq!(&format!("{code}"), "1-2:3.4.5");
+    /// ```
+    pub const fn from_str(s: &str) -> Self {
+        const SEPARATORS: &[u8; 4] = b"-:..";
+        let bytes = s.as_bytes();
+        let mut vals = [0u8; 5];
+        let mut idx = 0;
+        let mut val_idx = 0;
+        while idx < bytes.len() {
+            match bytes[idx] {
+                b'0'..=b'9' => {
+                    let n = bytes[idx] - b'0';
+                    let Some(val) = vals[val_idx].checked_mul(10) else {
+                        panic!("Overflow");
+                    };
+                    let Some(val) = val.checked_add(n) else {
+                        panic!("Overflow");
+                    };
+                    vals[val_idx] = val;
+                }
+                b if SEPARATORS[val_idx] == b => {
+                    val_idx += 1;
+                    if val_idx > 4 {
+                        panic!("Too many separators");
+                    }
+                }
+                _ => {
+                    panic!("Unexpected separator")
+                }
+            }
+            idx += 1;
+        }
+        
+        ObisCode {
+            inner: vals,
+        }
     }
 }
 
@@ -481,12 +530,13 @@ fn test_app_layer_no_alloc() {
     let bytes = include_bytes!("../../tests/libsml-testing/DZG_DVS-7412.2_jmberg.bin");
     let mut decoder = crate::transport::decode_streaming::<ArrayBuf<8000>>(bytes);
     let msg = decoder.next().unwrap().unwrap();
+    const CODES: [ObisCode; 2] = [
+        ObisCode::from_str("1-0:16.7.0"),
+        ObisCode::from_str("1-0:1.8.0"),
+    ];
     let res = PowerMeterTransmission2::from_bytes(
         msg,
-        [
-            ObisCode::from_octet_str(&[1, 0, 16, 7, 0, 255]).unwrap(),
-            ObisCode::from_octet_str(&[1, 0, 1, 8, 0, 255]).unwrap(),
-        ],
+        CODES,
     );
 
     let expected = PowerMeterTransmission2 {
@@ -506,6 +556,13 @@ fn test_app_layer_no_alloc() {
     };
 
     assert_eq!(Ok(expected), res);
+
+    // let [watts, energy] = res.unwrap().values;
+
+    // let PowerMeterTransmission2 { 
+    //     time, 
+    //     values: [watts, energy] 
+    // } = res.unwrap();
 }
 
 #[test]
@@ -523,4 +580,14 @@ fn test_app_layer_no_alloc_missing_value() {
     );
 
     assert_eq!(Err(AppError::ValueNotFound), res);
+}
+
+
+#[test]
+fn test_obis_codes() {
+    const X: ObisCode = ObisCode::from_str("1-0:16.7.0");
+    assert_eq!(X.inner, [1, 0, 16, 7, 0]);
+
+    const X2: ObisCode = ObisCode::from_str("255-0:16.7.0");
+    assert_eq!(X2.inner, [255, 0, 16, 7, 0]);
 }
