@@ -16,7 +16,7 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
-use core::{marker::PhantomData, slice};
+use core::{marker::PhantomData, slice, borrow::Borrow};
 
 #[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
@@ -34,12 +34,18 @@ pub mod util;
 // --------- ERROR TYPES
 
 #[derive(Debug)]
-pub enum ReadDecodedError<E: core::fmt::Debug> {
+pub enum ReadDecodedError<E> 
+where 
+    E: core::fmt::Debug
+{
     DecodeErr(DecodeErr),
     IoErr(E),
 }
 
-impl<E: core::fmt::Debug> From<E> for ReadDecodedError<E> {
+impl<E> From<E> for ReadDecodedError<E> 
+where 
+    E: core::fmt::Debug
+{
     fn from(value: E) -> Self {
         ReadDecodedError::IoErr(value)
     }
@@ -52,13 +58,19 @@ impl<E: core::fmt::Debug> From<E> for ReadDecodedError<E> {
 // }
 
 #[derive(Debug)]
-pub enum ReadParsedError<E: core::fmt::Debug> {
+pub enum ReadParsedError<E>
+where 
+    E: core::fmt::Debug
+{
     ParseErr(ParseError),
     DecodeErr(DecodeErr),
     IoErr(E),
 }
 
-impl<E: core::fmt::Debug> From<ReadDecodedError<E>> for ReadParsedError<E> {
+impl<E> From<ReadDecodedError<E>> for ReadParsedError<E> 
+where 
+    E: core::fmt::Debug
+{
     fn from(value: ReadDecodedError<E>) -> Self {
         match value {
             ReadDecodedError::DecodeErr(x) => ReadParsedError::DecodeErr(x),
@@ -67,7 +79,10 @@ impl<E: core::fmt::Debug> From<ReadDecodedError<E>> for ReadParsedError<E> {
     }
 }
 
-impl<E: core::fmt::Debug> From<ParseError> for ReadParsedError<E> {
+impl<E> From<ParseError> for ReadParsedError<E> 
+where 
+    E: core::fmt::Debug
+{
     fn from(value: ParseError) -> Self {
         ReadParsedError::ParseErr(value)
     }
@@ -75,14 +90,22 @@ impl<E: core::fmt::Debug> From<ParseError> for ReadParsedError<E> {
 
 // --------- BYTE SOURCE
 
+
+/// Helper trait that allows reading individual bytes
 pub trait ByteSource {
+    /// Type of errors that can occur while reading bytes
     type Error;
 
+    /// Tries to read a single byte from the source
     fn read_byte(&mut self) -> Result<u8, Self::Error>;
 }
 
+/// Wraps types that implement `std::io::Read` and implements `ByteSource`
 #[cfg(feature = "std")]
-pub struct IoReader<R: std::io::Read> {
+pub struct IoReader<R> 
+where 
+    R: std::io::Read
+{
     inner: R,
 }
 
@@ -100,8 +123,12 @@ where
     }
 }
 
+/// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
 #[cfg(feature = "embedded_hal")]
-pub struct EhReader<R: embedded_hal::serial::Read<u8, Error = E>, E> {
+pub struct EhReader<R, E> 
+where
+    R: embedded_hal::serial::Read<u8, Error = E>
+{
     inner: R,
 }
 
@@ -117,18 +144,20 @@ where
     }
 }
 
+/// Error type indicating that the end of the input has been reached
 pub struct Eof;
 
-pub struct ArrayReader<const N: usize> {
-    inner: [u8; N],
+/// Wraps byte slices and implements `ByteSource`
+pub struct SliceReader<'i> {
+    inner: &'i [u8],
     idx: usize,
 }
 
-impl<const N: usize> ByteSource for ArrayReader<N> {
+impl<'i> ByteSource for SliceReader<'i> {
     type Error = Eof;
 
     fn read_byte(&mut self) -> Result<u8, Self::Error> {
-        if self.idx >= N {
+        if self.idx >= self.inner.len() {
             return Err(Eof);
         }
         let b = self.inner[self.idx];
@@ -137,34 +166,106 @@ impl<const N: usize> ByteSource for ArrayReader<N> {
     }
 }
 
-// ------------- SmlReader
-
-pub struct SmlReader<R: ByteSource, Buf: Buffer> {
-    reader: R,
-    decoder: transport::Decoder<Buf>,
+/// Wraps byte iterators and implements `ByteSource`
+pub struct IterReader<I, B>
+where
+    I: Iterator<Item = B>,
+    B: Borrow<u8>,
+{
+    iter: I,
 }
 
-#[cfg(feature = "std")]
-impl<R: std::io::Read, Buf: Buffer> SmlReader<IoReader<R>, Buf> {
-    pub fn from_reader(reader: R) -> Self {
-        SmlReader {
-            reader: IoReader { inner: reader },
-            decoder: transport::Decoder::new(),
+impl<I, B> ByteSource for IterReader<I, B>
+where
+    I: Iterator<Item = B>,
+    B: Borrow<u8>,
+{
+    type Error = Eof;
+
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        match self.iter.next() {
+            Some(x) => Ok(*x.borrow()),
+            None => Err(Eof),
         }
     }
 }
 
-#[cfg(feature = "embedded_hal")]
-impl<R: embedded_hal::serial::Read<u8, Error = E>, E, Buf: Buffer> SmlReader<EhReader<R, E>, Buf> {
-    pub fn from_eh_reader(reader: R) -> Self {
+// ------------- SmlReader
+
+pub struct SmlReader<R, Buf> 
+where
+    R: ByteSource,
+    Buf: Buffer,
+{
+    reader: R,
+    decoder: transport::Decoder<Buf>,
+}
+
+impl<R, Buf> SmlReader<R, Buf> 
+where 
+    R: ByteSource,
+    Buf: Buffer{
+    pub fn new(reader: R, buffer: Buf) -> Self {
+        SmlReader { 
+            reader, 
+            decoder: transport::Decoder::from_buf(buffer) 
+        }
+    }
+}
+
+/// Foo bar baz
+pub type DummySmlReader = SmlReader<SliceReader<'static>, ArrayBuf<0>>;
+
+impl DummySmlReader {
+    pub const fn with_static_buffer<const N: usize>() -> SmlReaderBuilder<ArrayBuf<N>> {
+        SmlReaderBuilder { buf: PhantomData }
+    }
+
+    #[cfg(feature = "alloc")]
+    pub const fn with_vec_buffer() -> SmlReaderBuilder<alloc::vec::Vec<u8>> {
+        SmlReaderBuilder { buf: PhantomData }
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_reader<R>(reader: R) -> SmlReader<IoReader<R>, DefaultBuffer> 
+    where 
+        R: std::io::Read
+    {
+        SmlReader { 
+            reader: IoReader { inner: reader }, 
+            decoder: transport::Decoder::new() 
+        }
+    }
+
+    #[cfg(feature = "embedded_hal")]
+    pub fn from_eh_reader<R, E>(reader: R) -> SmlReader<EhReader<R, E>, DefaultBuffer>
+    where
+        R: embedded_hal::serial::Read<u8, Error = E>
+    {
         SmlReader {
             reader: EhReader { inner: reader },
             decoder: transport::Decoder::new(),
         }
     }
+
+    pub fn from_iter<B, I>(iter: I) -> SmlReader<IterReader<I::IntoIter, B>, DefaultBuffer>
+    where
+        I: IntoIterator<Item = B>,
+        B: Borrow<u8>,
+    {
+        SmlReader {
+            reader: IterReader { iter: iter.into_iter() },
+            decoder: transport::Decoder::new(),
+        }
+    }
 }
 
-impl<R: ByteSource<Error = E>, E: core::fmt::Debug, Buf: Buffer> SmlReader<R, Buf> {
+impl<R, E, Buf> SmlReader<R, Buf> 
+where
+    R: ByteSource<Error = E>, 
+    E: core::fmt::Debug, 
+    Buf: Buffer
+{
     pub fn read_decoded(&mut self) -> Result<&[u8], ReadDecodedError<E>> {
         loop {
             let b = self.reader.read_byte()?;
@@ -186,22 +287,22 @@ impl<R: ByteSource<Error = E>, E: core::fmt::Debug, Buf: Buffer> SmlReader<R, Bu
 
 type DefaultBuffer = ArrayBuf<{ 8 * 1024 }>;
 
-pub struct SmlBuilder<Buf: Buffer = DefaultBuffer> {
+pub struct SmlReaderBuilder<Buf: Buffer = DefaultBuffer> {
     buf: PhantomData<Buf>,
 }
 
-impl SmlBuilder {
-    pub const fn with_static_buffer<const N: usize>() -> SmlBuilder<ArrayBuf<N>> {
-        SmlBuilder { buf: PhantomData }
+impl SmlReaderBuilder {
+    pub const fn with_static_buffer<const N: usize>() -> SmlReaderBuilder<ArrayBuf<N>> {
+        SmlReaderBuilder { buf: PhantomData }
     }
 
     #[cfg(feature = "alloc")]
-    pub const fn with_vec_buffer() -> SmlBuilder<alloc::vec::Vec<u8>> {
-        SmlBuilder { buf: PhantomData }
+    pub const fn with_vec_buffer() -> SmlReaderBuilder<alloc::vec::Vec<u8>> {
+        SmlReaderBuilder { buf: PhantomData }
     }
 }
 
-impl<Buf: Buffer> SmlBuilder<Buf> {
+impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     #[cfg(feature = "std")]
     pub fn from_reader<R: std::io::Read>(self, reader: R) -> SmlReader<IoReader<R>, Buf> {
         SmlReader {
@@ -221,15 +322,26 @@ impl<Buf: Buffer> SmlBuilder<Buf> {
         }
     }
 
-    pub fn from_array_reader<const N: usize>(
+    pub fn from_slice<'i>(
         self,
-        reader: [u8; N],
-    ) -> SmlReader<ArrayReader<N>, Buf> {
+        reader: &'i [u8],
+    ) -> SmlReader<SliceReader<'i>, Buf> {
         SmlReader {
-            reader: ArrayReader {
+            reader: SliceReader {
                 inner: reader,
                 idx: 0,
             },
+            decoder: Default::default(),
+        }
+    }
+
+    pub fn from_iter<B, I>(iter: I) -> SmlReader<IterReader<I::IntoIter, B>, Buf>
+    where
+        I: IntoIterator<Item = B>,
+        B: Borrow<u8>,
+    {
+        SmlReader {
+            reader: IterReader { iter: iter.into_iter() },
             decoder: Default::default(),
         }
     }
@@ -239,11 +351,22 @@ impl<Buf: Buffer> SmlBuilder<Buf> {
 fn test() {
     // no deps
     let arr = [1, 2, 3, 4, 5];
-    SmlBuilder::with_static_buffer::<1234>().from_array_reader(arr.clone());
+    SmlReader::with_static_buffer::<1234>().from_slice(&arr);
+    SmlReader {
+        reader: SliceReader {
+            inner: &arr,
+            idx: 0,
+        },
+        decoder: crate::transport::Decoder::<ArrayBuf<1234>>::new(),
+    };
+
+    let reader = SmlReader::from_reader(std::io::Cursor::new(arr));
+
+    let reader = SmlReader::from_iter(arr);
 
     // alloc
     #[cfg(feature = "alloc")]
-    SmlBuilder::with_vec_buffer().from_array_reader(arr.clone());
+    SmlReader::with_vec_buffer().from_slice(&arr);
 
     // eh
     #[cfg(feature = "embedded_hal")]
@@ -257,19 +380,19 @@ fn test() {
         }
     }
     #[cfg(feature = "embedded_hal")]
-    SmlBuilder::with_static_buffer::<1234>().from_eh_reader(Pin);
+    SmlReader::with_static_buffer::<1234>().from_eh_reader(Pin);
 
     // eh + alloc
     #[cfg(all(feature = "embedded_hal", feature = "alloc"))]
-    SmlBuilder::with_vec_buffer().from_eh_reader(Pin);
+    SmlReader::with_vec_buffer().from_eh_reader(Pin);
 
     // alloc + std
     #[cfg(feature = "std")]
     {
         let v = (0..10).collect::<alloc::vec::Vec<u8>>();
         let reader = std::io::Cursor::new(v);
-        let _x = SmlBuilder::with_vec_buffer().from_reader(reader.clone());
-        let _x = SmlBuilder::with_static_buffer::<123>().from_reader(reader.clone());
+        let _x = SmlReader::with_vec_buffer().from_reader(reader.clone());
+        let _x = SmlReader::with_static_buffer::<123>().from_reader(reader.clone());
     }
 }
 
