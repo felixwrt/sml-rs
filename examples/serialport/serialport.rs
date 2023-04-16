@@ -1,5 +1,6 @@
 //! Reads data from a serial port and prints the contained sml messages to stdout
 
+
 use std::io::{self, Write};
 use std::time::Duration;
 

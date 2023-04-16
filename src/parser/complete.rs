@@ -25,6 +25,7 @@
 //! assert_eq!(result, Ok(expected))
 //! ```
 
+use alloc::vec::Vec;
 use core::fmt::Debug;
 
 use super::{
@@ -37,12 +38,12 @@ use super::{
 /// Top-level SML type. Holds multiple `Messages`.
 pub struct File<'i> {
     /// Vector of `Messsages`
-    pub messages: alloc::vec::Vec<Message<'i>>,
+    pub messages: Vec<Message<'i>>,
 }
 
 impl<'i> SmlParse<'i> for File<'i> {
     fn parse(mut input: &'i [u8]) -> ResTy<Self> {
-        let mut messages = alloc::vec::Vec::new();
+        let mut messages = Vec::new();
         while !input.is_empty() {
             let (new_input, msg) = Message::parse(input)?;
             messages.push(msg);
@@ -235,7 +236,7 @@ impl<'i> core::fmt::Debug for GetListResponse<'i> {
 }
 
 /// Vector of SML list entries
-pub type List<'i> = alloc::vec::Vec<ListEntry<'i>>;
+pub type List<'i> = Vec<ListEntry<'i>>;
 
 impl<'i> SmlParseTlf<'i> for List<'i> {
     fn check_tlf(tlf: &TypeLengthField) -> bool {
@@ -243,7 +244,7 @@ impl<'i> SmlParseTlf<'i> for List<'i> {
     }
 
     fn parse_with_tlf(mut input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
-        let mut v = alloc::vec::Vec::with_capacity(tlf.len as usize);
+        let mut v = Vec::with_capacity(tlf.len as usize);
         for _ in 0..tlf.len {
             let (new_input, x) = ListEntry::parse(input)?;
             v.push(x);
