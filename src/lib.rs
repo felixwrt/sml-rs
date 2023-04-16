@@ -16,7 +16,7 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
-use core::{convert::Infallible, marker::PhantomData};
+use core::{marker::PhantomData, slice};
 
 #[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
@@ -30,6 +30,8 @@ extern crate alloc;
 pub mod parser;
 pub mod transport;
 pub mod util;
+
+// --------- ERROR TYPES
 
 #[derive(Debug)]
 pub enum ReadDecodedError<E: core::fmt::Debug> {
@@ -71,10 +73,12 @@ impl<E: core::fmt::Debug> From<ParseError> for ReadParsedError<E> {
     }
 }
 
+// --------- BYTE SOURCE
+
 pub trait ByteSource {
     type Error;
 
-    fn read(&mut self) -> Result<u8, Self::Error>;
+    fn read_byte(&mut self) -> Result<u8, Self::Error>;
 }
 
 #[cfg(feature = "std")]
@@ -89,10 +93,10 @@ where
 {
     type Error = std::io::Error;
 
-    fn read(&mut self) -> Result<u8, Self::Error> {
-        let mut buf = [0; 1];
-        self.inner.read_exact(&mut buf)?;
-        Ok(buf[0])
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        let mut b = 0u8;
+        self.inner.read_exact(slice::from_mut(&mut b))?;
+        Ok(b)
     }
 }
 
@@ -108,7 +112,7 @@ where
 {
     type Error = nb::Error<E>;
 
-    fn read(&mut self) -> Result<u8, Self::Error> {
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
         self.inner.read()
     }
 }
@@ -123,7 +127,7 @@ pub struct ArrayReader<const N: usize> {
 impl<const N: usize> ByteSource for ArrayReader<N> {
     type Error = Eof;
 
-    fn read(&mut self) -> Result<u8, Self::Error> {
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
         if self.idx >= N {
             return Err(Eof);
         }
@@ -132,6 +136,8 @@ impl<const N: usize> ByteSource for ArrayReader<N> {
         Ok(b)
     }
 }
+
+// ------------- SmlReader
 
 pub struct SmlReader<R: ByteSource, Buf: Buffer> {
     reader: R,
@@ -161,7 +167,7 @@ impl<R: embedded_hal::serial::Read<u8, Error = E>, E, Buf: Buffer> SmlReader<EhR
 impl<R: ByteSource<Error = E>, E: core::fmt::Debug, Buf: Buffer> SmlReader<R, Buf> {
     pub fn read_decoded(&mut self) -> Result<&[u8], ReadDecodedError<E>> {
         loop {
-            let b = self.reader.read()?;
+            let b = self.reader.read_byte()?;
             if self
                 .decoder
                 ._push_byte(b)
@@ -178,9 +184,6 @@ impl<R: ByteSource<Error = E>, E: core::fmt::Debug, Buf: Buffer> SmlReader<R, Bu
     }
 }
 
-#[cfg(feature = "alloc")]
-type DefaultBuffer = alloc::vec::Vec<u8>;
-#[cfg(not(feature = "alloc"))]
 type DefaultBuffer = ArrayBuf<{ 8 * 1024 }>;
 
 pub struct SmlBuilder<Buf: Buffer = DefaultBuffer> {
