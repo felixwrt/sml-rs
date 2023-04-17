@@ -158,13 +158,18 @@ where
 /// let reader = SmlReader::with_static_buffer::<1024>().from_slice(&data);
 /// ```
 ///
-/// Creating a reader with a dynamically-sized buffer from an iterable:
-///
-/// ```
-/// # use sml_rs::SmlReader;
-/// let data = [1, 2, 3, 4, 5];
-/// let reader_2 = SmlReader::with_vec_buffer().from_iterator(&data);
-/// ```
+#[cfg_attr(
+    feature = "alloc",
+    doc = r##"
+Creating a reader with a dynamically-sized buffer from an iterable:
+
+```
+# use sml_rs::SmlReader;
+let data = [1, 2, 3, 4, 5];
+let reader_2 = SmlReader::with_vec_buffer().from_iterator(&data);
+```
+"##
+)]
 ///
 /// ### Target Type
 ///
