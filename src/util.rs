@@ -1,12 +1,14 @@
 //! utility stuff
 
-use core::{fmt::Debug, ops::Deref};
+use core::{fmt::Debug, ops::Deref, borrow::Borrow};
 
 pub(crate) static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
-/// Type alias for `alloc::Vec<u8>`
-#[cfg(feature = "alloc")]
-pub type VecBuf = alloc::vec::Vec<u8>;
+// ===========================================================================
+// ===========================================================================
+//      `Buffer` trait + impls for `VecBuf` and `ArrayBuf`
+// ===========================================================================
+// ===========================================================================
 
 /// Interface for byte vectors.
 ///
@@ -30,6 +32,10 @@ pub trait Buffer: Default + Deref<Target = [u8]> {
     /// Iterates over the slice `other` and appends each byte to this vector. The `other` vector is traversed in-order.
     fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory>;
 }
+
+/// Type alias for `alloc::Vec<u8>`
+#[cfg(feature = "alloc")]
+pub type VecBuf = alloc::vec::Vec<u8>;
 
 #[cfg(feature = "alloc")]
 impl Buffer for VecBuf {
@@ -139,6 +145,155 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
 /// Error type indicating that an operation failed due to lack of memory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutOfMemory;
+
+// ===========================================================================
+// ===========================================================================
+//      `ByteSource` trait + impls
+// ===========================================================================
+// ===========================================================================
+
+/// Helper trait that allows reading individual bytes
+pub trait ByteSource {
+    /// Type of errors that can occur while reading bytes
+    type Error;
+
+    /// Tries to read a single byte from the source
+    fn read_byte(&mut self) -> Result<u8, Self::Error>;
+}
+
+/// Wraps types that implement `std::io::Read` and implements `ByteSource`
+#[cfg(feature = "std")]
+pub struct IoReader<R> 
+where 
+    R: std::io::Read,
+{
+    inner: R,
+}
+
+#[cfg(feature = "std")]
+impl<R> IoReader<R>
+where
+    R: std::io::Read,
+{
+    pub(crate) fn new(reader: R) -> Self {
+        IoReader { inner: reader }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<R> ByteSource for IoReader<R>
+where
+    R: std::io::Read,
+{
+    type Error = std::io::Error;
+
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        let mut b = 0u8;
+        self.inner.read_exact(core::slice::from_mut(&mut b))?;
+        Ok(b)
+    }
+}
+
+/// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
+#[cfg(feature = "embedded_hal")]
+pub struct EhReader<R, E> 
+where
+    R: embedded_hal::serial::Read<u8, Error = E>
+{
+    inner: R,
+}
+
+#[cfg(feature = "embedded_hal")]
+impl<R, E> EhReader<R, E> 
+where
+    R: embedded_hal::serial::Read<u8, Error = E>
+{
+    pub(crate) fn new(reader: R) -> Self {
+        EhReader { inner: reader }
+    }
+}
+
+#[cfg(feature = "embedded_hal")]
+impl<R, E> ByteSource for EhReader<R, E>
+where
+    R: embedded_hal::serial::Read<u8, Error = E>,
+{
+    type Error = nb::Error<E>;
+
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        self.inner.read()
+    }
+}
+
+/// Error type indicating that the end of the input has been reached
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Eof;
+
+/// Wraps byte slices and implements `ByteSource`
+pub struct SliceReader<'i> {
+    inner: &'i [u8],
+    idx: usize,
+}
+
+impl<'i> SliceReader<'i> {
+    pub(crate) fn new(slice: &'i [u8]) -> Self {
+        SliceReader { inner: slice, idx: 0 }
+    }
+}
+
+impl<'i> ByteSource for SliceReader<'i> {
+    type Error = Eof;
+
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        if self.idx >= self.inner.len() {
+            return Err(Eof);
+        }
+        let b = self.inner[self.idx];
+        self.idx += 1;
+        Ok(b)
+    }
+}
+
+/// Wraps byte iterators and implements `ByteSource`
+pub struct IterReader<I, B>
+where
+    I: Iterator<Item = B>,
+    B: Borrow<u8>,
+{
+    iter: I,
+}
+
+impl<I, B> IterReader<I, B>
+where
+    I: Iterator<Item = B>,
+    B: Borrow<u8>,
+{
+    pub(crate) fn new(iter: I) -> Self {
+        IterReader { iter: iter }
+    }
+}
+
+impl<I, B> ByteSource for IterReader<I, B>
+where
+    I: Iterator<Item = B>,
+    B: Borrow<u8>,
+{
+    type Error = Eof;
+
+    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        match self.iter.next() {
+            Some(x) => Ok(*x.borrow()),
+            None => Err(Eof),
+        }
+    }
+}
+
+// ===========================================================================
+// ===========================================================================
+//      Tests
+// ===========================================================================
+// ===========================================================================
+
 
 #[cfg(test)]
 mod test_arraybuf {
