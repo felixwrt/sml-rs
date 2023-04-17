@@ -71,13 +71,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features --features="embedded_hal,alloc"
+          args: --no-default-features --features=["embedded_hal","alloc"]
       
       - name: Run cargo test ("embedded_hal,alloc,std" feature)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features --features="embedded_hal,alloc,std"
+          args: --no-default-features --features=["embedded_hal","alloc","std"]
 
   build_examples:
     name: Build Examples
