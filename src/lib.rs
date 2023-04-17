@@ -28,7 +28,6 @@ use util::{ArrayBuf, Buffer};
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod error;
 pub mod parser;
 pub mod transport;
 pub mod util;
