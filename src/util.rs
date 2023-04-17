@@ -1,6 +1,6 @@
 //! utility stuff
 
-use core::{fmt::Debug, ops::Deref, borrow::Borrow};
+use core::{borrow::Borrow, fmt::Debug, ops::Deref};
 
 pub(crate) static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
@@ -163,8 +163,8 @@ pub trait ByteSource {
 
 /// Wraps types that implement `std::io::Read` and implements `ByteSource`
 #[cfg(feature = "std")]
-pub struct IoReader<R> 
-where 
+pub struct IoReader<R>
+where
     R: std::io::Read,
 {
     inner: R,
@@ -196,17 +196,17 @@ where
 
 /// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
 #[cfg(feature = "embedded_hal")]
-pub struct EhReader<R, E> 
+pub struct EhReader<R, E>
 where
-    R: embedded_hal::serial::Read<u8, Error = E>
+    R: embedded_hal::serial::Read<u8, Error = E>,
 {
     inner: R,
 }
 
 #[cfg(feature = "embedded_hal")]
-impl<R, E> EhReader<R, E> 
+impl<R, E> EhReader<R, E>
 where
-    R: embedded_hal::serial::Read<u8, Error = E>
+    R: embedded_hal::serial::Read<u8, Error = E>,
 {
     pub(crate) fn new(reader: R) -> Self {
         EhReader { inner: reader }
@@ -237,7 +237,10 @@ pub struct SliceReader<'i> {
 
 impl<'i> SliceReader<'i> {
     pub(crate) fn new(slice: &'i [u8]) -> Self {
-        SliceReader { inner: slice, idx: 0 }
+        SliceReader {
+            inner: slice,
+            idx: 0,
+        }
     }
 }
 
@@ -269,7 +272,7 @@ where
     B: Borrow<u8>,
 {
     pub(crate) fn new(iter: I) -> Self {
-        IterReader { iter: iter }
+        IterReader { iter }
     }
 }
 
@@ -293,7 +296,6 @@ where
 //      Tests
 // ===========================================================================
 // ===========================================================================
-
 
 #[cfg(test)]
 mod test_arraybuf {
