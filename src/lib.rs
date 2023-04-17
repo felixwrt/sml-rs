@@ -11,6 +11,7 @@
 //! # Feature flags
 //! - **`std`** (default) — Remove this feature to make the library `no_std` compatible.
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
+//! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(unsafe_code)]
