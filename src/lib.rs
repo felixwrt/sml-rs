@@ -14,6 +14,7 @@
 //! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
@@ -88,16 +89,18 @@ use util::ByteSource;
 ///
 /// The following example shows how to parse an sml data set from a file:
 ///
-/// // ```
-/// // # use sml_rs::SmlReader;
-/// // use std::fs::File;
-/// // let f = File::open("sample.bin").unwrap();
-/// // let mut reader = SmlReader::from_reader(f);
-/// // match reader.read_parsed() {
-/// //     Ok(x) => println!("Got result: {:#?}", x),
-/// //     Err(e) => println!("Error: {:?}", e),
-/// // }
-/// // ```
+/// ```
+/// # #[cfg(feature = "std")] {
+/// # use sml_rs::SmlReader;
+/// use std::fs::File;
+/// let f = File::open("sample.bin").unwrap();
+/// let mut reader = SmlReader::from_reader(f);
+/// match reader.read_decoded_bytes() {
+///     Ok(x) => println!("Got result: {:#?}", x),
+///     Err(e) => println!("Error: {:?}", e),
+/// }
+/// # }
+/// ```
 /// ### Data Source
 ///
 /// The `SmlReader` struct can be used with several kinds of data providers:
@@ -136,19 +139,16 @@ use util::ByteSource;
 /// let data = [1, 2, 3, 4, 5];
 /// let reader = SmlReader::with_static_buffer::<1024>().from_slice(&data);
 /// ```
-///
-#[cfg_attr(
-    feature = "alloc",
-    doc = r##"
-Creating a reader with a dynamically-sized buffer from an iterable:
-
-```
-# use sml_rs::SmlReader;
-let data = [1, 2, 3, 4, 5];
-let reader_2 = SmlReader::with_vec_buffer().from_iterator(&data);
-```
-"##
-)]
+/// 
+/// Creating a reader with a dynamically-sized buffer from an iterable:
+/// 
+/// ```
+/// # #[cfg(feature = "alloc")] {
+/// # use sml_rs::SmlReader;
+/// let data = [1, 2, 3, 4, 5];
+/// let reader_2 = SmlReader::with_vec_buffer().from_iterator(&data);
+/// # }
+/// ```
 ///
 /// ### Target Type
 ///

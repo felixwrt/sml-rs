@@ -26,8 +26,12 @@ insta = { version = "1.21.0", features = ["yaml", "glob"] }
 hex-literal = "0.3.4"
 hex = "0.4.3"
 
+# docs.rs-specific configuration
 [package.metadata.docs.rs]
+# document all features
 all-features = true
+# defines the configuration attribute `docsrs`
+rustdoc-args = ["--cfg", "docsrs"]
 
 [profile.dev.package.insta]
 opt-level = 3
