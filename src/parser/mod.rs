@@ -24,16 +24,16 @@
 //! # Examples
 //!
 //! ## Using `complete::parse`
-//! 
+//!
 //! ```
 //! # #[cfg(feature = "alloc")] {
 //! # use sml_rs::parser::complete;
 //! let bytes: &[u8] = &[ /*...*/ ];
-//! 
+//!
 //! println!("{:#?}", complete::parse(&bytes).expect("error while parsing"));
 //! # }
 //! ```
-//! 
+//!
 //! Output (stripped-down to the relevant parts):
 //! ```text
 //! File {
@@ -62,7 +62,7 @@
 //!     ],
 //! }
 //! ```
-//! 
+//!
 //! ## Using `streaming::Parser`
 //! ```rust
 //! # use sml_rs::parser::streaming;

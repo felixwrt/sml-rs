@@ -139,9 +139,9 @@ use util::ByteSource;
 /// let data = [1, 2, 3, 4, 5];
 /// let reader = SmlReader::with_static_buffer::<1024>().from_slice(&data);
 /// ```
-/// 
+///
 /// Creating a reader with a dynamically-sized buffer from an iterable:
-/// 
+///
 /// ```
 /// # #[cfg(feature = "alloc")] {
 /// # use sml_rs::SmlReader;
