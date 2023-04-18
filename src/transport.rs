@@ -28,6 +28,10 @@
 //! - `decode_streaming`: takes a sequence of bytes and returns an iterator over the decoded messages / errors.
 //! - using `Decoder` directly: instantiate a `Decoder` manually, call `push_byte()` on it when data becomes available. Call `finalize()` when all data has been pushed.
 
+mod decoder_reader;
+
+pub use decoder_reader::{DecodeReaderErr, DecoderReader};
+
 use core::borrow::Borrow;
 
 use crate::util::{Buffer, OutOfMemory, CRC_X25};
@@ -368,12 +372,6 @@ impl<B: Buffer> Decoder<B> {
                 num_discarded_bytes: 0,
                 num_init_seq_bytes: 0,
             } => None,
-            LookingForMessageStart {
-                num_discarded_bytes,
-                num_init_seq_bytes,
-            } => Some(DecodeErr::DiscardedBytes(
-                num_discarded_bytes as usize + num_init_seq_bytes as usize,
-            )),
             Done => None,
             _ => Some(DecodeErr::DiscardedBytes(self.raw_msg_len)),
         };
@@ -579,7 +577,12 @@ impl<B: Buffer> Decoder<B> {
         self.state = DecodeState::Done;
     }
 
-    fn reset(&mut self) {
+    /// Resets the `Decoder` and returns the number of bytes that were discarded
+    pub fn reset(&mut self) -> usize {
+        let num_discarded = match self.state {
+            DecodeState::Done => 0,
+            _ => self.raw_msg_len,
+        };
         self.state = DecodeState::LookingForMessageStart {
             num_discarded_bytes: 0,
             num_init_seq_bytes: 0,
@@ -587,6 +590,7 @@ impl<B: Buffer> Decoder<B> {
         self.buf.clear();
         self.crc_idx = 0;
         self.raw_msg_len = 0;
+        num_discarded
     }
 
     fn push(&mut self, b: u8) -> Result<(), DecodeErr> {

@@ -155,10 +155,20 @@ pub struct OutOfMemory;
 /// Helper trait that allows reading individual bytes
 pub trait ByteSource {
     /// Type of errors that can occur while reading bytes
-    type Error;
+    type Error: ByteSourceErr;
 
     /// Tries to read a single byte from the source
     fn read_byte(&mut self) -> Result<u8, Self::Error>;
+}
+
+/// Helper trait implemented for Error types of `ByteSource`
+pub trait ByteSourceErr {
+    /// Returns whether the error is an end of file (EOF) error
+    fn is_eof(&self) -> bool;
+
+    /// Returns whether the error is "would block", which means that reading
+    /// can be successfull again later
+    fn is_would_block(&self) -> bool;
 }
 
 /// Wraps types that implement `std::io::Read` and implements `ByteSource`
@@ -194,6 +204,17 @@ where
     }
 }
 
+#[cfg(feature = "std")]
+impl ByteSourceErr for std::io::Error {
+    fn is_eof(&self) -> bool {
+        matches!(self.kind(), std::io::ErrorKind::UnexpectedEof)
+    }
+
+    fn is_would_block(&self) -> bool {
+        false
+    }
+}
+
 /// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
 #[cfg(feature = "embedded_hal")]
 pub struct EhReader<R, E>
@@ -225,9 +246,30 @@ where
     }
 }
 
+#[cfg(feature = "embedded_hal")]
+impl<E> ByteSourceErr for nb::Error<E> {
+    fn is_eof(&self) -> bool {
+        false
+    }
+
+    fn is_would_block(&self) -> bool {
+        matches!(self, nb::Error::WouldBlock)
+    }
+}
+
 /// Error type indicating that the end of the input has been reached
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Eof;
+
+impl ByteSourceErr for Eof {
+    fn is_eof(&self) -> bool {
+        true
+    }
+
+    fn is_would_block(&self) -> bool {
+        false
+    }
+}
 
 /// Wraps byte slices and implements `ByteSource`
 pub struct SliceReader<'i> {

@@ -22,7 +22,7 @@ use core::{borrow::Borrow, marker::PhantomData};
 // #[cfg(feature = "alloc")]
 // use parser::complete::{parse, File};
 // use parser::ParseError;
-use transport::DecodeErr;
+use transport::{DecodeReaderErr, DecoderReader};
 use util::{ArrayBuf, Buffer};
 
 #[cfg(feature = "alloc")]
@@ -35,27 +35,6 @@ pub mod util;
 use util::ByteSource;
 
 // --------- ERROR TYPES
-
-#[derive(Debug, PartialEq)]
-/// Error used when decoding sml data read from a reader
-pub enum ReadDecodedError<E>
-where
-    E: core::fmt::Debug,
-{
-    /// Error while decoding (e.g. checksum mismatch)
-    DecodeErr(DecodeErr),
-    /// Error while reading from the underlying reader
-    IoErr(E),
-}
-
-impl<E> From<E> for ReadDecodedError<E>
-where
-    E: core::fmt::Debug,
-{
-    fn from(value: E) -> Self {
-        ReadDecodedError::IoErr(value)
-    }
-}
 
 // impl<E> From<DecodeErr> for ReadDecodedError<E> {
 //     fn from(value: DecodeErr) -> Self {
@@ -180,8 +159,7 @@ where
     R: ByteSource,
     Buf: Buffer,
 {
-    reader: R,
-    decoder: transport::Decoder<Buf>,
+    decoder: DecoderReader<Buf, R>,
 }
 
 pub(crate) type DummySmlReader = SmlReader<util::SliceReader<'static>, ArrayBuf<0>>;
@@ -238,8 +216,7 @@ impl DummySmlReader {
         R: std::io::Read,
     {
         SmlReader {
-            reader: util::IoReader::new(reader),
-            decoder: transport::Decoder::new(),
+            decoder: DecoderReader::new(util::IoReader::new(reader)),
         }
     }
 
@@ -268,8 +245,7 @@ impl DummySmlReader {
         R: embedded_hal::serial::Read<u8, Error = E>,
     {
         SmlReader {
-            reader: util::EhReader::new(reader),
-            decoder: transport::Decoder::new(),
+            decoder: DecoderReader::new(util::EhReader::new(reader)),
         }
     }
 
@@ -284,8 +260,7 @@ impl DummySmlReader {
     /// ```
     pub fn from_slice(reader: &[u8]) -> SmlReader<util::SliceReader<'_>, DefaultBuffer> {
         SmlReader {
-            reader: util::SliceReader::new(reader),
-            decoder: Default::default(),
+            decoder: DecoderReader::new(util::SliceReader::new(reader)),
         }
     }
 
@@ -310,8 +285,7 @@ impl DummySmlReader {
         B: Borrow<u8>,
     {
         SmlReader {
-            reader: util::IterReader::new(iter.into_iter()),
-            decoder: transport::Decoder::new(),
+            decoder: DecoderReader::new(util::IterReader::new(iter.into_iter())),
         }
     }
 }
@@ -329,23 +303,14 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use sml_rs::{SmlReader, util::Eof, ReadDecodedError};
+    /// # use sml_rs::{SmlReader, util::Eof, transport::DecodeReaderErr};
     /// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
     /// let mut reader = SmlReader::from_slice(&bytes);
     /// assert_eq!(reader.read_decoded_bytes(), Ok([0x12, 0x34, 0x56, 0x78].as_slice()));
-    /// assert_eq!(reader.read_decoded_bytes(), Err(ReadDecodedError::IoErr(Eof)))
+    /// assert_eq!(reader.read_decoded_bytes(), Err(DecodeReaderErr::IoErr(Eof)))
     /// ```
-    pub fn read_decoded_bytes(&mut self) -> Result<&[u8], ReadDecodedError<E>> {
-        loop {
-            let b = self.reader.read_byte()?;
-            if self
-                .decoder
-                ._push_byte(b)
-                .map_err(ReadDecodedError::DecodeErr)?
-            {
-                return Ok(self.decoder.borrow_buf());
-            }
-        }
+    pub fn read_decoded_bytes(&mut self) -> Result<&[u8], DecodeReaderErr<E>> {
+        self.decoder.read()
     }
 
     // TODO: implement this!
@@ -387,8 +352,7 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     #[cfg(feature = "std")]
     pub fn from_reader<R: std::io::Read>(self, reader: R) -> SmlReader<util::IoReader<R>, Buf> {
         SmlReader {
-            reader: util::IoReader::new(reader),
-            decoder: Default::default(),
+            decoder: DecoderReader::new(util::IoReader::new(reader)),
         }
     }
 
@@ -417,8 +381,7 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
         reader: R,
     ) -> SmlReader<util::EhReader<R, E>, Buf> {
         SmlReader {
-            reader: util::EhReader::new(reader),
-            decoder: Default::default(),
+            decoder: DecoderReader::new(util::EhReader::new(reader)),
         }
     }
 
@@ -433,8 +396,7 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     /// ```
     pub fn from_slice(self, reader: &[u8]) -> SmlReader<util::SliceReader<'_>, Buf> {
         SmlReader {
-            reader: util::SliceReader::new(reader),
-            decoder: Default::default(),
+            decoder: DecoderReader::new(util::SliceReader::new(reader)),
         }
     }
 
@@ -458,8 +420,7 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
         B: Borrow<u8>,
     {
         SmlReader {
-            reader: util::IterReader::new(iter.into_iter()),
-            decoder: Default::default(),
+            decoder: DecoderReader::new(util::IterReader::new(iter.into_iter())),
         }
     }
 }
