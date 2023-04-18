@@ -307,7 +307,7 @@ where
     /// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
     /// let mut reader = SmlReader::from_slice(&bytes);
     /// assert_eq!(reader.read_decoded_bytes(), Ok([0x12, 0x34, 0x56, 0x78].as_slice()));
-    /// assert_eq!(reader.read_decoded_bytes(), Err(DecodeReaderErr::IoErr(Eof)))
+    /// assert_eq!(reader.read_decoded_bytes(), Err(DecodeReaderErr::IoErr(Eof, 0)))
     /// ```
     pub fn read_decoded_bytes(&mut self) -> Result<&[u8], DecodeReaderErr<E>> {
         self.decoder.read()

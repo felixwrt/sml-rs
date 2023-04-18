@@ -4,6 +4,10 @@ use core::{borrow::Borrow, fmt::Debug, ops::Deref};
 
 pub(crate) static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
+pub(crate) mod private {
+    pub trait Sealed {}
+}
+
 // ===========================================================================
 // ===========================================================================
 //      `Buffer` trait + impls for `VecBuf` and `ArrayBuf`
@@ -15,7 +19,7 @@ pub(crate) static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM
 /// This train provides is used as an abstraction over different byte vector
 /// implementations. It is implemented for static vectors (`ArrayBuf`)
 /// and (if the `alloc` feature is used) for dynamic vectors (`alloc::Vec<u8>`).
-pub trait Buffer: Default + Deref<Target = [u8]> {
+pub trait Buffer: Default + Deref<Target = [u8]> + private::Sealed {
     /// Appends a byte to the back of the vector.
     ///
     /// Returns `Err` if the vector is full and could not be extended.
@@ -67,6 +71,9 @@ impl Buffer for VecBuf {
         }
     }
 }
+
+#[cfg(feature = "alloc")]
+impl private::Sealed for VecBuf {}
 
 /// Byte buffer backed by an array.
 pub struct ArrayBuf<const N: usize> {
@@ -142,6 +149,8 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
     }
 }
 
+impl<const N: usize> private::Sealed for ArrayBuf<N> {}
+
 /// Error type indicating that an operation failed due to lack of memory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutOfMemory;
@@ -153,7 +162,7 @@ pub struct OutOfMemory;
 // ===========================================================================
 
 /// Helper trait that allows reading individual bytes
-pub trait ByteSource {
+pub trait ByteSource: private::Sealed {
     /// Type of errors that can occur while reading bytes
     type Error: ByteSourceErr;
 
@@ -162,7 +171,7 @@ pub trait ByteSource {
 }
 
 /// Helper trait implemented for Error types of `ByteSource`
-pub trait ByteSourceErr {
+pub trait ByteSourceErr: private::Sealed {
     /// Returns whether the error is an end of file (EOF) error
     fn is_eof(&self) -> bool;
 
@@ -205,6 +214,9 @@ where
 }
 
 #[cfg(feature = "std")]
+impl<R> private::Sealed for IoReader<R> where R: std::io::Read {}
+
+#[cfg(feature = "std")]
 impl ByteSourceErr for std::io::Error {
     fn is_eof(&self) -> bool {
         matches!(self.kind(), std::io::ErrorKind::UnexpectedEof)
@@ -214,6 +226,9 @@ impl ByteSourceErr for std::io::Error {
         false
     }
 }
+
+#[cfg(feature = "std")]
+impl private::Sealed for std::io::Error {}
 
 /// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
 #[cfg(feature = "embedded_hal")]
@@ -247,6 +262,9 @@ where
 }
 
 #[cfg(feature = "embedded_hal")]
+impl<R, E> private::Sealed for EhReader<R, E> where R: embedded_hal::serial::Read<u8, Error = E> {}
+
+#[cfg(feature = "embedded_hal")]
 impl<E> ByteSourceErr for nb::Error<E> {
     fn is_eof(&self) -> bool {
         false
@@ -256,6 +274,9 @@ impl<E> ByteSourceErr for nb::Error<E> {
         matches!(self, nb::Error::WouldBlock)
     }
 }
+
+#[cfg(feature = "embedded_hal")]
+impl<E> private::Sealed for nb::Error<E> {}
 
 /// Error type indicating that the end of the input has been reached
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -270,6 +291,8 @@ impl ByteSourceErr for Eof {
         false
     }
 }
+
+impl private::Sealed for Eof {}
 
 /// Wraps byte slices and implements `ByteSource`
 pub struct SliceReader<'i> {
@@ -298,6 +321,8 @@ impl<'i> ByteSource for SliceReader<'i> {
         Ok(b)
     }
 }
+
+impl<'i> private::Sealed for SliceReader<'i> {}
 
 /// Wraps byte iterators and implements `ByteSource`
 pub struct IterReader<I, B>
@@ -331,6 +356,13 @@ where
             None => Err(Eof),
         }
     }
+}
+
+impl<I, B> private::Sealed for IterReader<I, B>
+where
+    I: Iterator<Item = B>,
+    B: Borrow<u8>,
+{
 }
 
 // ===========================================================================

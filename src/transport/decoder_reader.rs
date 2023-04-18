@@ -153,6 +153,11 @@ mod decoder_reader_tests {
         }
     }
 
+    impl<I> crate::util::private::Sealed for TestReader<I> where
+        I: Iterator<Item = Result<u8, TestReaderErr>>
+    {
+    }
+
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
     enum TestReaderErr {
         Eof,
@@ -169,6 +174,8 @@ mod decoder_reader_tests {
             matches!(self, TestReaderErr::WouldBlock)
         }
     }
+
+    impl crate::util::private::Sealed for TestReaderErr {}
 
     fn decoder_from<I>(iter: I) -> DecoderReader<ArrayBuf<1024>, TestReader<I>>
     where
