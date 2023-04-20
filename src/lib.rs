@@ -320,7 +320,7 @@ where
     /// non-blocking byte sources.
     pub fn read<'i, T>(&'i mut self) -> Result<T, T::Error>
     where
-        T: SmlParse<'i, E>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
     {
         T::parse_from(self.decoder.read())
     }
@@ -348,7 +348,7 @@ where
     /// non-blocking byte sources.
     pub fn next<'i, T>(&'i mut self) -> Option<Result<T, T::Error>>
     where
-        T: SmlParse<'i, E>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
     {
         Some(T::parse_from(self.decoder.next()?))
     }
@@ -376,7 +376,7 @@ where
     #[cfg(feature = "nb")]
     pub fn read_nb<'i, T>(&'i mut self) -> nb::Result<T, T::Error>
     where
-        T: SmlParse<'i, E>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
     {
         // TODO: this could probably be written better
         let res = match self.decoder.read_nb() {
@@ -410,7 +410,7 @@ where
     #[cfg(feature = "nb")]
     pub fn next_nb<'i, T>(&'i mut self) -> nb::Result<Option<T>, T::Error>
     where
-        T: SmlParse<'i, E>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
     {
         // TODO: this could probably be written better
         let res = match self.decoder.next_nb() {
@@ -528,25 +528,19 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     }
 }
 
-/// Helper trait implemented for types that built from decoded bytes.
-///
-/// *This trait is not meant to be used directly, use [`SmlReader::read`] and
-/// [`SmlReader::next`] instead.*
-pub trait SmlParse<'i, IoErr>: Sized + util::private::Sealed {
+/// Helper trait implemented for types that can be built from decoded bytes.
+pub trait SmlParse<'i, T>: Sized + util::private::Sealed {
     /// The error produced if parsing fails or the input contained an error.
     type Error;
 
     /// Takes the result of decoding and parses it into the resulting type.
-    ///
-    /// *This function is not meant to be used directly, use [`SmlReader::read`] and
-    /// [`SmlReader::next`] instead.*
-    fn parse_from(value: Result<&'i [u8], ReadDecodedError<IoErr>>) -> Result<Self, Self::Error>;
+    fn parse_from(value: T) -> Result<Self, Self::Error>;
 }
 
 /// Type alias for decoded bytes.
 pub type DecodedBytes<'i> = &'i [u8];
 
-impl<'i, E> SmlParse<'i, E> for DecodedBytes<'i>
+impl<'i, E> SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>> for DecodedBytes<'i>
 where
     E: core::fmt::Debug,
 {
@@ -557,10 +551,18 @@ where
     }
 }
 
+impl<'i> SmlParse<'i, &'i [u8]> for DecodedBytes<'i> {
+    type Error = core::convert::Infallible;
+
+    fn parse_from(value: &'i [u8]) -> Result<Self, Self::Error> {
+        Ok(value)
+    }
+}
+
 impl<'i> util::private::Sealed for DecodedBytes<'i> {}
 
 #[cfg(feature = "alloc")]
-impl<'i, E> SmlParse<'i, E> for File<'i>
+impl<'i, E> SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>> for File<'i>
 where
     E: core::fmt::Debug,
 {
@@ -572,9 +574,18 @@ where
 }
 
 #[cfg(feature = "alloc")]
+impl<'i> SmlParse<'i, &'i [u8]> for File<'i> {
+    type Error = ParseError;
+
+    fn parse_from(value: &'i [u8]) -> Result<Self, Self::Error> {
+        parse(value)
+    }
+}
+
+#[cfg(feature = "alloc")]
 impl<'i> util::private::Sealed for File<'i> {}
 
-impl<'i, E> SmlParse<'i, E> for Parser<'i>
+impl<'i, E> SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>> for Parser<'i>
 where
     E: core::fmt::Debug,
 {
@@ -582,6 +593,14 @@ where
 
     fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
         Ok(Parser::new(value?))
+    }
+}
+
+impl<'i> SmlParse<'i, &'i [u8]> for Parser<'i> {
+    type Error = core::convert::Infallible;
+
+    fn parse_from(value: &'i [u8]) -> Result<Self, Self::Error> {
+        Ok(Parser::new(value))
     }
 }
 
