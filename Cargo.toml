@@ -42,8 +42,9 @@ opt-level = 3
 [[example]]
 name = "decoder"
 path = "examples/decoder.rs"
-required-features = ["alloc"]
+required-features = ["std"]
 
 [[example]]
 name = "decoder-streaming"
 path = "examples/decoder_streaming.rs"
+required-features = ["std"]

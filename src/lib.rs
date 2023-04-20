@@ -571,6 +571,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'i> util::private::Sealed for File<'i> {}
 
 impl<'i, E> SmlParse<'i, E> for Parser<'i>
@@ -642,7 +643,9 @@ mod read_tests {
     #[test]
     fn test_smlreader_reading() {
         // check that different types can be used with read and next
-        use super::{DecodedBytes, File, Parser, SmlReader};
+        #[cfg(feature = "alloc")]
+        use super::File;
+        use super::{DecodedBytes, Parser, SmlReader};
 
         let bytes = [1, 2, 3, 4];
         let mut reader = SmlReader::from_slice(&bytes);
@@ -650,10 +653,12 @@ mod read_tests {
         let _ = reader.read::<DecodedBytes>();
         let _: Result<DecodedBytes, _> = reader.read();
 
+        #[cfg(feature = "alloc")]
         let _ = reader.read::<File>();
         let _ = reader.read::<Parser>();
 
         let _ = reader.next::<DecodedBytes>();
+        #[cfg(feature = "alloc")]
         let _ = reader.next::<File>();
         let _ = reader.next::<Parser>();
     }
@@ -662,16 +667,20 @@ mod read_tests {
     #[cfg(feature = "nb")]
     fn test_smlreader_reading_nb() {
         // check that different types can be used with read_nb and next_nb
-        use super::{DecodedBytes, File, Parser, SmlReader};
+        #[cfg(feature = "alloc")]
+        use super::File;
+        use super::{DecodedBytes, Parser, SmlReader};
 
         let bytes = [1, 2, 3, 4];
         let mut reader = SmlReader::from_slice(&bytes);
 
         let _ = reader.next_nb::<DecodedBytes>();
+        #[cfg(feature = "alloc")]
         let _ = reader.next_nb::<File>();
         let _ = reader.next_nb::<Parser>();
 
         let _ = reader.read_nb::<DecodedBytes>();
+        #[cfg(feature = "alloc")]
         let _ = reader.read_nb::<File>();
         let _ = reader.read_nb::<Parser>();
     }
