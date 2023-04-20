@@ -21,7 +21,7 @@
 
 use core::{borrow::Borrow, marker::PhantomData};
 
-// #[cfg(feature = "alloc")]
+#[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
 use parser::streaming::Parser;
 use parser::ParseError;
