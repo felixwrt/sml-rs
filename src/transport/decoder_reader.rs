@@ -5,7 +5,7 @@ use crate::util::{Buffer, ByteSource, ByteSourceErr};
 
 /// Error type used by the `DecoderReader`
 #[derive(Debug, PartialEq)]
-pub enum DecodeReaderErr<IoErr> {
+pub enum ReadDecodedError<IoErr> {
     /// Error while decoding the data (e.g. checksum mismatch)
     DecodeErr(DecodeErr),
     /// Error while reading from the internal byte source
@@ -48,13 +48,13 @@ where
     ///
     /// See also [`read_nb`](DecoderReader::read_nb), which provides a convenient API for
     /// non-blocking byte sources.
-    pub fn read(&mut self) -> Result<&[u8], DecodeReaderErr<R::Error>> {
+    pub fn read(&mut self) -> Result<&[u8], ReadDecodedError<R::Error>> {
         loop {
             match self.reader.read_byte() {
                 Ok(b) => match self.decoder._push_byte(b) {
                     Ok(false) => continue,
                     Ok(true) => return Ok(self.decoder.borrow_buf()),
-                    Err(e) => return Err(DecodeReaderErr::DecodeErr(e)),
+                    Err(e) => return Err(ReadDecodedError::DecodeErr(e)),
                 },
                 Err(e) => {
                     assert!(!(e.is_eof() && e.is_would_block()));
@@ -65,7 +65,7 @@ where
                         0
                     };
                     // return the error
-                    return Err(DecodeReaderErr::IoErr(e, discarded_bytes));
+                    return Err(ReadDecodedError::IoErr(e, discarded_bytes));
                 }
             }
         }
@@ -83,9 +83,9 @@ where
     /// See also [`next_nb`](DecoderReader::next_nb), which provides a convenient API for
     /// non-blocking byte sources.
     #[allow(clippy::should_implement_trait)]
-    pub fn next(&mut self) -> Option<Result<&[u8], DecodeReaderErr<R::Error>>> {
+    pub fn next(&mut self) -> Option<Result<&[u8], ReadDecodedError<R::Error>>> {
         match self.read() {
-            Err(DecodeReaderErr::IoErr(e, 0)) if e.is_eof() => None,
+            Err(ReadDecodedError::IoErr(e, 0)) if e.is_eof() => None,
             x => Some(x),
         }
     }
@@ -100,9 +100,9 @@ where
     ///
     /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
     #[cfg(feature = "nb")]
-    pub fn read_nb(&mut self) -> nb::Result<&[u8], DecodeReaderErr<R::Error>> {
+    pub fn read_nb(&mut self) -> nb::Result<&[u8], ReadDecodedError<R::Error>> {
         self.read().map_err(|e| match e {
-            DecodeReaderErr::IoErr(io_err, _) if io_err.is_would_block() => nb::Error::WouldBlock,
+            ReadDecodedError::IoErr(io_err, _) if io_err.is_would_block() => nb::Error::WouldBlock,
             other => nb::Error::Other(other),
         })
     }
@@ -117,9 +117,9 @@ where
     ///
     /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
     #[cfg(feature = "nb")]
-    pub fn next_nb(&mut self) -> nb::Result<Option<&[u8]>, DecodeReaderErr<R::Error>> {
+    pub fn next_nb(&mut self) -> nb::Result<Option<&[u8]>, ReadDecodedError<R::Error>> {
         match self.read_nb() {
-            Err(nb::Error::Other(DecodeReaderErr::IoErr(e, 0))) if e.is_eof() => Ok(None),
+            Err(nb::Error::Other(ReadDecodedError::IoErr(e, 0))) if e.is_eof() => Ok(None),
             Err(e) => Err(e),
             Ok(x) => Ok(Some(x)),
         }
@@ -201,7 +201,7 @@ mod decoder_reader_tests {
         let mut dr = decoder_from(data.into_iter().map(Ok));
         assert_eq!(
             dr.next(),
-            Some(Err(DecodeReaderErr::IoErr(TestReaderErr::Eof, 9)))
+            Some(Err(ReadDecodedError::IoErr(TestReaderErr::Eof, 9)))
         );
         assert_eq!(dr.next(), None);
         assert_eq!(dr.next(), None);
@@ -217,7 +217,7 @@ mod decoder_reader_tests {
         let mut dr = decoder_from(all_data);
         assert_eq!(
             dr.next(),
-            Some(Err(DecodeReaderErr::IoErr(TestReaderErr::Other, 9)))
+            Some(Err(ReadDecodedError::IoErr(TestReaderErr::Other, 9)))
         );
         assert_eq!(dr.next(), Some(Ok(hex!("12345678").as_slice())));
         assert_eq!(dr.next(), None);
@@ -234,7 +234,7 @@ mod decoder_reader_tests {
         let mut dr = decoder_from(all_data);
         assert_eq!(
             dr.next(),
-            Some(Err(DecodeReaderErr::IoErr(TestReaderErr::WouldBlock, 0)))
+            Some(Err(ReadDecodedError::IoErr(TestReaderErr::WouldBlock, 0)))
         );
         assert_eq!(dr.next(), Some(Ok(hex!("12345678").as_slice())));
         assert_eq!(dr.next(), None);
@@ -252,11 +252,11 @@ mod decoder_reader_tests {
         let mut dr = decoder_from(all_data);
         assert_eq!(
             dr.next(),
-            Some(Err(DecodeReaderErr::IoErr(TestReaderErr::WouldBlock, 0)))
+            Some(Err(ReadDecodedError::IoErr(TestReaderErr::WouldBlock, 0)))
         );
         assert_eq!(
             dr.next(),
-            Some(Err(DecodeReaderErr::IoErr(TestReaderErr::WouldBlock, 0)))
+            Some(Err(ReadDecodedError::IoErr(TestReaderErr::WouldBlock, 0)))
         );
         assert_eq!(dr.next(), Some(Ok(hex!("12345678").as_slice())));
         assert_eq!(dr.next(), None);
@@ -269,7 +269,7 @@ mod decoder_reader_tests {
         let mut dr = decoder_from(all_data);
         assert_eq!(
             dr.next(),
-            Some(Err(DecodeReaderErr::IoErr(TestReaderErr::Other, 0)))
+            Some(Err(ReadDecodedError::IoErr(TestReaderErr::Other, 0)))
         );
         assert_eq!(dr.next(), None);
         assert_eq!(dr.next(), None);
@@ -290,14 +290,14 @@ mod decoder_reader_tests {
         assert_eq!(dr.read_nb(), Ok(hex!("12345678").as_slice()));
         assert_eq!(
             dr.read_nb(),
-            Err(nb::Error::Other(DecodeReaderErr::IoErr(
+            Err(nb::Error::Other(ReadDecodedError::IoErr(
                 TestReaderErr::Eof,
                 0
             )))
         );
         assert_eq!(
             dr.read_nb(),
-            Err(nb::Error::Other(DecodeReaderErr::IoErr(
+            Err(nb::Error::Other(ReadDecodedError::IoErr(
                 TestReaderErr::Eof,
                 0
             )))
@@ -352,11 +352,11 @@ mod decoder_reader_tests {
         assert_eq!(nb::block!(dr.read_nb()), Ok(hex!("12345678").as_slice()));
         assert_eq!(
             nb::block!(dr.read_nb()),
-            Err(DecodeReaderErr::IoErr(TestReaderErr::Eof, 0))
+            Err(ReadDecodedError::IoErr(TestReaderErr::Eof, 0))
         );
         assert_eq!(
             nb::block!(dr.read_nb()),
-            Err(DecodeReaderErr::IoErr(TestReaderErr::Eof, 0))
+            Err(ReadDecodedError::IoErr(TestReaderErr::Eof, 0))
         );
     }
 }

@@ -30,7 +30,7 @@
 
 mod decoder_reader;
 
-pub use decoder_reader::{DecodeReaderErr, DecoderReader};
+pub use decoder_reader::{ReadDecodedError, DecoderReader};
 
 use core::borrow::Borrow;
 

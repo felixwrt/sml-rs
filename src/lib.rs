@@ -12,6 +12,7 @@
 //! - **`std`** (default) — Remove this feature to make the library `no_std` compatible.
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
 //! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
+//! - **`nb`** - Enables non-blocking APIs using the `nb` crate.
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -21,9 +22,10 @@
 use core::{borrow::Borrow, marker::PhantomData};
 
 // #[cfg(feature = "alloc")]
-// use parser::complete::{parse, File};
-// use parser::ParseError;
-use transport::{DecodeReaderErr, DecoderReader};
+use parser::complete::{parse, File};
+use parser::streaming::Parser;
+use parser::ParseError;
+use transport::{DecodeErr, ReadDecodedError, DecoderReader};
 use util::{ArrayBuf, Buffer};
 
 #[cfg(feature = "alloc")]
@@ -35,44 +37,42 @@ pub mod util;
 
 use util::ByteSource;
 
-// --------- ERROR TYPES
+/// Error returned by functions parsing sml data read from a reader
+#[derive(Debug)]
+pub enum ReadParsedError<E>
+where
+    E: core::fmt::Debug,
+{
+    /// Error while parsing
+    ParseErr(ParseError),
+    /// Error while decoding the data (e.g. checksum mismatch)
+    DecodeErr(DecodeErr),
+    /// Error while reading from the internal byte source
+    ///
+    /// (inner_error, num_discarded_bytes)
+    IoErr(E, usize),
+}
 
-// impl<E> From<DecodeErr> for ReadDecodedError<E> {
-//     fn from(value: DecodeErr) -> Self {
-//         ReadDecodedError::DecodeErr(value)
-//     }
-// }
+impl<E> From<ReadDecodedError<E>> for ReadParsedError<E>
+where
+    E: core::fmt::Debug,
+{
+    fn from(value: ReadDecodedError<E>) -> Self {
+        match value {
+            ReadDecodedError::DecodeErr(x) => ReadParsedError::DecodeErr(x),
+            ReadDecodedError::IoErr(x, num_discarded) => ReadParsedError::IoErr(x, num_discarded),
+        }
+    }
+}
 
-// #[derive(Debug)]
-// pub enum ReadParsedError<E>
-// where
-//     E: core::fmt::Debug
-// {
-//     ParseErr(ParseError),
-//     DecodeErr(DecodeErr),
-//     IoErr(E),
-// }
-
-// impl<E> From<ReadDecodedError<E>> for ReadParsedError<E>
-// where
-//     E: core::fmt::Debug
-// {
-//     fn from(value: ReadDecodedError<E>) -> Self {
-//         match value {
-//             ReadDecodedError::DecodeErr(x) => ReadParsedError::DecodeErr(x),
-//             ReadDecodedError::IoErr(x) => ReadParsedError::IoErr(x),
-//         }
-//     }
-// }
-
-// impl<E> From<ParseError> for ReadParsedError<E>
-// where
-//     E: core::fmt::Debug
-// {
-//     fn from(value: ParseError) -> Self {
-//         ReadParsedError::ParseErr(value)
-//     }
-// }
+impl<E> From<ParseError> for ReadParsedError<E>
+where
+    E: core::fmt::Debug,
+{
+    fn from(value: ParseError) -> Self {
+        ReadParsedError::ParseErr(value)
+    }
+}
 
 // ===========================================================================
 // ===========================================================================
@@ -295,29 +295,132 @@ where
     R: ByteSource<Error = E>,
     E: core::fmt::Debug,
     Buf: Buffer,
-{
-    /// Reads an sml transmission (encoded with the sml transport v1) from the internal reader
-    ///
-    /// Decodes the transport v1 and returns the contained data as a slice of bytes.
-    ///
-    /// # Examples
-    ///
+{    
+    /// Reads, decodes and possibly parses sml data.
+    /// 
     /// ```
-    /// # use sml_rs::{SmlReader, util::Eof, transport::DecodeReaderErr};
-    /// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
-    /// let mut reader = SmlReader::from_slice(&bytes);
-    /// assert_eq!(reader.read_decoded_bytes(), Ok([0x12, 0x34, 0x56, 0x78].as_slice()));
-    /// assert_eq!(reader.read_decoded_bytes(), Err(DecodeReaderErr::IoErr(Eof, 0)))
+    /// # use sml_rs::{SmlReader, DecodedBytes};
+    /// let data = include_bytes!("../sample.bin");
+    /// let mut reader = SmlReader::from_slice(data.as_slice());
+    /// 
+    /// let bytes = reader.read::<DecodedBytes>();
+    /// assert!(matches!(bytes, Ok(bytes)));
+    /// let bytes = reader.read::<DecodedBytes>();
+    /// assert!(matches!(bytes, Err(_)));
     /// ```
-    pub fn read_decoded_bytes(&mut self) -> Result<&[u8], DecodeReaderErr<E>> {
-        self.decoder.read()
+    /// 
+    /// This method can be used to parse sml data into several representations. 
+    /// See the module documentation for more information.
+    ///
+    /// When reading from a finite data source (such as a file containing a certain
+    /// number of transmissions), it's easier to use [`next`](SmlReader::next) instead,
+    /// which returns `None` when an EOF is read when trying to read the next transmission.
+    ///
+    /// See also [`read_nb`](DecoderReader::read_nb), which provides a convenient API for
+    /// non-blocking byte sources.
+    pub fn read<'i, T>(&'i mut self) -> Result<T, T::Error>
+    where 
+        T: SmlParse<'i, E>
+    {
+        T::parse_from(self.decoder.read())
     }
 
-    // TODO: implement this!
-    // #[cfg(feature = "alloc")]
-    // pub fn read_parsed(&mut self) -> Result<File, ReadParsedError<E>> {
-    //     Ok(parse(self.read_decoded_bytes()?)?)
-    // }
+    /// Tries to read, decode and possibly parse sml data.
+    /// 
+    /// ```
+    /// # use sml_rs::{SmlReader, DecodedBytes};
+    /// let data = include_bytes!("../sample.bin");
+    /// let mut reader = SmlReader::from_slice(data.as_slice());
+    /// 
+    /// let bytes = reader.next::<DecodedBytes>();
+    /// assert!(matches!(bytes, Some(Ok(bytes))));
+    /// let bytes = reader.next::<DecodedBytes>();
+    /// assert!(matches!(bytes, None));
+    /// ```
+    /// 
+    /// This method can be used to parse sml data into several representations. 
+    /// See the module documentation for more information.
+    ///
+    /// When reading from a data source that will provide data infinitely (such
+    /// as from a serial port), it's easier to use [`read`](SmlReader::read) instead.
+    ///
+    /// See also [`next_nb`](SmlReader::next_nb), which provides a convenient API for
+    /// non-blocking byte sources.
+    pub fn next<'i, T>(&'i mut self) -> Option<Result<T, T::Error>>
+    where
+        T: SmlParse<'i, E>
+    {
+        Some(T::parse_from(self.decoder.next()?))
+    }
+
+    /// Reads, decodes and possibly parses sml data (non-blocking).
+    /// 
+    /// ```
+    /// # use sml_rs::{SmlReader, DecodedBytes};
+    /// let data = include_bytes!("../sample.bin");
+    /// let mut reader = SmlReader::from_slice(data.as_slice());
+    /// 
+    /// let bytes = nb::block!(reader.read_nb::<DecodedBytes>());
+    /// assert!(matches!(bytes, Ok(bytes)));
+    /// let bytes = nb::block!(reader.read_nb::<DecodedBytes>());
+    /// assert!(matches!(bytes, Err(_));
+    /// ```
+    /// 
+    /// Same as [`read`](SmlReader::read) except that it returns `nb::Result`.
+    /// If reading from the byte source indicates that data isn't available yet,
+    /// this method returns `Err(nb::Error::WouldBlock)`.
+    /// 
+    /// Using `nb::Result` allows this method to be awaited using the `nb::block!` macro.
+    ///
+    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
+    #[cfg(feature = "nb")]
+    pub fn read_nb<'i, T>(&'i mut self) -> nb::Result<T, T::Error>
+    where 
+        T: SmlParse<'i, E>
+    {
+        // TODO: this could probably be written better
+        let res = match self.decoder.read_nb() {
+            Ok(x) => Ok(x),
+            Err(nb::Error::WouldBlock) => return Err(nb::Error::WouldBlock),
+            Err(nb::Error::Other(e)) => Err(e),
+        };
+        T::parse_from(res).map_err(nb::Error::Other)
+    }
+
+    /// Tries to read, decode and possibly parse sml data (non-blocking).
+    /// 
+    /// ```
+    /// # use sml_rs::{SmlReader, DecodedBytes};
+    /// let data = include_bytes!("../sample.bin");
+    /// let mut reader = SmlReader::from_slice(data.as_slice());
+    /// 
+    /// let bytes = nb::block!(reader.next_nb::<DecodedBytes>());
+    /// assert!(matches!(bytes, Ok(Some(bytes))));
+    /// let bytes = nb::block!(reader.next_nb::<DecodedBytes>());
+    /// assert!(matches!(bytes, Ok(None)));
+    /// ```
+    /// 
+    /// Same as [`next`](SmlReader::next) except that it returns `nb::Result`.
+    /// If reading from the byte source indicates that data isn't available yet,
+    /// this method returns `Err(nb::Error::WouldBlock)`.
+    /// 
+    /// Using `nb::Result` allows this method to be awaited using the `nb::block!` macro.
+    ///
+    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
+    #[cfg(feature = "nb")]
+    pub fn next_nb<'i, T>(&'i mut self) -> nb::Result<Option<T>, T::Error>
+    where
+        T: SmlParse<'i, E>
+    {
+        // TODO: this could probably be written better
+        let res = match self.decoder.next_nb() {
+            Ok(None) => return Ok(None),
+            Ok(Some(x)) => Ok(x),
+            Err(nb::Error::WouldBlock) => return Err(nb::Error::WouldBlock),
+            Err(nb::Error::Other(e)) => Err(e),
+        };
+        T::parse_from(res).map(Some).map_err(nb::Error::Other)
+    }
 }
 
 type DefaultBuffer = ArrayBuf<{ 8 * 1024 }>;
@@ -425,8 +528,66 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     }
 }
 
+/// Helper trait implemented for types that built from decoded bytes.
+/// 
+/// *This trait is not meant to be used directly, use [`SmlReader::read`] and 
+/// [`SmlReader::next`] instead.*
+pub trait SmlParse<'i, IoErr>: Sized + util::private::Sealed {
+    /// The error produced if parsing fails or the input contained an error.
+    type Error;
+
+    /// Takes the result of decoding and parses it into the resulting type.
+    /// 
+    /// *This function is not meant to be used directly, use [`SmlReader::read`] and 
+    /// [`SmlReader::next`] instead.*
+    fn parse_from(value: Result<&'i [u8], ReadDecodedError<IoErr>>) -> Result<Self, Self::Error>;
+}
+
+/// Type alias for decoded bytes.
+pub type DecodedBytes<'i> = &'i [u8];
+
+impl<'i, E> SmlParse<'i, E> for DecodedBytes<'i> 
+where
+    E: core::fmt::Debug
+{
+    type Error = ReadDecodedError<E>;
+
+    fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
+        value
+    }
+}
+
+impl<'i> util::private::Sealed for DecodedBytes<'i> {}
+
+#[cfg(feature = "alloc")]
+impl<'i, E> SmlParse<'i, E> for File<'i> 
+where
+    E: core::fmt::Debug
+{
+    type Error = ReadParsedError<E>;
+
+    fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
+        Ok(parse(value?)?)
+    }
+}
+
+impl<'i> util::private::Sealed for File<'i> {}
+
+impl<'i, E> SmlParse<'i, E> for Parser<'i> 
+where
+    E: core::fmt::Debug
+{
+    type Error = ReadDecodedError<E>;
+
+    fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
+        Ok(Parser::new(value?))
+    }
+}
+
+impl<'i> util::private::Sealed for Parser<'i> {}
+
 #[test]
-fn test_smlreader() {
+fn test_smlreader_construction() {
     let arr = [1, 2, 3, 4, 5];
 
     // no deps
@@ -455,7 +616,7 @@ fn test_smlreader() {
 
 #[test]
 #[cfg(feature = "embedded_hal")]
-fn test_smlreader_eh() {
+fn test_smlreader_eh_construction() {
     // dummy struct implementing `Read`
     struct Pin;
     impl embedded_hal::serial::Read<u8> for Pin {
@@ -475,4 +636,44 @@ fn test_smlreader_eh() {
     // using dynamic buffer
     #[cfg(feature = "alloc")]
     SmlReader::with_vec_buffer().from_eh_reader(Pin);
+}
+
+mod read_tests {
+    #[test]
+    fn test_smlreader_reading() {
+        // check that different types can be used with read and next
+        use super::{SmlReader, File, Parser, DecodedBytes};
+
+        let bytes = [1, 2, 3, 4];
+        let mut reader = SmlReader::from_slice(&bytes);
+    
+        let _ = reader.read::<DecodedBytes>();
+        let _: Result<DecodedBytes, _> = reader.read();
+
+        let _ = reader.read::<File>();
+        let _ = reader.read::<Parser>();
+
+        let _ = reader.next::<DecodedBytes>();
+        let _ = reader.next::<File>();
+        let _ = reader.next::<Parser>();
+    }
+
+    #[test]
+    #[cfg(feature = "nb")]
+    fn test_smlreader_reading_nb() {
+        // check that different types can be used with read_nb and next_nb
+        use super::{SmlReader, File, Parser, DecodedBytes};
+
+        let bytes = [1, 2, 3, 4];
+        let mut reader = SmlReader::from_slice(&bytes);
+        
+        let _ = reader.next_nb::<DecodedBytes>();
+        let _ = reader.next_nb::<File>();
+        let _ = reader.next_nb::<Parser>();
+
+        let _ = reader.read_nb::<DecodedBytes>();
+        let _ = reader.read_nb::<File>();
+        let _ = reader.read_nb::<Parser>();
+    }
+    
 }

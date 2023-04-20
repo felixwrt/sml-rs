@@ -6,30 +6,21 @@
 //! cat tests/libsml-testing/dzg_dwsb20_2th_3byte.bin | cargo run --example decoder
 //! ```
 
-use std::io::Read;
+use sml_rs::parser::complete::File;
 
 fn main() -> Result<(), std::io::Error> {
     let stdin = std::io::stdin().lock();
 
-    let mut decoder = sml_rs::transport::Decoder::<Vec<u8>>::new();
+    let mut reader = sml_rs::SmlReader::from_reader(stdin);
 
-    for res in stdin.bytes() {
-        let b = res?;
-
-        match decoder.push_byte(b) {
-            Ok(None) => {}
-            Ok(Some(decoded_bytes)) => {
-                println!("{:#?}", sml_rs::parser::complete::parse(decoded_bytes));
-            }
-            Err(e) => {
-                println!("Err({:?})", e);
-            }
+    while let Some(res) = reader.next::<File>() {
+        match res {
+            Ok(file) => println!("{:#?}", file),
+            Err(e) => println!("Err({:?})", e),
         }
     }
 
-    if let Some(e) = decoder.finalize() {
-        println!("Err({:?})", e);
-    }
+    println!("Done.");
 
     Ok(())
 }
