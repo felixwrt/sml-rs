@@ -4,8 +4,8 @@ use std::io::{self, Write};
 use std::time::Duration;
 
 use serialport::{Parity, SerialPortInfo, SerialPortType, StopBits, UsbPortInfo};
-use sml_rs::ReadParsedError;
 use sml_rs::parser::complete::File;
+use sml_rs::ReadParsedError;
 
 fn main() -> std::io::Result<()> {
     let ports = serialport::available_ports().expect("No ports found!");
@@ -28,7 +28,7 @@ fn main() -> std::io::Result<()> {
                 println!("IO Error: {:?}", e);
                 println!("Exiting.");
                 break;
-            },
+            }
             Err(e) => {
                 println!("Error: {:?}", e);
             }

@@ -21,7 +21,7 @@ fn main() -> Result<(), std::io::Error> {
                     println!("{:#?}", item);
                 }
                 println!("\n\n")
-            },
+            }
             Err(e) => println!("Err({:?})", e),
         }
     }
