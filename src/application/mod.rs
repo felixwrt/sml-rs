@@ -3,7 +3,7 @@
 use core::{fmt::Display, time::Duration};
 
 use crate::parser::{
-    common::{Time, ListEntry},
+    common::{ListEntry, Time},
     streaming::{MessageBody, MessageStart, ParseEvent, Parser},
     OctetStr, ParseError,
 };
@@ -200,9 +200,9 @@ impl ObisCode {
     }
 
     /// Parses an Obis Code from a string such as `"1-0:1.8.0"`
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// # use sml_rs::application::ObisCode;
     /// let code = ObisCode::from_str("1-2:3.4.5");
@@ -238,10 +238,8 @@ impl ObisCode {
             }
             idx += 1;
         }
-        
-        ObisCode {
-            inner: vals,
-        }
+
+        ObisCode { inner: vals }
     }
 }
 
@@ -270,7 +268,7 @@ enum ParseState {
     Done,
 }
 
-pub enum TransmissionParserItem<'i> {
+enum TransmissionParserItem<'i> {
     MetaData {
         server_id: &'i [u8],
         time: Option<SecIndex>,
@@ -278,7 +276,7 @@ pub enum TransmissionParserItem<'i> {
     Data(ObisCode, Value),
 }
 
-pub struct TransmissionParser<'i> {
+struct TransmissionParser<'i> {
     parser: Parser<'i>,
     parse_state: ParseState,
     server_id: &'i [u8],
@@ -295,7 +293,7 @@ pub struct TransmissionParser<'i> {
 
 impl<'i> TransmissionParser<'i> {
     pub fn new(data: &'i [u8]) -> Self {
-        TransmissionParser { 
+        TransmissionParser {
             parser: Parser::new(data),
             parse_state: ParseState::Initial,
             server_id: &[],
@@ -319,7 +317,7 @@ impl<'i> TransmissionParser<'i> {
 
         self.server_id = or.server_id;
         let ref_time = or.ref_time.map(SecIndex::from);
-        
+
         let MessageBody::GetListResponse(glr) = self.expect_next_message()? else {
             return Err(AppError::UnexpectedMessage);
         };
@@ -337,12 +335,16 @@ impl<'i> TransmissionParser<'i> {
             match evt {
                 ParseEvent::ListEntry(le) => {
                     if self.use_val_time {
-                        let curr_val_time = le.val_time.as_ref().map(SecIndex::from).filter(|x| x.as_u32() != 0);
+                        let curr_val_time = le
+                            .val_time
+                            .as_ref()
+                            .map(SecIndex::from)
+                            .filter(|x| x.as_u32() != 0);
                         self.time = self.time.or(curr_val_time);
                     }
-                    
+
                     if let Some((obis_code, value)) = Self::parse_list_entry(&le) {
-                        return Ok(TransmissionParserItem::Data(obis_code, value))
+                        return Ok(TransmissionParserItem::Data(obis_code, value));
                     }
                 }
                 ParseEvent::GetListResponseEnd(_) => {
@@ -362,7 +364,10 @@ impl<'i> TransmissionParser<'i> {
 
         self.parse_state = ParseState::Done;
         // Ok(TransmissionParserItem::Time(self.time))
-        Ok(TransmissionParserItem::MetaData { server_id: self.server_id, time: self.time })
+        Ok(TransmissionParserItem::MetaData {
+            server_id: self.server_id,
+            time: self.time,
+        })
     }
 
     fn parse_list_entry(le: &ListEntry) -> Option<(ObisCode, Value)> {
@@ -372,8 +377,8 @@ impl<'i> TransmissionParser<'i> {
                 // ignore values of type Bool, Bytes or List
                 value: le.value.as_i64()?,
                 unit: le.unit.and_then(Unit::from_u8)?,
-                scaler: le.scaler.unwrap_or(0)
-            }
+                scaler: le.scaler.unwrap_or(0),
+            },
         ))
     }
 }
@@ -391,7 +396,7 @@ impl<'i> Iterator for TransmissionParser<'i> {
 }
 
 #[cfg(feature = "alloc")]
-pub type ValueVec = Vec<(ObisCode, Value)>;
+type ValueVec = Vec<(ObisCode, Value)>;
 
 /// High-Level data structure containing data received from a power meter.
 ///
@@ -434,12 +439,14 @@ impl<'i> PowerMeterTransmission<'i, ValueVec> {
         let mut res = PowerMeterTransmission {
             server_id: [].as_slice(),
             time: None,
-            values: vec![],
+            values: alloc::vec::Vec::new(),
         };
 
         for item in parser {
             match item? {
-                TransmissionParserItem::Data(obis_code, value) => res.values.push((obis_code, value)),
+                TransmissionParserItem::Data(obis_code, value) => {
+                    res.values.push((obis_code, value))
+                }
                 TransmissionParserItem::MetaData { server_id, time } => {
                     res.server_id = server_id;
                     res.time = time;
@@ -451,11 +458,18 @@ impl<'i> PowerMeterTransmission<'i, ValueVec> {
     }
 }
 
-
 impl<'i, const N: usize> PowerMeterTransmission<'i, [Value; N]> {
-    pub fn from_bytes_extract(bytes: &'i [u8], obis_codes: [ObisCode; N]) -> Result<Self, AppError> {
+    /// Parse a slice of bytes into an sml transmission and extract values.
+    ///
+    /// Returns an array that for each obis code in `obis_codes` contains the
+    /// correcsponding value. Returns `Err(AppError::ValueNotFound)` if a given
+    /// obis code isn't found in the sml transmission.
+    pub fn from_bytes_extract(
+        bytes: &'i [u8],
+        obis_codes: [ObisCode; N],
+    ) -> Result<Self, AppError> {
         let parser = TransmissionParser::new(bytes);
-        
+
         const DEFAULT_VAL: Option<Value> = None;
         let mut values = [DEFAULT_VAL; N];
         let mut time2 = None;
@@ -466,7 +480,7 @@ impl<'i, const N: usize> PowerMeterTransmission<'i, [Value; N]> {
                 TransmissionParserItem::MetaData { server_id, time } => {
                     server_id2 = server_id;
                     time2 = time;
-                },
+                }
                 TransmissionParserItem::Data(obis_code, value) => {
                     // continue if the elements' obis code is not in the array of expected ones
                     let Some(idx) = obis_codes.iter().position(|x| *x == obis_code) else {
@@ -474,7 +488,7 @@ impl<'i, const N: usize> PowerMeterTransmission<'i, [Value; N]> {
                     };
 
                     values[idx] = Some(value);
-                },
+                }
             }
         }
 
@@ -501,10 +515,7 @@ fn test_app_layer_no_alloc() {
         ObisCode::from_str("1-0:16.7.0"),
         ObisCode::from_str("1-0:1.8.0"),
     ];
-    let res = PowerMeterTransmission::from_bytes_extract(
-        msg,
-        CODES,
-    );
+    let res = PowerMeterTransmission::from_bytes_extract(msg, CODES);
 
     let expected = PowerMeterTransmission {
         server_id: &[10, 1, 68, 90, 71, 0, 2, 130, 34, 94],
@@ -527,9 +538,9 @@ fn test_app_layer_no_alloc() {
 
     // let [watts, energy] = res.unwrap().values;
 
-    // let PowerMeterTransmission2 { 
-    //     time, 
-    //     values: [watts, energy] 
+    // let PowerMeterTransmission2 {
+    //     time,
+    //     values: [watts, energy]
     // } = res.unwrap();
 }
 
@@ -549,7 +560,6 @@ fn test_app_layer_no_alloc_missing_value() {
 
     assert_eq!(Err(AppError::ValueNotFound), res);
 }
-
 
 #[test]
 fn test_obis_codes() {
