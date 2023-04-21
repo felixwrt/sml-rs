@@ -390,19 +390,70 @@ impl<'i> Iterator for TransmissionParser<'i> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-/// WIP
-pub struct PowerMeterTransmission2<'i, const N: usize> {
+#[cfg(feature = "alloc")]
+pub type ValueVec = Vec<(ObisCode, Value)>;
+
+/// High-Level data structure containing data received from a power meter.
+///
+/// This data structure is designed for ease-of-use, containing only information
+/// that's used by usual power meters. It should cover most use cases.
+///
+/// The `parser` module provides lower-level data structures that can be used
+/// to access data not exposed by this API.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PowerMeterTransmission<'i, V> {
     /// identification of the server
     pub server_id: &'i [u8],
     /// time information (optional)
     pub time: Option<SecIndex>,
     /// vector of obis codes and their values
-    pub values: [Value; N],
+    pub values: V,
 }
 
-impl<'i, const N: usize> PowerMeterTransmission2<'i, N> {
-    pub fn from_bytes(bytes: &'i [u8], obis_codes: [ObisCode; N]) -> Result<Self, AppError> {
+#[cfg(feature = "alloc")]
+impl<'i> Display for PowerMeterTransmission<'i, ValueVec> {
+    /// **Hint:** The output format used is unstable and may change at any time.
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        writeln!(f, "PowerMeterTransmission:")?;
+        writeln!(f, "  server_id: {:?}", &self.server_id)?;
+        writeln!(f, "  time: {:?}", self.time.map(|x| x.as_u32()))?;
+        writeln!(f, "  values:")?;
+        for (obis_code, val) in &self.values {
+            writeln!(f, "    {} = {}", obis_code, val)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'i> PowerMeterTransmission<'i, ValueVec> {
+    /// Parse a slice of bytes into a `PowerMeterTransmission`
+    pub fn from_bytes(bytes: &'i [u8]) -> Result<Self, AppError> {
+        let parser = TransmissionParser::new(bytes);
+
+        let mut res = PowerMeterTransmission {
+            server_id: [].as_slice(),
+            time: None,
+            values: vec![],
+        };
+
+        for item in parser {
+            match item? {
+                TransmissionParserItem::Data(obis_code, value) => res.values.push((obis_code, value)),
+                TransmissionParserItem::MetaData { server_id, time } => {
+                    res.server_id = server_id;
+                    res.time = time;
+                }
+            }
+        }
+
+        Ok(res)
+    }
+}
+
+
+impl<'i, const N: usize> PowerMeterTransmission<'i, [Value; N]> {
+    pub fn from_bytes_extract(bytes: &'i [u8], obis_codes: [ObisCode; N]) -> Result<Self, AppError> {
         let parser = TransmissionParser::new(bytes);
         
         const DEFAULT_VAL: Option<Value> = None;
@@ -440,67 +491,6 @@ impl<'i, const N: usize> PowerMeterTransmission2<'i, N> {
     }
 }
 
-/// High-Level data structure containing data received from a power meter.
-///
-/// This data structure is designed for ease-of-use, containing only information
-/// that's used by usual power meters. It should cover most use cases.
-///
-/// The `parser` module provides lower-level data structures that can be used
-/// to access data not exposed by this API.
-///
-/// *This function is available only if sml-rs is built with the `"alloc"` feature.*
-#[cfg(feature = "alloc")]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PowerMeterTransmission {
-    /// identification of the server
-    pub server_id: Vec<u8>,
-    /// time information (optional)
-    pub time: Option<SecIndex>,
-    /// vector of obis codes and their values
-    pub values: Vec<(ObisCode, Value)>,
-}
-
-#[cfg(feature = "alloc")]
-impl Display for PowerMeterTransmission {
-    /// **Hint:** The output format used is unstable and may change at any time.
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        writeln!(f, "PowerMeterTransmission:")?;
-        writeln!(f, "  server_id: {:?}", &self.server_id)?;
-        writeln!(f, "  time: {:?}", self.time.map(|x| x.as_u32()))?;
-        writeln!(f, "  values:")?;
-        for (obis_code, val) in &self.values {
-            writeln!(f, "    {} = {}", obis_code, val)?;
-        }
-        Ok(())
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl PowerMeterTransmission {
-    /// Parse a slice of bytes into a `PowerMeterTransmission`
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, AppError> {
-        let parser = TransmissionParser::new(bytes);
-
-        let mut res = PowerMeterTransmission {
-            server_id: vec![],
-            time: None,
-            values: vec![],
-        };
-
-        for item in parser {
-            match item? {
-                TransmissionParserItem::Data(obis_code, value) => res.values.push((obis_code, value)),
-                TransmissionParserItem::MetaData { server_id, time } => {
-                    res.server_id = server_id.to_vec();
-                    res.time = time;
-                }
-            }
-        }
-
-        Ok(res)
-    }
-}
-
 #[test]
 fn test_app_layer_no_alloc() {
     use crate::util::ArrayBuf;
@@ -511,12 +501,12 @@ fn test_app_layer_no_alloc() {
         ObisCode::from_str("1-0:16.7.0"),
         ObisCode::from_str("1-0:1.8.0"),
     ];
-    let res = PowerMeterTransmission2::from_bytes(
+    let res = PowerMeterTransmission::from_bytes_extract(
         msg,
         CODES,
     );
 
-    let expected = PowerMeterTransmission2 {
+    let expected = PowerMeterTransmission {
         server_id: &[10, 1, 68, 90, 71, 0, 2, 130, 34, 94],
         time: Some(SecIndex::new(99043543)),
         values: [
@@ -549,7 +539,7 @@ fn test_app_layer_no_alloc_missing_value() {
     let bytes = include_bytes!("../../tests/libsml-testing/DZG_DVS-7412.2_jmberg.bin");
     let mut decoder = crate::transport::decode_streaming::<ArrayBuf<8000>>(bytes);
     let msg = decoder.next().unwrap().unwrap();
-    let res = PowerMeterTransmission2::from_bytes(
+    let res = PowerMeterTransmission::from_bytes_extract(
         msg,
         [
             ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]).unwrap(),
