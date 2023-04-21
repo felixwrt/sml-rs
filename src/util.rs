@@ -164,10 +164,10 @@ pub struct OutOfMemory;
 /// Helper trait that allows reading individual bytes
 pub trait ByteSource: private::Sealed {
     /// Type of errors that can occur while reading bytes
-    type Error: ByteSourceErr;
+    type ReadError: ByteSourceErr;
 
     /// Tries to read a single byte from the source
-    fn read_byte(&mut self) -> Result<u8, Self::Error>;
+    fn read_byte(&mut self) -> Result<u8, Self::ReadError>;
 }
 
 /// Helper trait implemented for Error types of `ByteSource`
@@ -204,9 +204,9 @@ impl<R> ByteSource for IoReader<R>
 where
     R: std::io::Read,
 {
-    type Error = std::io::Error;
+    type ReadError = std::io::Error;
 
-    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
         let mut b = 0u8;
         self.inner.read_exact(core::slice::from_mut(&mut b))?;
         Ok(b)
@@ -254,9 +254,9 @@ impl<R, E> ByteSource for EhReader<R, E>
 where
     R: embedded_hal::serial::Read<u8, Error = E>,
 {
-    type Error = nb::Error<E>;
+    type ReadError = nb::Error<E>;
 
-    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
         self.inner.read()
     }
 }
@@ -310,9 +310,9 @@ impl<'i> SliceReader<'i> {
 }
 
 impl<'i> ByteSource for SliceReader<'i> {
-    type Error = Eof;
+    type ReadError = Eof;
 
-    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
         if self.idx >= self.inner.len() {
             return Err(Eof);
         }
@@ -348,9 +348,9 @@ where
     I: Iterator<Item = B>,
     B: Borrow<u8>,
 {
-    type Error = Eof;
+    type ReadError = Eof;
 
-    fn read_byte(&mut self) -> Result<u8, Self::Error> {
+    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
         match self.iter.next() {
             Some(x) => Ok(*x.borrow()),
             None => Err(Eof),

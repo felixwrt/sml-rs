@@ -39,9 +39,9 @@ use util::ByteSource;
 
 /// Error returned by functions parsing sml data read from a reader
 #[derive(Debug)]
-pub enum ReadParsedError<E>
+pub enum ReadParsedError<ReadErr>
 where
-    E: core::fmt::Debug,
+    ReadErr: core::fmt::Debug,
 {
     /// Error while parsing
     ParseErr(ParseError),
@@ -50,14 +50,14 @@ where
     /// Error while reading from the internal byte source
     ///
     /// (inner_error, num_discarded_bytes)
-    IoErr(E, usize),
+    IoErr(ReadErr, usize),
 }
 
-impl<E> From<ReadDecodedError<E>> for ReadParsedError<E>
+impl<ReadErr> From<ReadDecodedError<ReadErr>> for ReadParsedError<ReadErr>
 where
-    E: core::fmt::Debug,
+    ReadErr: core::fmt::Debug,
 {
-    fn from(value: ReadDecodedError<E>) -> Self {
+    fn from(value: ReadDecodedError<ReadErr>) -> Self {
         match value {
             ReadDecodedError::DecodeErr(x) => ReadParsedError::DecodeErr(x),
             ReadDecodedError::IoErr(x, num_discarded) => ReadParsedError::IoErr(x, num_discarded),
@@ -65,9 +65,9 @@ where
     }
 }
 
-impl<E> From<ParseError> for ReadParsedError<E>
+impl<ReadErr> From<ParseError> for ReadParsedError<ReadErr>
 where
-    E: core::fmt::Debug,
+    ReadErr: core::fmt::Debug,
 {
     fn from(value: ParseError) -> Self {
         ReadParsedError::ParseErr(value)
@@ -290,10 +290,10 @@ impl DummySmlReader {
     }
 }
 
-impl<R, E, Buf> SmlReader<R, Buf>
+impl<R, ReadErr, Buf> SmlReader<R, Buf>
 where
-    R: ByteSource<Error = E>,
-    E: core::fmt::Debug,
+    R: ByteSource<ReadError = ReadErr>,
+    ReadErr: core::fmt::Debug,
     Buf: Buffer,
 {
     /// Reads, decodes and possibly parses sml data.
@@ -320,7 +320,7 @@ where
     /// non-blocking byte sources.
     pub fn read<'i, T>(&'i mut self) -> Result<T, T::Error>
     where
-        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<ReadErr>>>,
     {
         T::parse_from(self.decoder.read())
     }
@@ -348,7 +348,7 @@ where
     /// non-blocking byte sources.
     pub fn next<'i, T>(&'i mut self) -> Option<Result<T, T::Error>>
     where
-        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<ReadErr>>>,
     {
         Some(T::parse_from(self.decoder.next()?))
     }
@@ -376,7 +376,7 @@ where
     #[cfg(feature = "nb")]
     pub fn read_nb<'i, T>(&'i mut self) -> nb::Result<T, T::Error>
     where
-        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<ReadErr>>>,
     {
         // TODO: this could probably be written better
         let res = match self.decoder.read_nb() {
@@ -410,7 +410,7 @@ where
     #[cfg(feature = "nb")]
     pub fn next_nb<'i, T>(&'i mut self) -> nb::Result<Option<T>, T::Error>
     where
-        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>>,
+        T: SmlParse<'i, Result<&'i [u8], ReadDecodedError<ReadErr>>>,
     {
         // TODO: this could probably be written better
         let res = match self.decoder.next_nb() {
@@ -540,13 +540,15 @@ pub trait SmlParse<'i, T>: Sized + util::private::Sealed {
 /// Type alias for decoded bytes.
 pub type DecodedBytes<'i> = &'i [u8];
 
-impl<'i, E> SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>> for DecodedBytes<'i>
-where
-    E: core::fmt::Debug,
-{
-    type Error = ReadDecodedError<E>;
+type ReadDecodedRes<'i, ReadErr> = Result<&'i [u8], ReadDecodedError<ReadErr>>;
 
-    fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
+impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>> for DecodedBytes<'i>
+where
+    ReadErr: core::fmt::Debug,
+{
+    type Error = ReadDecodedError<ReadErr>;
+
+    fn parse_from(value: ReadDecodedRes<'i, ReadErr>) -> Result<Self, Self::Error> {
         value
     }
 }
@@ -562,13 +564,13 @@ impl<'i> SmlParse<'i, &'i [u8]> for DecodedBytes<'i> {
 impl<'i> util::private::Sealed for DecodedBytes<'i> {}
 
 #[cfg(feature = "alloc")]
-impl<'i, E> SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>> for File<'i>
+impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>> for File<'i>
 where
-    E: core::fmt::Debug,
+    ReadErr: core::fmt::Debug,
 {
-    type Error = ReadParsedError<E>;
+    type Error = ReadParsedError<ReadErr>;
 
-    fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
+    fn parse_from(value: ReadDecodedRes<'i, ReadErr>) -> Result<Self, Self::Error> {
         Ok(parse(value?)?)
     }
 }
@@ -585,13 +587,13 @@ impl<'i> SmlParse<'i, &'i [u8]> for File<'i> {
 #[cfg(feature = "alloc")]
 impl<'i> util::private::Sealed for File<'i> {}
 
-impl<'i, E> SmlParse<'i, Result<&'i [u8], ReadDecodedError<E>>> for Parser<'i>
+impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>> for Parser<'i>
 where
-    E: core::fmt::Debug,
+    ReadErr: core::fmt::Debug,
 {
-    type Error = ReadDecodedError<E>;
+    type Error = ReadDecodedError<ReadErr>;
 
-    fn parse_from(value: Result<&'i [u8], ReadDecodedError<E>>) -> Result<Self, Self::Error> {
+    fn parse_from(value: ReadDecodedRes<'i, ReadErr>) -> Result<Self, Self::Error> {
         Ok(Parser::new(value?))
     }
 }

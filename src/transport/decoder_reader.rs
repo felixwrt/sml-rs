@@ -48,7 +48,7 @@ where
     ///
     /// See also [`read_nb`](DecoderReader::read_nb), which provides a convenient API for
     /// non-blocking byte sources.
-    pub fn read(&mut self) -> Result<&[u8], ReadDecodedError<R::Error>> {
+    pub fn read(&mut self) -> Result<&[u8], ReadDecodedError<R::ReadError>> {
         loop {
             match self.reader.read_byte() {
                 Ok(b) => match self.decoder._push_byte(b) {
@@ -83,7 +83,7 @@ where
     /// See also [`next_nb`](DecoderReader::next_nb), which provides a convenient API for
     /// non-blocking byte sources.
     #[allow(clippy::should_implement_trait)]
-    pub fn next(&mut self) -> Option<Result<&[u8], ReadDecodedError<R::Error>>> {
+    pub fn next(&mut self) -> Option<Result<&[u8], ReadDecodedError<R::ReadError>>> {
         match self.read() {
             Err(ReadDecodedError::IoErr(e, 0)) if e.is_eof() => None,
             x => Some(x),
@@ -100,7 +100,7 @@ where
     ///
     /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
     #[cfg(feature = "nb")]
-    pub fn read_nb(&mut self) -> nb::Result<&[u8], ReadDecodedError<R::Error>> {
+    pub fn read_nb(&mut self) -> nb::Result<&[u8], ReadDecodedError<R::ReadError>> {
         self.read().map_err(|e| match e {
             ReadDecodedError::IoErr(io_err, _) if io_err.is_would_block() => nb::Error::WouldBlock,
             other => nb::Error::Other(other),
@@ -117,7 +117,7 @@ where
     ///
     /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
     #[cfg(feature = "nb")]
-    pub fn next_nb(&mut self) -> nb::Result<Option<&[u8]>, ReadDecodedError<R::Error>> {
+    pub fn next_nb(&mut self) -> nb::Result<Option<&[u8]>, ReadDecodedError<R::ReadError>> {
         match self.read_nb() {
             Err(nb::Error::Other(ReadDecodedError::IoErr(e, 0))) if e.is_eof() => Ok(None),
             Err(e) => Err(e),
@@ -146,9 +146,9 @@ mod decoder_reader_tests {
     where
         I: Iterator<Item = Result<u8, TestReaderErr>>,
     {
-        type Error = TestReaderErr;
+        type ReadError = TestReaderErr;
 
-        fn read_byte(&mut self) -> Result<u8, Self::Error> {
+        fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
             self.iter.next().unwrap_or(Err(TestReaderErr::Eof))
         }
     }
