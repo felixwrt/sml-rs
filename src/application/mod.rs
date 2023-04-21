@@ -3,8 +3,8 @@
 use core::{fmt::Display, time::Duration};
 
 use crate::parser::{
-    common::Time,
-    streaming::{self, MessageBody, MessageStart, ParseEvent, Parser},
+    common::{Time, ListEntry},
+    streaming::{MessageBody, MessageStart, ParseEvent, Parser},
     OctetStr, ParseError,
 };
 
@@ -264,97 +264,86 @@ impl From<ParseError> for AppError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-/// WIP
-pub struct PowerMeterTransmission2<const N: usize> {
-    /// identification of the server
-    // pub server_id: Vec<u8>,
-    /// time information (optional)
-    pub time: Option<SecIndex>,
-    /// vector of obis codes and their values
-    pub values: [Value; N],
+enum ParseState {
+    Initial,
+    Data,
+    Done,
 }
 
-impl<const N: usize> PowerMeterTransmission2<N> {
-    fn expect_next_message<'i>(parser: &'i mut Parser) -> Result<MessageBody<'i>, AppError> {
-        let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
+pub enum TransmissionParserItem<'i> {
+    MetaData {
+        server_id: &'i [u8],
+        time: Option<SecIndex>,
+    },
+    Data(ObisCode, Value),
+}
+
+pub struct TransmissionParser<'i> {
+    parser: Parser<'i>,
+    parse_state: ParseState,
+    server_id: &'i [u8],
+    // time information can be contained in three different spots:
+    // - OpenResponse::ref_time
+    // - GetListResponse::act_sensor_time
+    // - ListEntry::val_time
+    // Use `act_sensor_time` if available since that's the most commonly used
+    // attribute. If it's not available, try to use `ref_time`. If that's also
+    // not available, use `val_time`.
+    time: Option<SecIndex>,
+    use_val_time: bool,
+}
+
+impl<'i> TransmissionParser<'i> {
+    pub fn new(data: &'i [u8]) -> Self {
+        TransmissionParser { 
+            parser: Parser::new(data),
+            parse_state: ParseState::Initial,
+            server_id: &[],
+            time: None,
+            use_val_time: false,
+        }
+    }
+
+    fn expect_next_message(&mut self) -> Result<MessageBody<'i>, AppError> {
+        let evt = self.parser.next().ok_or(AppError::UnexpectedEof)??;
         let ParseEvent::MessageStart(MessageStart { message_body, ..}) = evt else {
             return Err(AppError::UnexpectedMessage);
         };
         Ok(message_body)
     }
 
-    /// Parse a slice of bytes into a `PowerMeterTransmission`
-    // TODO: possible improvement: add warnings when values are omitted
-    // TODO: possible improvement: add warnings for cases that are currently debug asserts
-    pub fn from_bytes(bytes: &[u8], obis_codes: [ObisCode; N]) -> Result<Self, AppError> {
-        let mut parser = streaming::Parser::new(bytes);
-
-        let MessageBody::OpenResponse(or) = Self::expect_next_message(&mut parser)? else {
+    fn parse_initial(&mut self) -> Result<TransmissionParserItem<'i>, AppError> {
+        let MessageBody::OpenResponse(or) = self.expect_next_message()? else {
             return Err(AppError::UnexpectedMessage);
         };
 
-        // let server_id = or.server_id.to_vec();
-
-        // time information can be contained in three different spots:
-        // - OpenResponse::ref_time
-        // - GetListResponse::act_sensor_time
-        // - ListEntry::val_time
-        // Use `act_sensor_time` if available since that's the most commonly used
-        // attribute. If it's not available, try to use `ref_time`. If that's also
-        // not available, use `val_time`.
+        self.server_id = or.server_id;
         let ref_time = or.ref_time.map(SecIndex::from);
-
-        let MessageBody::GetListResponse(glr) = Self::expect_next_message(&mut parser)? else {
+        
+        let MessageBody::GetListResponse(glr) = self.expect_next_message()? else {
             return Err(AppError::UnexpectedMessage);
         };
-
-        // server_id in OpenResponse and GetListResponse match
-        // debug_assert_eq!(server_id, glr.server_id);
 
         let act_sensor_time = glr.act_sensor_time.map(SecIndex::from);
-        // assert that if both `act_sensor_time` and `ref_time` are set, they contain the same value
-        if let (Some(t1), Some(t2)) = (act_sensor_time, ref_time) {
-            debug_assert_eq!(t1, t2)
-        }
+        self.time = act_sensor_time.or(ref_time);
+        self.use_val_time = self.time.is_none();
+        self.parse_state = ParseState::Data;
+        self.parse_data()
+    }
 
-        const DEFAULT: Option<Value> = None;
-        let mut values = [DEFAULT; N];
-        let mut val_time = None;
+    fn parse_data(&mut self) -> Result<TransmissionParserItem<'i>, AppError> {
         loop {
-            let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
+            let evt = self.parser.next().ok_or(AppError::UnexpectedEof)??;
             match evt {
                 ParseEvent::ListEntry(le) => {
-                    let curr_val_time = le.val_time.map(SecIndex::from).filter(|x| x.as_u32() != 0);
-                    // assert that all `val_time`s are equal
-                    if let (Some(t1), Some(t2)) = (val_time, curr_val_time) {
-                        debug_assert_eq!(t1, t2)
+                    if self.use_val_time {
+                        let curr_val_time = le.val_time.as_ref().map(SecIndex::from).filter(|x| x.as_u32() != 0);
+                        self.time = self.time.or(curr_val_time);
                     }
-                    val_time = val_time.or(curr_val_time);
-
-                    // ignore values of type Bool, Bytes or List
-                    let Some(val) = le.value.as_i64() else {
-                        continue;
-                    };
-
-                    let Some(obis_code) = ObisCode::from_octet_str(le.obj_name) else {
-                        continue;
-                    };
-
-                    // continue if the elements' obis code is not in the array of expected ones
-                    let Some(idx) = obis_codes.iter().position(|x| *x == obis_code) else {
-                        continue;
-                    };
-
-                    let Some(unit) = le.unit.and_then(Unit::from_u8) else {
-                        continue;
-                    };
-
-                    values[idx] = Some(Value {
-                        value: val,
-                        unit,
-                        scaler: le.scaler.unwrap_or(0),
-                    });
+                    
+                    if let Some((obis_code, value)) = Self::parse_list_entry(&le) {
+                        return Ok(TransmissionParserItem::Data(obis_code, value))
+                    }
                 }
                 ParseEvent::GetListResponseEnd(_) => {
                     break;
@@ -362,24 +351,90 @@ impl<const N: usize> PowerMeterTransmission2<N> {
                 ParseEvent::MessageStart(_) => unreachable!(),
             }
         }
+
+        let MessageBody::CloseResponse(_) = self.expect_next_message()? else {
+            return Err(AppError::UnexpectedMessage);
+        };
+
+        if self.parser.next().is_some() {
+            return Err(AppError::UnexpectedMessage);
+        }
+
+        self.parse_state = ParseState::Done;
+        // Ok(TransmissionParserItem::Time(self.time))
+        Ok(TransmissionParserItem::MetaData { server_id: self.server_id, time: self.time })
+    }
+
+    fn parse_list_entry(le: &ListEntry) -> Option<(ObisCode, Value)> {
+        Some((
+            ObisCode::from_octet_str(le.obj_name)?,
+            Value {
+                // ignore values of type Bool, Bytes or List
+                value: le.value.as_i64()?,
+                unit: le.unit.and_then(Unit::from_u8)?,
+                scaler: le.scaler.unwrap_or(0)
+            }
+        ))
+    }
+}
+
+impl<'i> Iterator for TransmissionParser<'i> {
+    type Item = Result<TransmissionParserItem<'i>, AppError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.parse_state {
+            ParseState::Initial => Some(self.parse_initial()),
+            ParseState::Data => Some(self.parse_data()),
+            ParseState::Done => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+/// WIP
+pub struct PowerMeterTransmission2<'i, const N: usize> {
+    /// identification of the server
+    pub server_id: &'i [u8],
+    /// time information (optional)
+    pub time: Option<SecIndex>,
+    /// vector of obis codes and their values
+    pub values: [Value; N],
+}
+
+impl<'i, const N: usize> PowerMeterTransmission2<'i, N> {
+    pub fn from_bytes(bytes: &'i [u8], obis_codes: [ObisCode; N]) -> Result<Self, AppError> {
+        let parser = TransmissionParser::new(bytes);
+        
+        const DEFAULT_VAL: Option<Value> = None;
+        let mut values = [DEFAULT_VAL; N];
+        let mut time2 = None;
+        let mut server_id2 = [].as_slice();
+
+        for item in parser {
+            match item? {
+                TransmissionParserItem::MetaData { server_id, time } => {
+                    server_id2 = server_id;
+                    time2 = time;
+                },
+                TransmissionParserItem::Data(obis_code, value) => {
+                    // continue if the elements' obis code is not in the array of expected ones
+                    let Some(idx) = obis_codes.iter().position(|x| *x == obis_code) else {
+                        continue;
+                    };
+
+                    values[idx] = Some(value);
+                },
+            }
+        }
+
         if values.iter().any(|x| x.is_none()) {
             return Err(AppError::ValueNotFound);
         }
         let values = values.map(|x| x.unwrap());
 
-        let MessageBody::CloseResponse(_) = Self::expect_next_message(&mut parser)? else {
-            return Err(AppError::UnexpectedMessage);
-        };
-
-        if parser.next().is_some() {
-            return Err(AppError::UnexpectedMessage);
-        }
-
-        let time = act_sensor_time.or(ref_time).or(val_time);
-
-        Ok(PowerMeterTransmission2 {
-            // server_id,
-            time,
+        Ok(Self {
+            server_id: server_id2,
+            time: time2,
             values,
         })
     }
@@ -422,105 +477,27 @@ impl Display for PowerMeterTransmission {
 
 #[cfg(feature = "alloc")]
 impl PowerMeterTransmission {
-    fn expect_next_message<'i>(parser: &'i mut Parser) -> Result<MessageBody<'i>, AppError> {
-        let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
-        let ParseEvent::MessageStart(MessageStart { message_body, ..}) = evt else {
-            return Err(AppError::UnexpectedMessage);
-        };
-        Ok(message_body)
-    }
-
     /// Parse a slice of bytes into a `PowerMeterTransmission`
-    // TODO: possible improvement: add warnings when values are omitted
-    // TODO: possible improvement: add warnings for cases that are currently debug asserts
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, AppError> {
-        let mut parser = streaming::Parser::new(bytes);
+        let parser = TransmissionParser::new(bytes);
 
-        let MessageBody::OpenResponse(or) = Self::expect_next_message(&mut parser)? else {
-            return Err(AppError::UnexpectedMessage);
+        let mut res = PowerMeterTransmission {
+            server_id: vec![],
+            time: None,
+            values: vec![],
         };
 
-        let server_id = or.server_id.to_vec();
-
-        // time information can be contained in three different spots:
-        // - OpenResponse::ref_time
-        // - GetListResponse::act_sensor_time
-        // - ListEntry::val_time
-        // Use `act_sensor_time` if available since that's the most commonly used
-        // attribute. If it's not available, try to use `ref_time`. If that's also
-        // not available, use `val_time`.
-        let ref_time = or.ref_time.map(SecIndex::from);
-
-        let MessageBody::GetListResponse(glr) = Self::expect_next_message(&mut parser)? else {
-            return Err(AppError::UnexpectedMessage);
-        };
-
-        // server_id in OpenResponse and GetListResponse match
-        debug_assert_eq!(server_id, glr.server_id);
-
-        let act_sensor_time = glr.act_sensor_time.map(SecIndex::from);
-        // assert that if both `act_sensor_time` and `ref_time` are set, they contain the same value
-        if let (Some(t1), Some(t2)) = (act_sensor_time, ref_time) {
-            debug_assert_eq!(t1, t2)
-        }
-
-        let mut values = Vec::new();
-        let mut val_time = None;
-        loop {
-            let evt = parser.next().ok_or(AppError::UnexpectedEof)??;
-            match evt {
-                ParseEvent::ListEntry(le) => {
-                    let curr_val_time = le.val_time.map(SecIndex::from).filter(|x| x.as_u32() != 0);
-                    // assert that all `val_time`s are equal
-                    if let (Some(t1), Some(t2)) = (val_time, curr_val_time) {
-                        debug_assert_eq!(t1, t2)
-                    }
-                    val_time = val_time.or(curr_val_time);
-
-                    // ignore values of type Bool, Bytes or List
-                    let Some(val) = le.value.as_i64() else {
-                        continue;
-                    };
-
-                    let Some(obis_code) = ObisCode::from_octet_str(le.obj_name) else {
-                        continue;
-                    };
-
-                    let Some(unit) = le.unit.and_then(Unit::from_u8) else {
-                        continue;
-                    };
-
-                    values.push((
-                        obis_code,
-                        Value {
-                            value: val,
-                            unit,
-                            scaler: le.scaler.unwrap_or(0),
-                        },
-                    ));
+        for item in parser {
+            match item? {
+                TransmissionParserItem::Data(obis_code, value) => res.values.push((obis_code, value)),
+                TransmissionParserItem::MetaData { server_id, time } => {
+                    res.server_id = server_id.to_vec();
+                    res.time = time;
                 }
-                ParseEvent::GetListResponseEnd(_) => {
-                    break;
-                }
-                ParseEvent::MessageStart(_) => unreachable!(),
             }
         }
 
-        let MessageBody::CloseResponse(_) = Self::expect_next_message(&mut parser)? else {
-            return Err(AppError::UnexpectedMessage);
-        };
-
-        if parser.next().is_some() {
-            return Err(AppError::UnexpectedMessage);
-        }
-
-        let time = act_sensor_time.or(ref_time).or(val_time);
-
-        Ok(PowerMeterTransmission {
-            server_id,
-            time,
-            values,
-        })
+        Ok(res)
     }
 }
 
@@ -540,6 +517,7 @@ fn test_app_layer_no_alloc() {
     );
 
     let expected = PowerMeterTransmission2 {
+        server_id: &[10, 1, 68, 90, 71, 0, 2, 130, 34, 94],
         time: Some(SecIndex::new(99043543)),
         values: [
             Value {
