@@ -1,6 +1,9 @@
+[workspace]
+members = [".", "examples/serialport"]
+
 [package]
 name = "sml-rs"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Felix Wirth <felix@wirth.one>"]
 description = "Smart Message Language (SML) parser written in Rust"
 repository = "https://github.com/felixwrt/sml-rs"
@@ -14,7 +17,6 @@ alloc = []
 
 [dependencies]
 crc = "3.0.0"
-heapless = "0.7.13"
 
 [dev-dependencies]
 insta = { version = "1.21.0", features = ["yaml", "glob"] }

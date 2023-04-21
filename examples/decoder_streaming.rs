@@ -1,17 +1,17 @@
-use std::io::Read;
+//! Reads bytes from stdin and prints decoded messages / errors
+//!
+//! Example usage:
+//!
+//! ```
+//! cat tests/libsml-testing/dzg_dwsb20_2th_3byte.bin | cargo run --example decoder
+//! ```
 
-/// Reads bytes from stdin and prints decoded messages / errors
-///
-/// Example usage:
-///
-/// ```
-/// cat tests/libsml-testing/dzg_dwsb20_2th_3byte.bin | cargo run --example decoder
-/// ```
+use std::io::Read;
 
 fn main() -> Result<(), std::io::Error> {
     let stdin = std::io::stdin().lock();
 
-    let mut decoder = sml_rs::transport::Decoder::<heapless::Vec<u8, 1024>>::new();
+    let mut decoder = sml_rs::transport::Decoder::<sml_rs::util::ArrayBuf<1024>>::new();
 
     for res in stdin.bytes() {
         let b = res?;

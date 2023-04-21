@@ -192,18 +192,18 @@ assert_eq!(encoded.unwrap().as_slice(), &expected);
 ```
 "##
 )]
-/// ### Using `heapless::Vec`
+/// ### Using `ArrayBuf`
 ///
 /// ```
-/// # use sml_rs::{util::OutOfMemory, transport::encode};
+/// # use sml_rs::{util::{ArrayBuf, OutOfMemory}, transport::encode};
 /// # let bytes = [0x12, 0x34, 0x56, 0x78];
 /// # let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
-/// let encoded = encode::<heapless::Vec<u8, 20>>(&bytes);
+/// let encoded = encode::<ArrayBuf<20>>(&bytes);
 /// assert!(encoded.is_ok());
-/// assert_eq!(encoded.unwrap().as_slice(), &expected);
+/// assert_eq!(&*encoded.unwrap(), &expected);
 ///
 /// // encoding returns `Err(())` if the encoded message does not fit into the vector
-/// let encoded = encode::<heapless::Vec<u8, 19>>(&bytes);
+/// let encoded = encode::<ArrayBuf<19>>(&bytes);
 /// assert_eq!(encoded, Err(OutOfMemory));
 /// ```
 ///
@@ -299,11 +299,11 @@ enum DecodeState {
 /// # Examples
 ///
 /// ```
-/// # use sml_rs::transport::Decoder;
+/// # use sml_rs::{util::ArrayBuf, transport::Decoder};
 /// let bytes = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// let expected = [0x12, 0x34, 0x56, 0x78];
 ///
-/// let mut decoder = Decoder::<heapless::Vec<u8, 20>>::new();
+/// let mut decoder = Decoder::<ArrayBuf<20>>::new();
 /// for b in bytes {
 ///     match decoder.push_byte(b) {
 ///         Ok(None) => {},  // nothing to output currently
@@ -339,7 +339,8 @@ impl<B: Buffer> Decoder<B> {
     }
 
     /// Constructs a new decoder using an existing buffer `buf`.
-    pub fn from_buf(buf: B) -> Self {
+    pub fn from_buf(mut buf: B) -> Self {
+        buf.clear();
         Decoder {
             buf,
             raw_msg_len: 0,
@@ -675,7 +676,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
 ///
 /// # Examples
 /// ```
-/// # use sml_rs::transport::decode_streaming;
+/// # use sml_rs::{util::ArrayBuf, transport::decode_streaming};
 /// // example data
 /// let bytes = [
 ///     // first message
@@ -683,7 +684,7 @@ impl<B: Buffer, I: Iterator<Item = u8>> DecodeIterator<B, I> {
 ///     // second message
 ///     0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x13, 0x24, 0x35, 0x46, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb1, 0xa1,
 /// ];
-/// let mut decode_iterator = decode_streaming::<heapless::Vec<u8, 10>>(&bytes);
+/// let mut decode_iterator = decode_streaming::<ArrayBuf<10>>(&bytes);
 /// assert_eq!(decode_iterator.next(), Some(Ok([0x12, 0x34, 0x56, 0x78].as_slice())));
 /// assert_eq!(decode_iterator.next(), Some(Ok([0x13, 0x24, 0x35, 0x46].as_slice())));
 /// assert_eq!(decode_iterator.next(), None);

@@ -53,7 +53,8 @@ fn test_files() {
     insta::glob!("libsml-testing/*.bin", |path| {
         let bytes = std::fs::read(path).unwrap();
 
-        let mut decoder = sml_rs::transport::decode_streaming::<heapless::Vec<u8, 2048>>(bytes);
+        let mut decoder =
+            sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
 
         let mut s = String::new();
         while let Some(result) = decoder.next() {
