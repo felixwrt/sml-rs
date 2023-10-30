@@ -70,8 +70,7 @@ pub struct Message<'i> {
 
 impl<'i> SmlParse<'i> for Message<'i> {
     fn parse(input: &'i [u8]) -> ResTy<Self> {
-        #[allow(clippy::clone_double_ref)]
-        let input_orig = input.clone();
+        let input_orig = input;
         let (input, tlf) = TypeLengthField::parse(input)?;
         if tlf.ty != super::tlf::Ty::ListOf || tlf.len != 6 {
             return Err(ParseError::TlfMismatch("Message"));
