@@ -185,12 +185,17 @@ where
 /// **Examples**
 ///
 /// ```
-/// # use sml_rs::{SmlReader, DecodedBytes, parser::complete::File, parser::streaming::Parser};
+/// # use sml_rs::{SmlReader, DecodedBytes, parser::streaming::Parser};
+/// # #[cfg(feature = "alloc")] {
+/// # use sml_rs::parser::complete::File;
+/// # }
 /// let data = include_bytes!("../sample.bin");
 /// let mut reader = SmlReader::from_slice(data.as_slice());
 ///
 /// let bytes = reader.read::<DecodedBytes>();
+/// # #[cfg(feature = "alloc")] {
 /// let file = reader.read::<File>();
+/// # }
 /// let parser = reader.read::<Parser>();
 /// ```
 pub struct SmlReader<R, Buf>
