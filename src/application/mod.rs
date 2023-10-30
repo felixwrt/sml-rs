@@ -253,7 +253,7 @@ pub enum AppError {
     /// Error from the underlying parser
     ParseError(ParseError),
     /// An expected value wasn't found
-    ValueNotFound,
+    ValueNotFound(usize),
 }
 
 impl From<ParseError> for AppError {
@@ -304,7 +304,7 @@ impl<'i> TransmissionParser<'i> {
 
     fn expect_next_message(&mut self) -> Result<MessageBody<'i>, AppError> {
         let evt = self.parser.next().ok_or(AppError::UnexpectedEof)??;
-        let ParseEvent::MessageStart(MessageStart { message_body, ..}) = evt else {
+        let ParseEvent::MessageStart(MessageStart { message_body, .. }) = evt else {
             return Err(AppError::UnexpectedMessage);
         };
         Ok(message_body)
@@ -492,8 +492,10 @@ impl<'i, const N: usize> PowerMeterTransmission<'i, [Value; N]> {
             }
         }
 
-        if values.iter().any(|x| x.is_none()) {
-            return Err(AppError::ValueNotFound);
+        for (idx, x) in values.iter().enumerate() {
+            if x.is_none() {
+                return Err(AppError::ValueNotFound(idx));
+            }
         }
         let values = values.map(|x| x.unwrap());
 
@@ -553,12 +555,12 @@ fn test_app_layer_no_alloc_missing_value() {
     let res = PowerMeterTransmission::from_bytes_extract(
         msg,
         [
-            ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]).unwrap(),
             ObisCode::from_octet_str(&[1, 0, 1, 8, 0, 255]).unwrap(),
+            ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]).unwrap(),
         ],
     );
 
-    assert_eq!(Err(AppError::ValueNotFound), res);
+    assert_eq!(Err(AppError::ValueNotFound(1)), res);
 }
 
 #[test]
