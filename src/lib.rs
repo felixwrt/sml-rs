@@ -186,9 +186,8 @@ where
 ///
 /// ```
 /// # use sml_rs::{SmlReader, DecodedBytes, parser::streaming::Parser};
-/// # #[cfg(feature = "alloc")] {
+/// # #[cfg(feature = "alloc")]
 /// # use sml_rs::parser::complete::File;
-/// # }
 /// let data = include_bytes!("../sample.bin");
 /// let mut reader = SmlReader::from_slice(data.as_slice());
 ///
