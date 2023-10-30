@@ -127,7 +127,7 @@ where
 /// - [`SmlReader::with_static_buffer<N>()`](SmlReader::with_static_buffer)
 /// - [`SmlReader::with_vec_buffer()`](SmlReader::with_vec_buffer) *(requires feature `alloc` (on by default))*
 ///
-/// These functions return a builder object ([`SmlReaderBuilder`](SmlReaderBuilder)) that provides methods to create an [`SmlReader`](SmlReader)
+/// These functions return a builder object ([`SmlReaderBuilder`]) that provides methods to create an [`SmlReader`]
 /// from the different data sources shown above.
 ///
 /// **Examples**
@@ -150,10 +150,49 @@ where
 /// # }
 /// ```
 ///
+/// ### Reading transmissions
+///
+/// Once a `SmlReader` is instantiated, it can be used to read, decode and parse SML messages. `SmlReader`
+/// provides two functions for this, [`read<T>`](DecoderReader::read) and [`next<T>`](DecoderReader::next).
+///
+/// ```
+/// # use sml_rs::{SmlReader, DecodedBytes};
+/// let data = include_bytes!("../sample.bin");
+/// let mut reader = SmlReader::from_slice(data.as_slice());
+///
+/// let bytes = reader.read::<DecodedBytes>();
+/// assert!(matches!(bytes, Ok(bytes)));
+/// let bytes = reader.read::<DecodedBytes>();
+/// assert!(matches!(bytes, Err(_)));
+///
+/// let mut reader = SmlReader::from_slice(data.as_slice());
+///
+/// let bytes = reader.next::<DecodedBytes>();
+/// assert!(matches!(bytes, Some(Ok(bytes))));
+/// let bytes = reader.next::<DecodedBytes>();
+/// assert!(matches!(bytes, None));
+/// ```
+///
 /// ### Target Type
 ///
-/// **TODO!**
+/// [`read<T>`](DecoderReader::read) and [`next<T>`](DecoderReader::next) can be used to parse sml
+/// transmissions into several different representations:
 ///
+/// - [`DecodedBytes`]: a slice of bytes containing the decoded message. No parsing is done.
+/// - [`File`]: a struct containing completely parsed sml data. (requires feature `"alloc"`)
+/// - [`Parser`]: an streaming parser for sml data.
+///
+/// **Examples**
+///
+/// ```
+/// # use sml_rs::{SmlReader, DecodedBytes, parser::complete::File, parser::streaming::Parser};
+/// let data = include_bytes!("../sample.bin");
+/// let mut reader = SmlReader::from_slice(data.as_slice());
+///
+/// let bytes = reader.read::<DecodedBytes>();
+/// let file = reader.read::<File>();
+/// let parser = reader.read::<Parser>();
+/// ```
 pub struct SmlReader<R, Buf>
 where
     R: ByteSource,
