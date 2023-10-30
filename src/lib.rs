@@ -21,6 +21,7 @@
 
 use core::{borrow::Borrow, marker::PhantomData};
 
+use application::{PowerMeterTransmission, ObisCode, Value, AppError};
 #[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
 use parser::streaming::Parser;
@@ -75,6 +76,51 @@ where
     }
 }
 
+/// Error returned by functions parsing sml data read from a reader into a [`PowerMeterTransmission`] type
+#[derive(Debug)]
+pub enum ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    /// Error while parsing
+    AppParseErr(AppError),
+    /// Error while decoding the data (e.g. checksum mismatch)
+    DecodeErr(DecodeErr),
+    /// Error while reading from the internal byte source
+    ///
+    /// (inner_error, num_discarded_bytes)
+    IoErr(ReadErr, usize),
+}
+
+impl<ReadErr> From<ReadDecodedError<ReadErr>> for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn from(value: ReadDecodedError<ReadErr>) -> Self {
+        match value {
+            ReadDecodedError::DecodeErr(x) => ReadAppError::DecodeErr(x),
+            ReadDecodedError::IoErr(x, num_discarded) => ReadAppError::IoErr(x, num_discarded),
+        }
+    }
+}
+
+impl<ReadErr> From<ParseError> for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn from(value: ParseError) -> Self {
+        ReadAppError::AppParseErr(AppError::ParseError(value))
+    }
+}
+
+impl<ReadErr> From<AppError> for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn from(value: AppError) -> Self {
+        ReadAppError::AppParseErr(value)
+    }
+}
 // ===========================================================================
 // ===========================================================================
 //      `SmlReader` + impls
@@ -652,6 +698,19 @@ impl<'i> SmlParse<'i, &'i [u8]> for Parser<'i> {
 
 impl<'i> util::private::Sealed for Parser<'i> {}
 
+impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>> for PowerMeterTransmission<'i, Vec<(ObisCode, Value)>>
+where 
+    ReadErr: core::fmt::Debug,
+{
+    type Error = ReadAppError<ReadErr>;
+
+    fn parse_from(value: ReadDecodedRes<'i, ReadErr>) -> Result<Self, Self::Error> {
+        Ok(Self::from_bytes(value?)?)
+    }
+}
+
+impl<'i, T> util::private::Sealed for PowerMeterTransmission<'i, T> {}
+
 #[test]
 fn test_smlreader_construction() {
     let arr = [1, 2, 3, 4, 5];
@@ -749,4 +808,14 @@ mod read_tests {
         let _ = reader.read_nb::<File>();
         let _ = reader.read_nb::<Parser>();
     }
+}
+
+#[test]
+fn test_app() {
+    let bytes = include_bytes!("../sample.bin");
+    let mut reader = SmlReader::from_slice(bytes);
+    let res = reader.read::<PowerMeterTransmission<_>>().unwrap();
+    println!("{}", res);
+
+    assert!(false)
 }
