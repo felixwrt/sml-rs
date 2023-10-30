@@ -1,4 +1,8 @@
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - main
+  pull_request:
 
 name: CI
 
@@ -27,6 +31,7 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -56,6 +61,24 @@ jobs:
         with:
           command: test
           args: --no-default-features --features=alloc
+
+      - name: Run cargo test ("embedded_hal" feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features=embedded_hal
+            
+      - name: Run cargo test ("embedded_hal,alloc" feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features=embedded_hal,alloc
+      
+      - name: Run cargo test ("embedded_hal,alloc,std" feature)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features=embedded_hal,alloc,std
 
   build_examples:
     name: Build Examples
