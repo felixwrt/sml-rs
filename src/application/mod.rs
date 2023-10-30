@@ -184,31 +184,55 @@ impl Display for ObisCode {
 }
 
 impl ObisCode {
-    /// Tries to parse an octet string into an obis code.
-    pub const fn from_octet_str(value: OctetStr<'_>) -> Option<Self> {
-        if value.len() != 6 || value[5] != 255 {
-            return None;
-        }
-        // doesn't look nice, but also works in const contexts
-        let mut vals = [0u8; 5];
-        let mut idx = 0;
-        while idx < 5 {
-            vals[idx] = value[idx];
-            idx += 1;
-        }
-        Some(ObisCode { inner: vals })
-    }
-
-    /// Parses an Obis Code from a string such as `"1-0:1.8.0"`
+    /// Parses an OBIS code from a string such as `&[1, 2, 3, 4, 5, 255]`.
+    ///
+    /// Panics when the input doesn't contain a valid octet string.
+    ///
+    /// This function is designed to be used in constant contexts, where it will
+    /// fail to compile if the provided input isn't valid. For parsing OBIS codes
+    /// at runtime, see `ObisCode::try_from`.
     ///
     /// # Examples
     ///
     /// ```
     /// # use sml_rs::application::ObisCode;
-    /// let code = ObisCode::from_str("1-2:3.4.5");
-    /// assert_eq!(&format!("{code}"), "1-2:3.4.5");
+    /// const OBIS_CODE: ObisCode = ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]);
+    /// assert_eq!(&format!("{OBIS_CODE}"), "1-2:3.4.5");
+    pub const fn from_octet_str(value: OctetStr<'static>) -> Self {
+        match Self::try_from_octet_str(value) {
+            Ok(x) => x,
+            Err(e) => e.panic(),
+        }
+    }
+
+    /// Parses an OBIS code from a string such as `"1-0:1.8.0"`.
+    ///
+    /// Panics when the input doesn't contain a valid string.
+    ///
+    /// This function is designed to be used in constant contexts, where it will
+    /// fail to compile if the provided input isn't valid. For parsing OBIS codes
+    /// at runtime, see `ObisCode::try_from`.
+    ///
+    /// # Examples
+    ///
     /// ```
-    pub const fn from_str(s: &str) -> Self {
+    /// # use sml_rs::application::ObisCode;
+    /// const OBIS_CODE: ObisCode = ObisCode::from_str("1-2:3.4.5");
+    /// assert_eq!(&format!("{OBIS_CODE}"), "1-2:3.4.5");
+    /// ```
+    pub const fn from_str(s: &'static str) -> Self {
+        match Self::try_from_str(s) {
+            Ok(x) => x,
+            Err(e) => e.panic(),
+        }
+    }
+
+    /// Views this Obis code as a slice of bytes.
+    pub const fn as_bytes(&self) -> &[u8; 5] {
+        &self.inner
+    }
+
+    const fn try_from_str(s: &str) -> Result<Self, ObisParseError> {
         const SEPARATORS: &[u8; 4] = b"-:..";
         let bytes = s.as_bytes();
         let mut vals = [0u8; 5];
@@ -219,27 +243,91 @@ impl ObisCode {
                 b'0'..=b'9' => {
                     let n = bytes[idx] - b'0';
                     let Some(val) = vals[val_idx].checked_mul(10) else {
-                        panic!("Overflow");
+                        return Err(ObisParseError::Overflow);
                     };
                     let Some(val) = val.checked_add(n) else {
-                        panic!("Overflow");
+                        return Err(ObisParseError::Overflow);
                     };
                     vals[val_idx] = val;
                 }
-                b if SEPARATORS[val_idx] == b => {
+                b if val_idx < SEPARATORS.len() && SEPARATORS[val_idx] == b => {
                     val_idx += 1;
-                    if val_idx > 4 {
-                        panic!("Too many separators");
-                    }
                 }
                 _ => {
-                    panic!("Unexpected separator")
+                    return Err(ObisParseError::UnexpectedSeparator);
                 }
             }
             idx += 1;
         }
 
-        ObisCode { inner: vals }
+        Ok(ObisCode { inner: vals })
+    }
+
+    const fn try_from_octet_str(value: OctetStr<'_>) -> Result<Self, ObisParseError> {
+        if value.len() != 6 {
+            return Err(ObisParseError::InvalidLength);
+        }
+        if value[5] != 255 {
+            return Err(ObisParseError::InvalidLastByte);
+        }
+        // doesn't look nice, but also works in const contexts
+        let mut vals = [0u8; 5];
+        let mut idx = 0;
+        while idx < 5 {
+            vals[idx] = value[idx];
+            idx += 1;
+        }
+        Ok(ObisCode { inner: vals })
+    }
+}
+
+/// The error type returned when parsing an [`ObisCode`] from another type
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ObisParseError {
+    /// A value in the obis string contained number that's too large (>255)
+    Overflow,
+    /// An unexpected separator was parsed
+    UnexpectedSeparator,
+    /// Provided octet string has invalid length
+    InvalidLength,
+    /// Provided octet string's last byte doesn't equal 255
+    InvalidLastByte,
+}
+
+impl ObisParseError {
+    const fn panic(self) -> ! {
+        match self {
+            ObisParseError::Overflow => panic!("Overflow"),
+            ObisParseError::UnexpectedSeparator => panic!("Unexpected separator"),
+            ObisParseError::InvalidLength => panic!("Invalid input length. Expected 6 bytes."),
+            ObisParseError::InvalidLastByte => {
+                panic!("Invalid input. Expected the last byte to contain the value 255.")
+            }
+        }
+    }
+}
+
+impl core::convert::TryFrom<&str> for ObisCode {
+    type Error = ObisParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::try_from_str(value)
+    }
+}
+
+impl core::convert::TryFrom<OctetStr<'_>> for ObisCode {
+    type Error = ObisParseError;
+
+    fn try_from(value: OctetStr<'_>) -> Result<Self, Self::Error> {
+        Self::try_from_octet_str(value)
+    }
+}
+
+impl core::convert::TryFrom<&[u8; 6]> for ObisCode {
+    type Error = ObisParseError;
+
+    fn try_from(value: &[u8; 6]) -> Result<Self, Self::Error> {
+        Self::try_from_octet_str(value.as_slice())
     }
 }
 
@@ -372,7 +460,7 @@ impl<'i> TransmissionParser<'i> {
 
     fn parse_list_entry(le: &ListEntry) -> Option<(ObisCode, Value)> {
         Some((
-            ObisCode::from_octet_str(le.obj_name)?,
+            ObisCode::try_from(le.obj_name).ok()?,
             Value {
                 // ignore values of type Bool, Bytes or List
                 value: le.value.as_i64()?,
@@ -555,8 +643,8 @@ fn test_app_layer_no_alloc_missing_value() {
     let res = PowerMeterTransmission::from_bytes_extract(
         msg,
         [
-            ObisCode::from_octet_str(&[1, 0, 1, 8, 0, 255]).unwrap(),
-            ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]).unwrap(),
+            ObisCode::from_octet_str(&[1, 0, 1, 8, 0, 255]),
+            ObisCode::from_octet_str(&[1, 2, 3, 4, 5, 255]),
         ],
     );
 
@@ -564,10 +652,52 @@ fn test_app_layer_no_alloc_missing_value() {
 }
 
 #[test]
-fn test_obis_codes() {
-    const X: ObisCode = ObisCode::from_str("1-0:16.7.0");
-    assert_eq!(X.inner, [1, 0, 16, 7, 0]);
+fn test_obis_codes_const() {
+    const X1: ObisCode = ObisCode::from_str("1-0:16.7.0");
+    assert_eq!(X1.inner, [1, 0, 16, 7, 0]);
 
     const X2: ObisCode = ObisCode::from_str("255-0:16.7.0");
     assert_eq!(X2.inner, [255, 0, 16, 7, 0]);
+
+    const X3: ObisCode = ObisCode::from_octet_str(&[1, 0, 16, 7, 0, 255]);
+    assert_eq!(X3.inner, [1, 0, 16, 7, 0]);
+
+    const X4: ObisCode = ObisCode::from_octet_str(&[255, 0, 16, 7, 0, 255]);
+    assert_eq!(X4.inner, [255, 0, 16, 7, 0]);
+}
+
+#[test]
+fn test_obis_codes() {
+    let x1 = ObisCode::try_from("1-0:16.7.0").unwrap();
+    assert_eq!(x1.inner, [1, 0, 16, 7, 0]);
+
+    let x2 = ObisCode::try_from("255-0:16.7.0").unwrap();
+    assert_eq!(x2.inner, [255, 0, 16, 7, 0]);
+
+    let x3 = ObisCode::try_from(&[1, 0, 16, 7, 0, 255]).unwrap();
+    assert_eq!(x3.inner, [1, 0, 16, 7, 0]);
+
+    let x4 = ObisCode::try_from([255, 0, 16, 7, 0, 255].as_slice()).unwrap();
+    assert_eq!(x4.inner, [255, 0, 16, 7, 0]);
+}
+
+#[test]
+fn test_obis_codes_err() {
+    let res = ObisCode::try_from("256-0:16.7.0");
+    assert_eq!(res, Err(ObisParseError::Overflow));
+
+    let res = ObisCode::try_from("1111-0:16.7.0");
+    assert_eq!(res, Err(ObisParseError::Overflow));
+
+    let res = ObisCode::try_from("1-0:16.7.0.");
+    assert_eq!(res, Err(ObisParseError::UnexpectedSeparator));
+
+    let res = ObisCode::try_from("1-0:16.7?0");
+    assert_eq!(res, Err(ObisParseError::UnexpectedSeparator));
+
+    let res = ObisCode::try_from([1, 0, 16, 7, 0, 254].as_slice());
+    assert_eq!(res, Err(ObisParseError::InvalidLastByte));
+
+    let res = ObisCode::try_from([1, 0, 16, 7, 0, 12, 255].as_slice());
+    assert_eq!(res, Err(ObisParseError::InvalidLength));
 }
