@@ -11,125 +11,49 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check
 
   test:
     name: Test Suite
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-      - name: Run cargo test (no default features)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
-
-      - name: Run cargo test ("alloc" feature)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features --features=alloc
-
-      - name: Run cargo test ("embedded_hal" feature)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features --features=embedded_hal
-            
-      - name: Run cargo test ("embedded_hal,alloc" feature)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features --features=embedded_hal,alloc
-      
-      - name: Run cargo test ("embedded_hal,alloc,std" feature)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features --features=embedded_hal,alloc,std
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test
+      - run: cargo test --no-default-features
+      - run: cargo test --no-default-features --features=alloc
+      - run: cargo test --no-default-features --features=embedded_hal
+      - run: cargo test --no-default-features --features=embedded_hal,alloc
+      - run: cargo test --no-default-features --features=embedded_hal,alloc,std
 
   build_examples:
     name: Build Examples
     runs-on: ubuntu-latest
     steps:
-      - name: Install `libudev-dev`
-        run: sudo apt install libudev-dev
-
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Build serialport example
-        uses: actions-rs/cargo@v1
-        with:
-          command: build 
-          args: -p sml-rs-serialport-example
+      - run: sudo apt install libudev-dev
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build -p sml-rs-serialport-example
 
   lints:
     name: Lints
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          submodules: true
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
           components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy -- -D warnings
 
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+  semver_checks:
+    name: Semver Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: obi1kenobi/cargo-semver-checks-action@v2
