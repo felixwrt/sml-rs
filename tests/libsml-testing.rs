@@ -25,7 +25,7 @@ fn test_repo_validation() {
     assert_eq!(bin_filenames, hex_filenames);
 
     if bin_filenames.is_empty() {
-        panic!("There are no test files in ./tests/libsml-testing. You probably need to initialize the git submodule. Try `git submodule init && git submodule update`.\n")
+        panic!("There are no test files in tests/libsml-testing.\n")
     }
 
     // check that bin and hex files contain the same content
