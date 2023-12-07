@@ -57,3 +57,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: obi1kenobi/cargo-semver-checks-action@v2
+
+  check_subtrees_up_to_date:
+    name: Check subtrees are up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:  
+          fetch-depth: 0
+      - name: check libsml-testing subtree
+        run: |
+          git subtree pull \
+            --prefix tests/libsml-testing \
+            https://github.com/devZer0/libsml-testing.git \
+            master --squash 2>&1 | tee output.txt
+          cat output.txt | grep -q "Subtree is already at commit"
