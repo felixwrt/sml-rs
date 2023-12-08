@@ -19,6 +19,7 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
+use core::fmt;
 use core::{borrow::Borrow, marker::PhantomData};
 
 #[cfg(feature = "alloc")]
@@ -73,6 +74,18 @@ where
         ReadParsedError::ParseErr(value)
     }
 }
+
+impl<ReadErr> fmt::Display for ReadParsedError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<ReadErr> std::error::Error for ReadParsedError<ReadErr> where ReadErr: core::fmt::Debug {}
 
 // ===========================================================================
 // ===========================================================================

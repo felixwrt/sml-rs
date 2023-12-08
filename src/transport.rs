@@ -32,7 +32,7 @@ mod decoder_reader;
 
 pub use decoder_reader::{DecoderReader, ReadDecodedError};
 
-use core::borrow::Borrow;
+use core::{borrow::Borrow, fmt};
 
 use crate::util::{Buffer, OutOfMemory, CRC_X25};
 
@@ -284,6 +284,15 @@ pub enum DecodeErr {
         num_padding_bytes: u8,
     },
 }
+
+impl fmt::Display for DecodeErr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeErr {}
 
 #[derive(Debug)]
 enum DecodeState {
