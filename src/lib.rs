@@ -14,10 +14,10 @@
 //!     1-0:16.7.0 = 613 W
 //! ");
 //! ```
-//! 
-//! The main API of this crate is the [`SmlReader`] type, which supports several data sources and 
+//!
+//! The main API of this crate is the [`SmlReader`] type, which supports several data sources and
 //! target types. See its documentation for details.
-//! 
+//!
 //! Additionally, this library also provides APIs on three different layers:
 //! - [`application`]: convenient and simple high-level API that is designed for typical use-cases
 //! - [`parser`]: complete and detailed SML data parsers
@@ -39,7 +39,7 @@
 use core::fmt;
 use core::{borrow::Borrow, marker::PhantomData};
 
-use application::{PowerMeterTransmission, ObisCode, Value, AppError};
+use application::{AppError, ObisCode, PowerMeterTransmission, Value};
 #[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
 use parser::streaming::Parser;
@@ -246,7 +246,7 @@ impl<ReadErr> std::error::Error for ReadAppError<ReadErr> where ReadErr: core::f
 /// provides two functions for this, [`read<T>`](SmlReader::read) and [`next<T>`](SmlReader::next).
 ///
 /// TODO: mention {read, next}_nb variants. Explain the difference between `read` and `next`.
-/// 
+///
 /// ```
 /// # use sml_rs::{SmlReader, DecodedBytes};
 /// // `data` contains a single SML message
@@ -744,8 +744,9 @@ impl<'i> SmlParse<'i, &'i [u8]> for Parser<'i> {
 
 impl<'i> util::private::Sealed for Parser<'i> {}
 
-impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>> for PowerMeterTransmission<'i, Vec<(ObisCode, Value)>>
-where 
+impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>>
+    for PowerMeterTransmission<'i, Vec<(ObisCode, Value)>>
+where
     ReadErr: core::fmt::Debug,
 {
     type Error = ReadAppError<ReadErr>;
