@@ -39,7 +39,7 @@
 use core::fmt;
 use core::{borrow::Borrow, marker::PhantomData};
 
-use application::{AppError, ObisCode, PowerMeterTransmission, Value};
+use application::{AppError, PowerMeterTransmission};
 #[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
 use parser::streaming::Parser;
@@ -744,8 +744,9 @@ impl<'i> SmlParse<'i, &'i [u8]> for Parser<'i> {
 
 impl<'i> util::private::Sealed for Parser<'i> {}
 
+#[cfg(feature = "alloc")]
 impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>>
-    for PowerMeterTransmission<'i, Vec<(ObisCode, Value)>>
+    for PowerMeterTransmission<'i, alloc::vec::Vec<(application::ObisCode, application::Value)>>
 where
     ReadErr: core::fmt::Debug,
 {
