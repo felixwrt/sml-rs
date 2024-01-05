@@ -1,17 +1,34 @@
 //! Smart Message Language (SML) parser written in Rust.
 //!
-//! Modern German power meters periodically send SML-encoded data via an optical interface.
-//! The main use-case of this library is to decode that data.
+//! ```
+//! use sml_rs::{SmlReader, application::{SecIndex, PowerMeterTransmission}};
+//! let bytes = include_bytes!("../sample.bin");
+//! let mut reader = SmlReader::from_slice(bytes);
+//! let res = reader.read::<PowerMeterTransmission<_>>().unwrap();
+//! assert_eq!(res.to_string(), "\
+//! PowerMeterTransmission:
+//!   server_id: [10, 1, 73, 84, 82, 0, 3, 72, 245, 142]
+//!   time: Some(53687960)
+//!   values:
+//!     1-0:1.8.0 = 8189594.9 Wh
+//!     1-0:16.7.0 = 613 W
+//! ");
+//! ```
+//! 
+//! The main API of this crate is the [`SmlReader`] type, which supports several data sources and 
+//! target types. See its documentation for details.
+//! 
+//! Additionally, this library also provides APIs on three different layers:
+//! - [`application`]: convenient and simple high-level API that is designed for typical use-cases
+//! - [`parser`]: complete and detailed SML data parsers
+//! - [`transport`]: SML transport protocol v1 encoder / decoder
 //!
-//! See the `transport` module for encoding / decoding the SML transport protocol v1 and the
-//! `parser` module for parsing decoded data into SML data structures.
-//!
-//! Complete examples of how to use the library can be found on github in the `exmples` folder.
+//! Complete examples of how to use the library can be found in the [`examples`](https://github.com/felixwrt/sml-rs/tree/main/examples) folder.
 //!
 //! # Feature flags
 //! - **`std`** (default) — Remove this feature to make the library `no_std` compatible.
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
-//! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
+//! - **`embedded_hal`** — Support for `embedded_hal::serial::Read` types (see [`SmlReader::from_eh_reader`]).
 //! - **`nb`** - Enables non-blocking APIs using the `nb` crate.
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -209,8 +226,8 @@ impl<ReadErr> std::error::Error for ReadAppError<ReadErr> where ReadErr: core::f
 ///
 /// ```
 /// # use sml_rs::SmlReader;
-/// let data = [1, 2, 3, 4, 5];
-/// let reader = SmlReader::with_static_buffer::<1024>().from_slice(&data);
+/// let data = &[1, 2, 3, 4, 5];
+/// let reader = SmlReader::with_static_buffer::<1024>().from_slice(data);
 /// ```
 ///
 /// Creating a reader with a dynamically-sized buffer from an iterable:
@@ -218,18 +235,21 @@ impl<ReadErr> std::error::Error for ReadAppError<ReadErr> where ReadErr: core::f
 /// ```
 /// # #[cfg(feature = "alloc")] {
 /// # use sml_rs::SmlReader;
-/// let data = [1, 2, 3, 4, 5];
-/// let reader_2 = SmlReader::with_vec_buffer().from_iterator(&data);
+/// let data = [1, 2, 3, 4, 5].iter();
+/// let reader_2 = SmlReader::with_vec_buffer().from_iterator(data);
 /// # }
 /// ```
 ///
 /// ### Reading transmissions
 ///
 /// Once a `SmlReader` is instantiated, it can be used to read, decode and parse SML messages. `SmlReader`
-/// provides two functions for this, [`read<T>`](DecoderReader::read) and [`next<T>`](DecoderReader::next).
+/// provides two functions for this, [`read<T>`](SmlReader::read) and [`next<T>`](SmlReader::next).
 ///
+/// TODO: mention {read, next}_nb variants. Explain the difference between `read` and `next`.
+/// 
 /// ```
 /// # use sml_rs::{SmlReader, DecodedBytes};
+/// // `data` contains a single SML message
 /// let data = include_bytes!("../sample.bin");
 /// let mut reader = SmlReader::from_slice(data.as_slice());
 ///
@@ -248,7 +268,7 @@ impl<ReadErr> std::error::Error for ReadAppError<ReadErr> where ReadErr: core::f
 ///
 /// ### Target Type
 ///
-/// [`read<T>`](DecoderReader::read) and [`next<T>`](DecoderReader::next) can be used to parse sml
+/// [`read<T>`](SmlReader::read) and [`next<T>`](SmlReader::next) can be used to parse sml
 /// transmissions into several different representations:
 ///
 /// - [`DecodedBytes`]: a slice of bytes containing the decoded message. No parsing is done.
@@ -834,14 +854,4 @@ mod read_tests {
         let _ = reader.read_nb::<File>();
         let _ = reader.read_nb::<Parser>();
     }
-}
-
-#[test]
-fn test_app() {
-    let bytes = include_bytes!("../sample.bin");
-    let mut reader = SmlReader::from_slice(bytes);
-    let res = reader.read::<PowerMeterTransmission<_>>().unwrap();
-    println!("{}", res);
-
-    assert!(false)
 }
