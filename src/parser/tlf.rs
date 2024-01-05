@@ -1,5 +1,7 @@
 //! A Type-Length-Field is a building block for many SML data structures.
 
+use core::fmt;
+
 use crate::parser::ParseError;
 
 use super::{take_byte, SmlParse};
@@ -26,6 +28,15 @@ impl From<TlfParseError> for ParseError {
         ParseError::InvalidTlf(x)
     }
 }
+
+impl fmt::Display for TlfParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for TlfParseError {}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct TypeLengthField {

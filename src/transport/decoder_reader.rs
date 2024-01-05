@@ -1,5 +1,7 @@
 //! module containing the `DecodeReader` and related implementation
 
+use core::fmt;
+
 use super::{DecodeErr, Decoder};
 use crate::util::{Buffer, ByteSource, ByteSourceErr};
 
@@ -13,6 +15,15 @@ pub enum ReadDecodedError<IoErr> {
     /// (inner_error, num_discarded_bytes)
     IoErr(IoErr, usize),
 }
+
+impl fmt::Display for ReadDecodedError<fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ReadDecodedError<fmt::Error> {}
 
 /// Decode transmissions read from a byte source
 pub struct DecoderReader<B, R>
