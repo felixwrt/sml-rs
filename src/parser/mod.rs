@@ -102,7 +102,10 @@
 //!
 //!
 
-use core::{fmt::Debug, ops::Deref};
+use core::{
+    fmt::{self, Debug},
+    ops::Deref,
+};
 
 use tlf::TypeLengthField;
 
@@ -136,6 +139,15 @@ pub enum ParseError {
     /// Got a variant id that isn't known. This means it's either invalid or not supported (yet) by the parser
     UnexpectedVariant,
 }
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ParseError {}
 
 type ResTy<'i, O> = Result<(&'i [u8], O), ParseError>;
 #[allow(dead_code)]

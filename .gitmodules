@@ -1,3 +1,0 @@
-[submodule "tests/libsml-testing"]
-	path = tests/libsml-testing
-	url = https://github.com/fkohlgrueber/libsml-testing

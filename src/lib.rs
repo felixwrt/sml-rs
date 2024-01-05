@@ -19,6 +19,7 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
+use core::fmt;
 use core::{borrow::Borrow, marker::PhantomData};
 
 use application::{PowerMeterTransmission, ObisCode, Value, AppError};
@@ -76,6 +77,18 @@ where
     }
 }
 
+impl<ReadErr> fmt::Display for ReadParsedError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<ReadErr> std::error::Error for ReadParsedError<ReadErr> where ReadErr: core::fmt::Debug {}
+
 /// Error returned by functions parsing sml data read from a reader into a [`PowerMeterTransmission`] type
 #[derive(Debug)]
 pub enum ReadAppError<ReadErr>
@@ -121,6 +134,19 @@ where
         ReadAppError::AppParseErr(value)
     }
 }
+
+impl<ReadErr> fmt::Display for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<ReadErr> std::error::Error for ReadAppError<ReadErr> where ReadErr: core::fmt::Debug {}
+
 // ===========================================================================
 // ===========================================================================
 //      `SmlReader` + impls
