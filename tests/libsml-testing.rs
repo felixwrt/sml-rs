@@ -72,3 +72,28 @@ fn test_files() {
         insta::assert_snapshot!(s);
     });
 }
+
+#[cfg(feature = "alloc")]
+#[test]
+fn test_app_layer() {
+    use std::fmt::Write;
+
+    insta::glob!("libsml-testing/*.bin", |path| {
+        let bytes = std::fs::read(path).unwrap();
+
+        let mut decoder =
+            sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
+
+        let mut s = String::new();
+        while let Some(result) = decoder.next() {
+            let result = result.map(sml_rs::application::PowerMeterTransmission::from_bytes);
+            match result {
+                Ok(Ok(pmt)) => write!(s, "{}", pmt),
+                Ok(Err(e)) => writeln!(s, "AppLayer error: {:?}", e),
+                Err(e) => writeln!(s, "Decoder error: {:?}", e),
+            }
+            .unwrap();
+        }
+        insta::assert_snapshot!(s);
+    });
+}

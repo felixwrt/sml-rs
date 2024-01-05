@@ -1,0 +1,113 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/dzg_dwsb20_2th_2byte.bin
+---
+Decoder error: DiscardedBytes(81)
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054376)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017197.8 Wh
+    1-0:16.7.0 = -310.64 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054377)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017197.9 Wh
+    1-0:16.7.0 = -309.28 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054378)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.0 Wh
+    1-0:16.7.0 = -305.82 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054379)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.1 Wh
+    1-0:16.7.0 = -306.36 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054380)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.2 Wh
+    1-0:16.7.0 = -302.65 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054381)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.3 Wh
+    1-0:16.7.0 = -301.93 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054382)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.4 Wh
+    1-0:16.7.0 = -301.77 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054383)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.4 Wh
+    1-0:16.7.0 = -310.88 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054384)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.5 Wh
+    1-0:16.7.0 = -301.95 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054385)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.6 Wh
+    1-0:16.7.0 = -310.29 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054386)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.7 Wh
+    1-0:16.7.0 = -311.79 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054387)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.8 Wh
+    1-0:16.7.0 = -307.40 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054388)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017198.9 Wh
+    1-0:16.7.0 = -305.44 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054389)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017199.0 Wh
+    1-0:16.7.0 = -308.41 W
+PowerMeterTransmission:
+  server_id: [10, 1, 68, 90, 71, 0, 2, 99, 35, 22]
+  time: Some(5054390)
+  values:
+    1-0:1.8.0 = 142439.0 Wh
+    1-0:2.8.0 = 2017199.0 Wh
+    1-0:16.7.0 = -306.88 W
+Decoder error: DiscardedBytes(235)
+

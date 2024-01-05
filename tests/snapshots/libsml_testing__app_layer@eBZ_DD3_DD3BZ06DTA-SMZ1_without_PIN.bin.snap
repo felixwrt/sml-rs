@@ -1,0 +1,20 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/eBZ_DD3_DD3BZ06DTA-SMZ1_without_PIN.bin
+---
+PowerMeterTransmission:
+  server_id: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120]
+  time: Some(44780538)
+  values:
+    1-0:1.8.0 = 4469000 Wh
+    1-0:1.8.1 = 4468000 Wh
+    1-0:1.8.2 = 1000 Wh
+PowerMeterTransmission:
+  server_id: [9, 1, 69, 66, 90, 1, 0, 16, 76, 120]
+  time: Some(44780539)
+  values:
+    1-0:1.8.0 = 4469000 Wh
+    1-0:1.8.1 = 4468000 Wh
+    1-0:1.8.2 = 1000 Wh
+

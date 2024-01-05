@@ -1,0 +1,39 @@
+---
+source: tests/libsml-testing.rs
+expression: s
+input_file: tests/libsml-testing/eBZ_DD3_DD32R06DTA-SMZ1.bin
+---
+Decoder error: DiscardedBytes(119)
+PowerMeterTransmission:
+  server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59]
+  time: Some(104569093)
+  values:
+    1-0:1.8.0 = 13024000 Wh
+    1-0:1.8.1 = 13023000 Wh
+    1-0:1.8.2 = 1000 Wh
+    1-0:2.8.0 = 1000 Wh
+PowerMeterTransmission:
+  server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59]
+  time: Some(104569094)
+  values:
+    1-0:1.8.0 = 13024000 Wh
+    1-0:1.8.1 = 13023000 Wh
+    1-0:1.8.2 = 1000 Wh
+    1-0:2.8.0 = 1000 Wh
+PowerMeterTransmission:
+  server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59]
+  time: Some(104569095)
+  values:
+    1-0:1.8.0 = 13024000 Wh
+    1-0:1.8.1 = 13023000 Wh
+    1-0:1.8.2 = 1000 Wh
+    1-0:2.8.0 = 1000 Wh
+PowerMeterTransmission:
+  server_id: [9, 1, 69, 66, 90, 1, 0, 2, 236, 59]
+  time: Some(104569096)
+  values:
+    1-0:1.8.0 = 13024000 Wh
+    1-0:1.8.1 = 13023000 Wh
+    1-0:1.8.2 = 1000 Wh
+    1-0:2.8.0 = 1000 Wh
+

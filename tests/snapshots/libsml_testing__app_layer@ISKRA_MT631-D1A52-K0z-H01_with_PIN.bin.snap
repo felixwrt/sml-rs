@@ -1,0 +1,42 @@
+---
+source: tests/libsml-testing.rs
+assertion_line: 97
+expression: s
+input_file: tests/libsml-testing/ISKRA_MT631-D1A52-K0z-H01_with_PIN.bin
+---
+PowerMeterTransmission:
+  server_id: [10, 1, 73, 83, 75, 0, 4, 122, 85, 68]
+  time: Some(53782327)
+  values:
+    1-0:1.8.0 = 2043104.7 Wh
+    1-0:2.8.0 = 0.0 Wh
+    1-0:16.7.0 = 193 W
+PowerMeterTransmission:
+  server_id: [10, 1, 73, 83, 75, 0, 4, 122, 85, 68]
+  time: Some(53782328)
+  values:
+    1-0:1.8.0 = 2043104.8 Wh
+    1-0:2.8.0 = 0.0 Wh
+    1-0:16.7.0 = 194 W
+PowerMeterTransmission:
+  server_id: [10, 1, 73, 83, 75, 0, 4, 122, 85, 68]
+  time: Some(53782329)
+  values:
+    1-0:1.8.0 = 2043104.8 Wh
+    1-0:2.8.0 = 0.0 Wh
+    1-0:16.7.0 = 193 W
+PowerMeterTransmission:
+  server_id: [10, 1, 73, 83, 75, 0, 4, 122, 85, 68]
+  time: Some(53782330)
+  values:
+    1-0:1.8.0 = 2043104.9 Wh
+    1-0:2.8.0 = 0.0 Wh
+    1-0:16.7.0 = 194 W
+PowerMeterTransmission:
+  server_id: [10, 1, 73, 83, 75, 0, 4, 122, 85, 68]
+  time: Some(53782331)
+  values:
+    1-0:1.8.0 = 2043104.9 Wh
+    1-0:2.8.0 = 0.0 Wh
+    1-0:16.7.0 = 194 W
+

@@ -1,17 +1,34 @@
 //! Smart Message Language (SML) parser written in Rust.
 //!
-//! Modern German power meters periodically send SML-encoded data via an optical interface.
-//! The main use-case of this library is to decode that data.
+//! ```
+//! use sml_rs::{SmlReader, application::{SecIndex, PowerMeterTransmission}};
+//! let bytes = include_bytes!("../sample.bin");
+//! let mut reader = SmlReader::from_slice(bytes);
+//! let res = reader.read::<PowerMeterTransmission<_>>().unwrap();
+//! assert_eq!(res.to_string(), "\
+//! PowerMeterTransmission:
+//!   server_id: [10, 1, 73, 84, 82, 0, 3, 72, 245, 142]
+//!   time: Some(53687960)
+//!   values:
+//!     1-0:1.8.0 = 8189594.9 Wh
+//!     1-0:16.7.0 = 613 W
+//! ");
+//! ```
 //!
-//! See the `transport` module for encoding / decoding the SML transport protocol v1 and the
-//! `parser` module for parsing decoded data into SML data structures.
+//! The main API of this crate is the [`SmlReader`] type, which supports several data sources and
+//! target types. See its documentation for details.
 //!
-//! Complete examples of how to use the library can be found on github in the `exmples` folder.
+//! Additionally, this library also provides APIs on three different layers:
+//! - [`application`]: convenient and simple high-level API that is designed for typical use-cases
+//! - [`parser`]: complete and detailed SML data parsers
+//! - [`transport`]: SML transport protocol v1 encoder / decoder
+//!
+//! Complete examples of how to use the library can be found in the [`examples`](https://github.com/felixwrt/sml-rs/tree/main/examples) folder.
 //!
 //! # Feature flags
 //! - **`std`** (default) — Remove this feature to make the library `no_std` compatible.
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
-//! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
+//! - **`embedded_hal`** — Support for `embedded_hal::serial::Read` types (see [`SmlReader::from_eh_reader`]).
 //! - **`nb`** - Enables non-blocking APIs using the `nb` crate.
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -22,6 +39,7 @@
 use core::fmt;
 use core::{borrow::Borrow, marker::PhantomData};
 
+use application::{AppError, PowerMeterTransmission};
 #[cfg(feature = "alloc")]
 use parser::complete::{parse, File};
 use parser::streaming::Parser;
@@ -32,6 +50,7 @@ use util::{ArrayBuf, Buffer};
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+pub mod application;
 pub mod parser;
 pub mod transport;
 pub mod util;
@@ -86,6 +105,64 @@ where
 
 #[cfg(feature = "std")]
 impl<ReadErr> std::error::Error for ReadParsedError<ReadErr> where ReadErr: core::fmt::Debug {}
+
+/// Error returned by functions parsing sml data read from a reader into a [`PowerMeterTransmission`] type
+#[derive(Debug)]
+pub enum ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    /// Error while parsing
+    AppParseErr(AppError),
+    /// Error while decoding the data (e.g. checksum mismatch)
+    DecodeErr(DecodeErr),
+    /// Error while reading from the internal byte source
+    ///
+    /// (inner_error, num_discarded_bytes)
+    IoErr(ReadErr, usize),
+}
+
+impl<ReadErr> From<ReadDecodedError<ReadErr>> for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn from(value: ReadDecodedError<ReadErr>) -> Self {
+        match value {
+            ReadDecodedError::DecodeErr(x) => ReadAppError::DecodeErr(x),
+            ReadDecodedError::IoErr(x, num_discarded) => ReadAppError::IoErr(x, num_discarded),
+        }
+    }
+}
+
+impl<ReadErr> From<ParseError> for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn from(value: ParseError) -> Self {
+        ReadAppError::AppParseErr(AppError::ParseError(value))
+    }
+}
+
+impl<ReadErr> From<AppError> for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn from(value: AppError) -> Self {
+        ReadAppError::AppParseErr(value)
+    }
+}
+
+impl<ReadErr> fmt::Display for ReadAppError<ReadErr>
+where
+    ReadErr: core::fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<ReadErr> std::error::Error for ReadAppError<ReadErr> where ReadErr: core::fmt::Debug {}
 
 // ===========================================================================
 // ===========================================================================
@@ -149,8 +226,8 @@ impl<ReadErr> std::error::Error for ReadParsedError<ReadErr> where ReadErr: core
 ///
 /// ```
 /// # use sml_rs::SmlReader;
-/// let data = [1, 2, 3, 4, 5];
-/// let reader = SmlReader::with_static_buffer::<1024>().from_slice(&data);
+/// let data = &[1, 2, 3, 4, 5];
+/// let reader = SmlReader::with_static_buffer::<1024>().from_slice(data);
 /// ```
 ///
 /// Creating a reader with a dynamically-sized buffer from an iterable:
@@ -158,18 +235,21 @@ impl<ReadErr> std::error::Error for ReadParsedError<ReadErr> where ReadErr: core
 /// ```
 /// # #[cfg(feature = "alloc")] {
 /// # use sml_rs::SmlReader;
-/// let data = [1, 2, 3, 4, 5];
-/// let reader_2 = SmlReader::with_vec_buffer().from_iterator(&data);
+/// let data = [1, 2, 3, 4, 5].iter();
+/// let reader_2 = SmlReader::with_vec_buffer().from_iterator(data);
 /// # }
 /// ```
 ///
 /// ### Reading transmissions
 ///
 /// Once a `SmlReader` is instantiated, it can be used to read, decode and parse SML messages. `SmlReader`
-/// provides two functions for this, [`read<T>`](DecoderReader::read) and [`next<T>`](DecoderReader::next).
+/// provides two functions for this, [`read<T>`](SmlReader::read) and [`next<T>`](SmlReader::next).
+///
+/// TODO: mention {read, next}_nb variants. Explain the difference between `read` and `next`.
 ///
 /// ```
 /// # use sml_rs::{SmlReader, DecodedBytes};
+/// // `data` contains a single SML message
 /// let data = include_bytes!("../sample.bin");
 /// let mut reader = SmlReader::from_slice(data.as_slice());
 ///
@@ -188,7 +268,7 @@ impl<ReadErr> std::error::Error for ReadParsedError<ReadErr> where ReadErr: core
 ///
 /// ### Target Type
 ///
-/// [`read<T>`](DecoderReader::read) and [`next<T>`](DecoderReader::next) can be used to parse sml
+/// [`read<T>`](SmlReader::read) and [`next<T>`](SmlReader::next) can be used to parse sml
 /// transmissions into several different representations:
 ///
 /// - [`DecodedBytes`]: a slice of bytes containing the decoded message. No parsing is done.
@@ -663,6 +743,21 @@ impl<'i> SmlParse<'i, &'i [u8]> for Parser<'i> {
 }
 
 impl<'i> util::private::Sealed for Parser<'i> {}
+
+#[cfg(feature = "alloc")]
+impl<'i, ReadErr> SmlParse<'i, ReadDecodedRes<'i, ReadErr>>
+    for PowerMeterTransmission<'i, alloc::vec::Vec<(application::ObisCode, application::Value)>>
+where
+    ReadErr: core::fmt::Debug,
+{
+    type Error = ReadAppError<ReadErr>;
+
+    fn parse_from(value: ReadDecodedRes<'i, ReadErr>) -> Result<Self, Self::Error> {
+        Ok(Self::from_bytes(value?)?)
+    }
+}
+
+impl<'i, T> util::private::Sealed for PowerMeterTransmission<'i, T> {}
 
 #[test]
 fn test_smlreader_construction() {
