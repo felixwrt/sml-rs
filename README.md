@@ -4,7 +4,7 @@
     <a href="https://crates.io/crates/sml-rs"><img alt="Crate Info" src="https://img.shields.io/crates/v/sml-rs.svg?style=flat-square"/></a>
     <a href="https://docs.rs/sml-rs/"><img alt="API Docs" src="https://img.shields.io/docsrs/sml-rs.svg?style=flat-square"/></a>
     <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/felixwrt/sml-rs/quickstart.yml?branch=main&label=CI&style=flat-square"/>
-    <img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2023?style=flat-square"/>
+    <img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2024?style=flat-square"/>
   </p>
 </div>
 
