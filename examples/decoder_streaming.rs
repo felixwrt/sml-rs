@@ -6,27 +6,35 @@
 //! cat tests/libsml-testing/dzg_dwsb20_2th_3byte.bin | cargo run --example decoder
 //! ```
 
-use sml_rs::parser::streaming::Parser;
+use std::io::Read;
 
 fn main() -> Result<(), std::io::Error> {
     let stdin = std::io::stdin().lock();
 
-    let mut reader = sml_rs::SmlReader::from_reader(stdin);
+    let mut decoder = sml_rs::transport::Decoder::<sml_rs::util::ArrayBuf<1024>>::new();
 
-    while let Some(res) = reader.next::<Parser>() {
-        match res {
-            Ok(parser) => {
-                println!("Parsing SML:");
+    for res in stdin.bytes() {
+        let b = res?;
+
+        match decoder.push_byte(b) {
+            Ok(None) => {}
+            Ok(Some(decoded_bytes)) => {
+                println!("Decoded {} bytes. Parsing SML:", decoded_bytes.len());
+                let parser = sml_rs::parser::streaming::Parser::new(decoded_bytes);
                 for item in parser {
                     println!("{:#?}", item);
                 }
                 println!("\n\n")
             }
-            Err(e) => println!("Err({:?})", e),
+            Err(e) => {
+                println!("Error decoding transmission: {:?}", e);
+            }
         }
     }
 
-    println!("Done.");
+    if let Some(e) = decoder.finalize() {
+        println!("Error decoding transmission: {:?}", e);
+    }
 
     Ok(())
 }

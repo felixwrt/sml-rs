@@ -28,10 +28,6 @@
 //! - `decode_streaming`: takes a sequence of bytes and returns an iterator over the decoded messages / errors.
 //! - using `Decoder` directly: instantiate a `Decoder` manually, call `push_byte()` on it when data becomes available. Call `finalize()` when all data has been pushed.
 
-mod decoder_reader;
-
-pub use decoder_reader::{DecoderReader, ReadDecodedError};
-
 use core::{borrow::Borrow, fmt};
 
 use crate::util::{Buffer, OutOfMemory, CRC_X25};
@@ -181,20 +177,21 @@ where
 /// let bytes = [0x12, 0x34, 0x56, 0x78];
 /// let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
 /// ```
-///
-/// ### Using alloc::Vec
-///
-/// ```
-/// # #[cfg(feature = "alloc")] {
-/// # use sml_rs::transport::encode;
-/// # let bytes = [0x12, 0x34, 0x56, 0x78];
-/// # let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
-/// let encoded = encode::<Vec<u8>>(&bytes);
-/// assert!(encoded.is_ok());
-/// assert_eq!(encoded.unwrap().as_slice(), &expected);
-/// # }
-/// ```
-///
+#[cfg_attr(
+    feature = "alloc",
+    doc = r##"
+### Using alloc::Vec
+
+```
+# use sml_rs::transport::encode;
+# let bytes = [0x12, 0x34, 0x56, 0x78];
+# let expected = [0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01, 0x12, 0x34, 0x56, 0x78, 0x1b, 0x1b, 0x1b, 0x1b, 0x1a, 0x00, 0xb8, 0x7b];
+let encoded = encode::<Vec<u8>>(&bytes);
+assert!(encoded.is_ok());
+assert_eq!(encoded.unwrap().as_slice(), &expected);
+```
+"##
+)]
 /// ### Using `ArrayBuf`
 ///
 /// ```
@@ -380,6 +377,12 @@ impl<B: Buffer> Decoder<B> {
                 num_discarded_bytes: 0,
                 num_init_seq_bytes: 0,
             } => None,
+            LookingForMessageStart {
+                num_discarded_bytes,
+                num_init_seq_bytes,
+            } => Some(DecodeErr::DiscardedBytes(
+                num_discarded_bytes as usize + num_init_seq_bytes as usize,
+            )),
             Done => None,
             _ => Some(DecodeErr::DiscardedBytes(self.raw_msg_len)),
         };
@@ -393,7 +396,7 @@ impl<B: Buffer> Decoder<B> {
     /// - `Ok(true)` if a complete message is ready.
     /// - `Ok(false)` when more bytes are necessary to complete parsing a message.
     /// - `Err(_)` if an error occurred during parsing
-    pub(crate) fn _push_byte(&mut self, b: u8) -> Result<bool, DecodeErr> {
+    fn _push_byte(&mut self, b: u8) -> Result<bool, DecodeErr> {
         use DecodeState::*;
         self.raw_msg_len += 1;
         match self.state {
@@ -574,7 +577,7 @@ impl<B: Buffer> Decoder<B> {
         Ok(false)
     }
 
-    pub(crate) fn borrow_buf(&self) -> &[u8] {
+    fn borrow_buf(&self) -> &[u8] {
         if !matches!(self.state, DecodeState::Done) {
             panic!("Reading from the internal buffer is only allowed when a complete message is present (DecodeState::Done). Found state {:?}.", self.state);
         }
@@ -585,12 +588,7 @@ impl<B: Buffer> Decoder<B> {
         self.state = DecodeState::Done;
     }
 
-    /// Resets the `Decoder` and returns the number of bytes that were discarded
-    pub fn reset(&mut self) -> usize {
-        let num_discarded = match self.state {
-            DecodeState::Done => 0,
-            _ => self.raw_msg_len,
-        };
+    fn reset(&mut self) {
         self.state = DecodeState::LookingForMessageStart {
             num_discarded_bytes: 0,
             num_init_seq_bytes: 0,
@@ -598,7 +596,6 @@ impl<B: Buffer> Decoder<B> {
         self.buf.clear();
         self.crc_idx = 0;
         self.raw_msg_len = 0;
-        num_discarded
     }
 
     fn push(&mut self, b: u8) -> Result<(), DecodeErr> {

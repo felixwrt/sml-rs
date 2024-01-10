@@ -1,8 +1,4 @@
-on:
-  push:
-    branches:
-    - main
-  pull_request:
+on: [push, pull_request]
 
 name: CI
 
@@ -18,16 +14,12 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
       - run: cargo test --no-default-features
       - run: cargo test --no-default-features --features=alloc
-      - run: cargo test --no-default-features --features=embedded_hal
-      - run: cargo test --no-default-features --features=embedded_hal,alloc
-      - run: cargo test --no-default-features --features=embedded_hal,alloc,std
 
   build_examples:
     name: Build Examples

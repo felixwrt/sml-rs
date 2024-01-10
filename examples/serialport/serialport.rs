@@ -1,11 +1,9 @@
 //! Reads data from a serial port and prints the contained sml messages to stdout
 
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::time::Duration;
 
 use serialport::{Parity, SerialPortInfo, SerialPortType, StopBits, UsbPortInfo};
-use sml_rs::parser::complete::File;
-use sml_rs::ReadParsedError;
 
 fn main() -> std::io::Result<()> {
     let ports = serialport::available_ports().expect("No ports found!");
@@ -20,19 +18,24 @@ fn main() -> std::io::Result<()> {
         .open()
         .expect("Failed to open port");
 
-    let mut reader = sml_rs::SmlReader::from_reader(port);
-    loop {
-        match reader.read::<File>() {
-            Ok(file) => println!("{:?}", file),
-            Err(ReadParsedError::IoErr(e, _)) => {
-                println!("IO Error: {:?}", e);
-                println!("Exiting.");
-                break;
+    let mut decoder = sml_rs::transport::Decoder::<Vec<u8>>::new();
+
+    for res in port.bytes() {
+        let byte = res?;
+
+        match decoder.push_byte(byte) {
+            Ok(None) => {}
+            Ok(Some(decoded_bytes)) => {
+                println!("{:#?}", sml_rs::parser::complete::parse(decoded_bytes));
             }
             Err(e) => {
-                println!("Error: {:?}", e);
+                println!("Err({:?})", e);
             }
         }
+    }
+
+    if let Some(e) = decoder.finalize() {
+        println!("Err({:?})", e);
     }
 
     Ok(())

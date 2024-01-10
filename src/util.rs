@@ -1,25 +1,19 @@
 //! utility stuff
 
-use core::{borrow::Borrow, fmt::Debug, ops::Deref};
+use core::{fmt::Debug, ops::Deref};
 
 pub(crate) static CRC_X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
 
-pub(crate) mod private {
-    pub trait Sealed {}
-}
-
-// ===========================================================================
-// ===========================================================================
-//      `Buffer` trait + impls for `VecBuf` and `ArrayBuf`
-// ===========================================================================
-// ===========================================================================
+/// Type alias for `alloc::Vec<u8>`
+#[cfg(feature = "alloc")]
+pub type VecBuf = alloc::vec::Vec<u8>;
 
 /// Interface for byte vectors.
 ///
 /// This train provides is used as an abstraction over different byte vector
 /// implementations. It is implemented for static vectors (`ArrayBuf`)
 /// and (if the `alloc` feature is used) for dynamic vectors (`alloc::Vec<u8>`).
-pub trait Buffer: Default + Deref<Target = [u8]> + private::Sealed {
+pub trait Buffer: Default + Deref<Target = [u8]> {
     /// Appends a byte to the back of the vector.
     ///
     /// Returns `Err` if the vector is full and could not be extended.
@@ -36,10 +30,6 @@ pub trait Buffer: Default + Deref<Target = [u8]> + private::Sealed {
     /// Iterates over the slice `other` and appends each byte to this vector. The `other` vector is traversed in-order.
     fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory>;
 }
-
-/// Type alias for `alloc::Vec<u8>`
-#[cfg(feature = "alloc")]
-pub type VecBuf = alloc::vec::Vec<u8>;
 
 #[cfg(feature = "alloc")]
 impl Buffer for VecBuf {
@@ -71,9 +61,6 @@ impl Buffer for VecBuf {
         }
     }
 }
-
-#[cfg(feature = "alloc")]
-impl private::Sealed for VecBuf {}
 
 /// Byte buffer backed by an array.
 pub struct ArrayBuf<const N: usize> {
@@ -149,227 +136,9 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
     }
 }
 
-impl<const N: usize> private::Sealed for ArrayBuf<N> {}
-
 /// Error type indicating that an operation failed due to lack of memory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutOfMemory;
-
-// ===========================================================================
-// ===========================================================================
-//      `ByteSource` trait + impls
-// ===========================================================================
-// ===========================================================================
-
-/// Helper trait that allows reading individual bytes
-pub trait ByteSource: private::Sealed {
-    /// Type of errors that can occur while reading bytes
-    type ReadError: ByteSourceErr;
-
-    /// Tries to read a single byte from the source
-    fn read_byte(&mut self) -> Result<u8, Self::ReadError>;
-}
-
-/// Helper trait implemented for Error types of `ByteSource`
-pub trait ByteSourceErr: private::Sealed {
-    /// Returns whether the error is an end of file (EOF) error
-    fn is_eof(&self) -> bool;
-
-    /// Returns whether the error is "would block", which means that reading
-    /// can be successfull again later
-    fn is_would_block(&self) -> bool;
-}
-
-/// Wraps types that implement `std::io::Read` and implements `ByteSource`
-#[cfg(feature = "std")]
-pub struct IoReader<R>
-where
-    R: std::io::Read,
-{
-    inner: R,
-}
-
-#[cfg(feature = "std")]
-impl<R> IoReader<R>
-where
-    R: std::io::Read,
-{
-    pub(crate) fn new(reader: R) -> Self {
-        IoReader { inner: reader }
-    }
-}
-
-#[cfg(feature = "std")]
-impl<R> ByteSource for IoReader<R>
-where
-    R: std::io::Read,
-{
-    type ReadError = std::io::Error;
-
-    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
-        let mut b = 0u8;
-        self.inner.read_exact(core::slice::from_mut(&mut b))?;
-        Ok(b)
-    }
-}
-
-#[cfg(feature = "std")]
-impl<R> private::Sealed for IoReader<R> where R: std::io::Read {}
-
-#[cfg(feature = "std")]
-impl ByteSourceErr for std::io::Error {
-    fn is_eof(&self) -> bool {
-        matches!(self.kind(), std::io::ErrorKind::UnexpectedEof)
-    }
-
-    fn is_would_block(&self) -> bool {
-        false
-    }
-}
-
-#[cfg(feature = "std")]
-impl private::Sealed for std::io::Error {}
-
-/// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
-#[cfg(feature = "embedded_hal")]
-pub struct EhReader<R, E>
-where
-    R: embedded_hal::serial::Read<u8, Error = E>,
-{
-    inner: R,
-}
-
-#[cfg(feature = "embedded_hal")]
-impl<R, E> EhReader<R, E>
-where
-    R: embedded_hal::serial::Read<u8, Error = E>,
-{
-    pub(crate) fn new(reader: R) -> Self {
-        EhReader { inner: reader }
-    }
-}
-
-#[cfg(feature = "embedded_hal")]
-impl<R, E> ByteSource for EhReader<R, E>
-where
-    R: embedded_hal::serial::Read<u8, Error = E>,
-{
-    type ReadError = nb::Error<E>;
-
-    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
-        self.inner.read()
-    }
-}
-
-#[cfg(feature = "embedded_hal")]
-impl<R, E> private::Sealed for EhReader<R, E> where R: embedded_hal::serial::Read<u8, Error = E> {}
-
-#[cfg(feature = "embedded_hal")]
-impl<E> ByteSourceErr for nb::Error<E> {
-    fn is_eof(&self) -> bool {
-        false
-    }
-
-    fn is_would_block(&self) -> bool {
-        matches!(self, nb::Error::WouldBlock)
-    }
-}
-
-#[cfg(feature = "embedded_hal")]
-impl<E> private::Sealed for nb::Error<E> {}
-
-/// Error type indicating that the end of the input has been reached
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Eof;
-
-impl ByteSourceErr for Eof {
-    fn is_eof(&self) -> bool {
-        true
-    }
-
-    fn is_would_block(&self) -> bool {
-        false
-    }
-}
-
-impl private::Sealed for Eof {}
-
-/// Wraps byte slices and implements `ByteSource`
-pub struct SliceReader<'i> {
-    inner: &'i [u8],
-    idx: usize,
-}
-
-impl<'i> SliceReader<'i> {
-    pub(crate) fn new(slice: &'i [u8]) -> Self {
-        SliceReader {
-            inner: slice,
-            idx: 0,
-        }
-    }
-}
-
-impl<'i> ByteSource for SliceReader<'i> {
-    type ReadError = Eof;
-
-    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
-        if self.idx >= self.inner.len() {
-            return Err(Eof);
-        }
-        let b = self.inner[self.idx];
-        self.idx += 1;
-        Ok(b)
-    }
-}
-
-impl<'i> private::Sealed for SliceReader<'i> {}
-
-/// Wraps byte iterators and implements `ByteSource`
-pub struct IterReader<I, B>
-where
-    I: Iterator<Item = B>,
-    B: Borrow<u8>,
-{
-    iter: I,
-}
-
-impl<I, B> IterReader<I, B>
-where
-    I: Iterator<Item = B>,
-    B: Borrow<u8>,
-{
-    pub(crate) fn new(iter: I) -> Self {
-        IterReader { iter }
-    }
-}
-
-impl<I, B> ByteSource for IterReader<I, B>
-where
-    I: Iterator<Item = B>,
-    B: Borrow<u8>,
-{
-    type ReadError = Eof;
-
-    fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
-        match self.iter.next() {
-            Some(x) => Ok(*x.borrow()),
-            None => Err(Eof),
-        }
-    }
-}
-
-impl<I, B> private::Sealed for IterReader<I, B>
-where
-    I: Iterator<Item = B>,
-    B: Borrow<u8>,
-{
-}
-
-// ===========================================================================
-// ===========================================================================
-//      Tests
-// ===========================================================================
-// ===========================================================================
 
 #[cfg(test)]
 mod test_arraybuf {

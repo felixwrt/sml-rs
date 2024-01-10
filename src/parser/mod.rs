@@ -23,45 +23,48 @@
 //!
 //! # Examples
 //!
-//! ## Using `complete::parse`
-//!
-//! ```
-//! # #[cfg(feature = "alloc")] {
-//! # use sml_rs::parser::complete;
-//! let bytes: &[u8] = &[ /*...*/ ];
-//!
-//! println!("{:#?}", complete::parse(&bytes).expect("error while parsing"));
-//! # }
-//! ```
-//!
-//! Output (stripped-down to the relevant parts):
-//! ```text
-//! File {
-//!     messages: [
-//!         Message {
-//!             message_body: OpenResponse {
-//!                 ref_time: SecIndex(23876784),
-//!                 ...
-//!             },
-//!             ...
-//!         },
-//!         Message {
-//!             message_body: GetListResponse {
-//!                 val_list: [
-//!                     ListEntry { ... },
-//!                     ListEntry { ... },
-//!                     ListEntry { ... },
-//!                 ],
-//!             },
-//!             ...
-//!         },
-//!         Message {
-//!             message_body: CloseResponse,
-//!             ...
-//!         },
-//!     ],
-//! }
-//! ```
+#![cfg_attr(
+    feature = "alloc",
+    doc = r##"
+## Using `complete::parse`
+
+```rust
+# use sml_rs::parser::complete;
+let bytes: &[u8] = &[ /*...*/ ];
+
+println!("{:#?}", complete::parse(&bytes).expect("error while parsing"));
+```
+
+Output (stripped-down to the relevant parts):
+```text
+File {
+    messages: [
+        Message {
+            message_body: OpenResponse {
+                ref_time: SecIndex(23876784),
+                ...
+            },
+            ...
+        },
+        Message {
+            message_body: GetListResponse {
+                val_list: [
+                    ListEntry { ... },
+                    ListEntry { ... },
+                    ListEntry { ... },
+                ],
+            },
+            ...
+        },
+        Message {
+            message_body: CloseResponse,
+            ...
+        },
+    ],
+}
+```
+"##
+)]
 //!
 //! ## Using `streaming::Parser`
 //! ```rust
