@@ -219,7 +219,7 @@ where
     decoder: DecoderReader<Buf, R>,
 }
 
-pub(crate) type DummySmlReader = SmlReader<util::SliceReader<'static>, ArrayBuf<0>>;
+pub(crate) type DummySmlReader = SmlReader<util::SliceByteSource<'static>, ArrayBuf<0>>;
 
 impl DummySmlReader {
     /// Returns a builder with a static internal buffer of size `N`.
@@ -268,12 +268,12 @@ impl DummySmlReader {
     /// let reader = SmlReader::from_reader(cursor);
     /// ```
     #[cfg(feature = "std")]
-    pub fn from_reader<R>(reader: R) -> SmlReader<util::IoReader<R>, DefaultBuffer>
+    pub fn from_reader<R>(reader: R) -> SmlReader<util::IoByteSource<R>, DefaultBuffer>
     where
         R: std::io::Read,
     {
         SmlReader {
-            decoder: DecoderReader::new(util::IoReader::new(reader)),
+            decoder: DecoderReader::new(util::IoByteSource::new(reader)),
         }
     }
 
@@ -297,12 +297,12 @@ impl DummySmlReader {
     /// let reader = SmlReader::from_eh_reader(pin);
     /// ```
     #[cfg(feature = "embedded_hal")]
-    pub fn from_eh_reader<R, E>(reader: R) -> SmlReader<util::EhReader<R, E>, DefaultBuffer>
+    pub fn from_eh_reader<R, E>(reader: R) -> SmlReader<util::EhByteSource<R, E>, DefaultBuffer>
     where
         R: embedded_hal::serial::Read<u8, Error = E>,
     {
         SmlReader {
-            decoder: DecoderReader::new(util::EhReader::new(reader)),
+            decoder: DecoderReader::new(util::EhByteSource::new(reader)),
         }
     }
 
@@ -315,9 +315,9 @@ impl DummySmlReader {
     /// let data: &[u8] = &[1, 2, 3];
     /// let reader = SmlReader::from_slice(data);
     /// ```
-    pub fn from_slice(reader: &[u8]) -> SmlReader<util::SliceReader<'_>, DefaultBuffer> {
+    pub fn from_slice(reader: &[u8]) -> SmlReader<util::SliceByteSource<'_>, DefaultBuffer> {
         SmlReader {
-            decoder: DecoderReader::new(util::SliceReader::new(reader)),
+            decoder: DecoderReader::new(util::SliceByteSource::new(reader)),
         }
     }
 
@@ -336,13 +336,13 @@ impl DummySmlReader {
     /// ```
     pub fn from_iterator<B, I>(
         iter: I,
-    ) -> SmlReader<util::IterReader<I::IntoIter, B>, DefaultBuffer>
+    ) -> SmlReader<util::IterByteSource<I::IntoIter, B>, DefaultBuffer>
     where
         I: IntoIterator<Item = B>,
         B: Borrow<u8>,
     {
         SmlReader {
-            decoder: DecoderReader::new(util::IterReader::new(iter.into_iter())),
+            decoder: DecoderReader::new(util::IterByteSource::new(iter.into_iter())),
         }
     }
 }
@@ -510,9 +510,9 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     /// let reader = SmlReader::with_static_buffer::<1024>().from_reader(cursor);
     /// ```
     #[cfg(feature = "std")]
-    pub fn from_reader<R: std::io::Read>(self, reader: R) -> SmlReader<util::IoReader<R>, Buf> {
+    pub fn from_reader<R: std::io::Read>(self, reader: R) -> SmlReader<util::IoByteSource<R>, Buf> {
         SmlReader {
-            decoder: DecoderReader::new(util::IoReader::new(reader)),
+            decoder: DecoderReader::new(util::IoByteSource::new(reader)),
         }
     }
 
@@ -539,9 +539,9 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     pub fn from_eh_reader<R: embedded_hal::serial::Read<u8, Error = E>, E>(
         self,
         reader: R,
-    ) -> SmlReader<util::EhReader<R, E>, Buf> {
+    ) -> SmlReader<util::EhByteSource<R, E>, Buf> {
         SmlReader {
-            decoder: DecoderReader::new(util::EhReader::new(reader)),
+            decoder: DecoderReader::new(util::EhByteSource::new(reader)),
         }
     }
 
@@ -554,9 +554,9 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     /// let data: &[u8] = &[1, 2, 3];
     /// let reader = SmlReader::with_static_buffer::<1024>().from_slice(data);
     /// ```
-    pub fn from_slice(self, reader: &[u8]) -> SmlReader<util::SliceReader<'_>, Buf> {
+    pub fn from_slice(self, reader: &[u8]) -> SmlReader<util::SliceByteSource<'_>, Buf> {
         SmlReader {
-            decoder: DecoderReader::new(util::SliceReader::new(reader)),
+            decoder: DecoderReader::new(util::SliceByteSource::new(reader)),
         }
     }
 
@@ -574,13 +574,16 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     /// let reader = builder.clone().from_iterator(data.iter());       // impl Iterator<Item = &u8>
     /// let reader = builder.clone().from_iterator(data.into_iter());  // impl Iterator<Item = u8>
     /// ```
-    pub fn from_iterator<B, I>(self, iter: I) -> SmlReader<util::IterReader<I::IntoIter, B>, Buf>
+    pub fn from_iterator<B, I>(
+        self,
+        iter: I,
+    ) -> SmlReader<util::IterByteSource<I::IntoIter, B>, Buf>
     where
         I: IntoIterator<Item = B>,
         B: Borrow<u8>,
     {
         SmlReader {
-            decoder: DecoderReader::new(util::IterReader::new(iter.into_iter())),
+            decoder: DecoderReader::new(util::IterByteSource::new(iter.into_iter())),
         }
     }
 }
