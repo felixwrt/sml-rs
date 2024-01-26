@@ -13,4 +13,4 @@ path = "serialport.rs"
 
 [dependencies]
 sml-rs = { path = "../../" }
-serialport = { version = "4.2.0" }
+serialport5 = { version = "5.0.0" }
