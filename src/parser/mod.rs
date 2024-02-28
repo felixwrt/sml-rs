@@ -107,6 +107,7 @@ use core::{
     ops::Deref,
 };
 
+use serde::{Deserialize, Serialize};
 use tlf::TypeLengthField;
 
 pub mod common;
@@ -122,7 +123,7 @@ pub use tlf::TlfParseError;
 pub use octet_string::OctetStr;
 
 /// Error type used by the parser
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParseError {
     /// There are additional bytes in the input while the parser expects EOF
     LeftoverInput,

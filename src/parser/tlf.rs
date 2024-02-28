@@ -4,12 +4,14 @@ use core::fmt;
 
 use crate::parser::ParseError;
 
+use serde::{Deserialize, Serialize};
+
 use super::{take_byte, SmlParse};
 
 use super::ResTy;
 
 /// Error type used when parsing a `TypeLengthField`
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TlfParseError {
     /// The length field of a TLF overflowed
     TlfLengthOverflow,
