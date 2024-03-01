@@ -100,7 +100,9 @@
 //! })
 //! ```
 //!
-//!
+//! ## Serialize/Deserialize Error messages
+//! The error messages 'ParseError', 'TlfParseError' and 'DecodeErr' can be serialized/deserialized with the
+//! feature flag "serde".
 
 use core::{
     fmt::{self, Debug},
@@ -109,6 +111,7 @@ use core::{
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
 use tlf::TypeLengthField;
 
 pub mod common;
