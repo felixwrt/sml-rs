@@ -100,12 +100,17 @@
 //! })
 //! ```
 //!
-//!
+//! ## Serialize/Deserialize Error messages
+//! The error messages 'ParseError', 'TlfParseError' and 'DecodeErr' can be serialized/deserialized with the
+//! feature flag "serde".
 
 use core::{
     fmt::{self, Debug},
     ops::Deref,
 };
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use tlf::TypeLengthField;
 
@@ -122,6 +127,7 @@ pub use tlf::TlfParseError;
 pub use octet_string::OctetStr;
 
 /// Error type used by the parser
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError {
     /// There are additional bytes in the input while the parser expects EOF
