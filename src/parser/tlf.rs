@@ -4,6 +4,7 @@ use core::fmt;
 
 use crate::parser::ParseError;
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::{take_byte, SmlParse};
@@ -11,7 +12,8 @@ use super::{take_byte, SmlParse};
 use super::ResTy;
 
 /// Error type used when parsing a `TypeLengthField`
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TlfParseError {
     /// The length field of a TLF overflowed
     TlfLengthOverflow,

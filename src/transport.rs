@@ -31,6 +31,8 @@
 mod decoder_reader;
 
 pub use decoder_reader::{DecoderReader, ReadDecodedError};
+
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use core::{borrow::Borrow, fmt};
@@ -266,7 +268,8 @@ pub fn encode_streaming(
     Encoder::new(iter.into_iter().map(|x| *x.borrow()))
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Eq, Clone)]
 /// An error which can be returned when decoding an sml message.
 pub enum DecodeErr {
     /// Some bytes could not be parsed and were discarded
