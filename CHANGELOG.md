@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-06-04
+
 ### Added
 
 - `SmlReader` type that provides an API for reading, decoding and parsing SML messages from several input sources.
@@ -17,18 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI script cleanup
 - Changed `tests/libsml-testing` from submodule to subtree
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-### Other
-
 - Updated maintenance badge for 2024
 - Updated hex-literal to 0.4.1
 
 ## 0.3.0 - 2023-03-24
+
+<!-- next-url -->
+[Unreleased]: https://github.com/felixwrt/sml-rs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/felixwrt/sml-rs/compare/v0.3.0...v0.4.0
