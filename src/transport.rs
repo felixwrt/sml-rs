@@ -337,7 +337,6 @@ pub struct Decoder<B: Buffer> {
     buf: B,
     raw_msg_len: usize,
     crc: crc::Digest<'static, u16>,
-    crc_idx: usize,
     state: DecodeState,
 }
 
@@ -361,7 +360,6 @@ impl<B: Buffer> Decoder<B> {
             buf,
             raw_msg_len: 0,
             crc: CRC_X25.digest(),
-            crc_idx: 0,
             state: DecodeState::LookingForMessageStart {
                 num_discarded_bytes: 0,
                 num_init_seq_bytes: 0,
@@ -417,7 +415,6 @@ impl<B: Buffer> Decoder<B> {
                     self.state = ParsingNormal;
                     self.raw_msg_len = 8;
                     assert_eq!(self.buf.len(), 0);
-                    assert_eq!(self.crc_idx, 0);
                     self.crc = CRC_X25.digest();
                     self.crc
                         .update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
@@ -427,6 +424,7 @@ impl<B: Buffer> Decoder<B> {
                 }
             }
             ParsingNormal => {
+                self.crc.update(&[b]);
                 if b == 0x1b {
                     // this could be the first byte of an escape sequence
                     self.state = ParsingEscChars(1);
@@ -436,6 +434,7 @@ impl<B: Buffer> Decoder<B> {
                 }
             }
             ParsingEscChars(n) => {
+                self.crc.update(&[b]);
                 if b != 0x1b {
                     // push previous 0x1b bytes as they didn't belong to an escape sequence
                     for _ in 0..n {
@@ -448,16 +447,6 @@ impl<B: Buffer> Decoder<B> {
                 } else if n == 3 {
                     // this is the fourth 0x1b byte, so we're seeing an escape sequence.
                     // continue by parsing the escape sequence's payload.
-
-                    // also update the crc here. the escape bytes aren't stored in `buf`, but
-                    // still need to count for the crc calculation
-                    // (1) add everything that's in the buffer and hasn't been added to the crc previously
-                    self.crc.update(&self.buf[self.crc_idx..self.buf.len()]);
-                    // (2) add the four escape bytes
-                    self.crc.update(&[0x1b, 0x1b, 0x1b, 0x1b]);
-                    // update crc_idx to indicate that everything that's currently in the buffer has already
-                    // been used to update the crc
-                    self.crc_idx = self.buf.len();
 
                     self.state = ParsingEscPayload(0);
                 } else {
@@ -474,6 +463,8 @@ impl<B: Buffer> Decoder<B> {
                     if payload == [0x1b, 0x1b, 0x1b, 0x1b] {
                         // escape sequence in user data
 
+                        self.crc.update(payload);
+
                         // nothing to do here as the input has already been added to the buffer (see above)
                         self.state = ParsingNormal;
                     } else if payload == [0x01, 0x01, 0x01, 0x01] {
@@ -486,7 +477,6 @@ impl<B: Buffer> Decoder<B> {
                         self.crc = CRC_X25.digest();
                         self.crc
                             .update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
-                        self.crc_idx = 0;
                         self.state = ParsingNormal;
                         return Err(DecodeErr::DiscardedBytes(ignored_bytes));
                     } else if payload[0] == 0x1a {
@@ -498,8 +488,7 @@ impl<B: Buffer> Decoder<B> {
                         // compute and compare checksum
                         let read_crc = u16::from_le_bytes([payload[2], payload[3]]);
                         // update the crc, but exclude the last two bytes (which contain the crc itself)
-                        self.crc
-                            .update(&self.buf[self.crc_idx..(self.buf.len() - 2)]);
+                        self.crc.update(&[payload[0], payload[1]]);
                         // get the calculated crc and reset it afterwards
                         let calculated_crc = {
                             let mut crc = CRC_X25.digest();
@@ -545,7 +534,7 @@ impl<B: Buffer> Decoder<B> {
                         //                       ^^^^^^^^
                         //                       real escape sequence
                         //
-                        // The solution for this issue is to check whether the read esacpe code
+                        // The solution for this issue is to check whether the read escape code
                         // isn't aligned to a 4-byte boundary and followed by an aligned end
                         // escape sequence (`1b1b1b1b 1a...`).
                         // If that's the case, simply reset the parser state by 1-3 steps. This
@@ -556,6 +545,7 @@ impl<B: Buffer> Decoder<B> {
                             && payload[..bytes_until_alignment].iter().all(|x| *x == 0x1b)
                             && payload[bytes_until_alignment] == 0x1a
                         {
+                            self.crc.update(&payload[..bytes_until_alignment]);
                             self.state = ParsingEscPayload(4 - bytes_until_alignment as u8);
                             return Ok(false);
                         }
@@ -600,7 +590,6 @@ impl<B: Buffer> Decoder<B> {
             num_init_seq_bytes: 0,
         };
         self.buf.clear();
-        self.crc_idx = 0;
         self.raw_msg_len = 0;
         num_discarded
     }
