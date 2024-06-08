@@ -35,6 +35,7 @@ extern crate alloc;
 
 pub mod parser;
 pub mod transport;
+pub mod transport2;
 pub mod util;
 
 use util::ByteSource;
