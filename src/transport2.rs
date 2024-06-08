@@ -8,8 +8,14 @@ pub struct IoReader<R: std::io::Read> {
 }
 
 impl<R: std::io::Read> IoReader<R> {
-    
-    fn read_message_into_slice(&mut self, buf: &mut [u8]) -> Result<usize, ReadDecodedError<std::io::Error>> {
+    pub fn new(reader: R) -> Self {
+        Self {
+            reader,
+            decoder: Default::default(),
+        }
+    }
+
+    pub fn read_message_into_slice(&mut self, buf: &mut [u8]) -> Result<usize, ReadDecodedError<std::io::Error>> {
         let mut buf = SliceBuf::new(buf);
         let buf = &mut buf;
         loop {
@@ -34,7 +40,7 @@ impl<R: std::io::Read> IoReader<R> {
         }
     }
 
-    fn read_message_into_vec(&mut self, buf: &mut Vec<u8>) -> Result<(), ReadDecodedError<std::io::Error>> {
+    pub fn read_message_into_vec(&mut self, buf: &mut Vec<u8>) -> Result<(), ReadDecodedError<std::io::Error>> {
         loop {
             let mut b = 0u8;
             match self.reader.read(std::slice::from_mut(&mut b)) {
