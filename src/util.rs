@@ -75,6 +75,65 @@ impl Buffer for VecBuf {
 #[cfg(feature = "alloc")]
 impl private::Sealed for VecBuf {}
 
+/// Byte buffer backed by a slice.
+pub struct SliceBuf<'a> {
+    buffer: &'a mut [u8],
+    num_elements: usize,
+}
+
+impl<'a> SliceBuf<'a> {
+    /// Returns a SliceBuf containing no elements
+    pub fn new(buf: &'a mut [u8]) -> Self {
+        Self { buffer: buf, num_elements: 0 }
+    }
+}
+
+// TODO: remove this, doesn't really make sense
+impl<'a> Default for SliceBuf<'a> {
+    fn default() -> Self {
+        Self { buffer: &mut [], num_elements: 0 }
+    }
+}
+
+impl<'a> Buffer for SliceBuf<'a> {
+    fn push(&mut self, b: u8) -> Result<(), OutOfMemory> {
+        if self.num_elements == self.buffer.len() {
+            Err(OutOfMemory)
+        } else {
+            self.buffer[self.num_elements] = b;
+            self.num_elements += 1;
+            Ok(())
+        }
+    }
+
+    fn truncate(&mut self, len: usize) {
+        self.num_elements = self.num_elements.min(len);
+    }
+
+    fn clear(&mut self) {
+        self.num_elements = 0;
+    }
+
+    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory> {
+        if self.num_elements + other.len() > self.buffer.len() {
+            return Err(OutOfMemory);
+        }
+        self.buffer[self.num_elements..][..other.len()].copy_from_slice(other);
+        self.num_elements += other.len();
+        Ok(())
+    }
+}
+
+impl<'a> Deref for SliceBuf<'a> {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &self.buffer[0..self.num_elements]
+    }
+}
+
+impl<'a> private::Sealed for SliceBuf<'a> {}
+
 /// Byte buffer backed by an array.
 pub struct ArrayBuf<const N: usize> {
     buffer: [u8; N],
