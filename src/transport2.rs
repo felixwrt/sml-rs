@@ -30,7 +30,7 @@ impl<R: std::io::Read> IoReader<R> {
                         None => 0,
                     };
                     return Err(ReadDecodedError::IoErr(e, num_discarded_bytes))
-                }, // TODO: real number of discarded bytes?
+                },
             }
             match self.decoder.push_byte(buf, b) {
                 Ok(false) => continue,
@@ -41,6 +41,7 @@ impl<R: std::io::Read> IoReader<R> {
     }
 
     pub fn read_message_into_vec(&mut self, buf: &mut Vec<u8>) -> Result<(), ReadDecodedError<std::io::Error>> {
+        buf.clear();
         loop {
             let mut b = 0u8;
             match self.reader.read(std::slice::from_mut(&mut b)) {
@@ -53,7 +54,7 @@ impl<R: std::io::Read> IoReader<R> {
                         None => 0,
                     };
                     return Err(ReadDecodedError::IoErr(e, num_discarded_bytes))
-                }, // TODO: real number of discarded bytes?
+                },
             }
             match self.decoder.push_byte(buf, b) {
                 Ok(false) => continue,
@@ -62,4 +63,17 @@ impl<R: std::io::Read> IoReader<R> {
             }
         }
     }
+}
+
+#[test]
+fn test_passing_non_empty_vec() {
+    use hex_literal::hex;
+    let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
+    let exp = hex!("12345678");
+    let mut reader = std::io::Cursor::new(bytes);
+    let mut reader = IoReader::new(reader);
+    let mut v = vec!(1, 2, 3);
+    let ret = reader.read_message_into_vec(&mut v);
+    assert!(ret.is_ok());
+    assert_eq!(v, exp);
 }
