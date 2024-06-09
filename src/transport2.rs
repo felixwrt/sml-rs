@@ -1,6 +1,8 @@
 #![allow(unused)]
 #![allow(missing_docs)]
-use crate::{transport::{DecodeErr, DecoderInner, ReadDecodedError}, util::{Buffer, SliceBuf}};
+use core::borrow::Borrow;
+
+use crate::{transport::{DecodeErr, DecoderInner, ReadDecodedError}, util::{Buffer, Eof, SliceBuf}};
 
 pub struct IoReader<R: std::io::Read> {
     reader: R,
@@ -56,6 +58,59 @@ impl<R: std::io::Read> IoReader<R> {
                     return Err(ReadDecodedError::IoErr(e, num_discarded_bytes))
                 },
             }
+            match self.decoder.push_byte(buf, b) {
+                Ok(false) => continue,
+                Ok(true) => return Ok(()),
+                Err(e) => return Err(ReadDecodedError::DecodeErr(e)),
+            }
+        }
+    }
+}
+
+pub struct IterReader<I: Iterator<Item = u8>> {
+    iter: I,
+    decoder: DecoderInner
+}
+
+impl<I: Iterator<Item = u8>> IterReader<I> {
+    pub fn new(iter: I) -> Self {
+        Self {
+            iter,
+            decoder: Default::default(),
+        }
+    }
+
+    pub fn read_message_into_slice(&mut self, buf: &mut [u8]) -> Result<usize, ReadDecodedError<Eof>> {
+        let mut buf = SliceBuf::new(buf);
+        let buf = &mut buf;
+        loop {
+            let Some(b) = self.iter.next() else {
+                let num_discarded_bytes = match self.decoder.finalize(buf) {
+                    Some(DecodeErr::DiscardedBytes(n)) => n,
+                    Some(_) => unreachable!(),
+                    None => 0,
+                };
+                return Err(ReadDecodedError::IoErr(Eof, num_discarded_bytes))
+            };
+            match self.decoder.push_byte(buf, b) {
+                Ok(false) => continue,
+                Ok(true) => return Ok(buf.len()),
+                Err(e) => return Err(ReadDecodedError::DecodeErr(e)),
+            }
+        }
+    }
+
+    pub fn read_message_into_vec(&mut self, buf: &mut Vec<u8>) -> Result<(), ReadDecodedError<Eof>> {
+        buf.clear();
+        loop {
+            let Some(b) = self.iter.next() else {
+                let num_discarded_bytes = match self.decoder.finalize(buf) {
+                    Some(DecodeErr::DiscardedBytes(n)) => n,
+                    Some(_) => unreachable!(),
+                    None => 0,
+                };
+                return Err(ReadDecodedError::IoErr(Eof, num_discarded_bytes))
+            };
             match self.decoder.push_byte(buf, b) {
                 Ok(false) => continue,
                 Ok(true) => return Ok(()),

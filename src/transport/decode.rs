@@ -464,17 +464,20 @@ impl NonOwningDecoder {
 #[cfg(feature = "alloc")]
 #[must_use]
 pub fn decode(iter: impl IntoIterator<Item = impl Borrow<u8>>) -> Vec<Result<Vec<u8>, DecodeErr>> {
-    let mut decoder: Decoder<Vec<u8>> = Decoder::new();
+    use crate::{transport2::IterReader, util::Eof};
     let mut res = Vec::new();
-    for b in iter.into_iter() {
-        match decoder.push_byte(*b.borrow()) {
-            Ok(None) => {}
-            Ok(Some(buf)) => res.push(Ok(buf.to_vec())),
-            Err(e) => res.push(Err(e)),
+    let mut reader = IterReader::new(iter.into_iter().map(|x| *x.borrow()));
+    loop {
+        let mut buf = vec!();
+        match reader.read_message_into_vec(&mut buf) {
+            Ok(()) => res.push(Ok(buf)),
+            Err(ReadDecodedError::DecodeErr(e)) => res.push(Err(e)),
+            Err(ReadDecodedError::IoErr(Eof, 0)) => break,
+            Err(ReadDecodedError::IoErr(Eof, num_discarded)) => {
+                res.push(Err(DecodeErr::DiscardedBytes(num_discarded)));
+                break
+            }
         }
-    }
-    if let Some(e) = decoder.finalize() {
-        res.push(Err(e));
     }
     res
 }
