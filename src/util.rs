@@ -76,7 +76,7 @@ impl Buffer for VecBuf {
 impl private::Sealed for VecBuf {}
 
 /// Byte buffer backed by a slice.
-pub struct SliceBuf<'a> {
+pub(crate) struct SliceBuf<'a> {
     buffer: &'a mut [u8],
     num_elements: usize,
 }
