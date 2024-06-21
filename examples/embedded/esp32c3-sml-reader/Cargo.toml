@@ -41,5 +41,6 @@ opt-level = 's'
 overflow-checks = false
 
 [patch.crates-io]
-# TODO: remove once https://github.com/esp-rs/esp-hal/pull/1702 is merged and released
-esp-hal = { git = "https://github.com/felixwrt/esp-hal.git", rev = "c7bdd3519ace4e392b7c9f38d41c5cbc96f51bc8" }
+# Needed for `embedded_io::ReadReady` impl on `Uart(Rx)`
+# TODO: remove once a new version of esp-hal is released (see #39)
+esp-hal = { git = "https://github.com/esp-rs/esp-hal.git", rev = "9691141feddf7fff73fd5d734a99d213ae9966eb" }
