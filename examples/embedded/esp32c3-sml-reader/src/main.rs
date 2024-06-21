@@ -136,7 +136,6 @@ fn read_blocking(pin: &mut impl embedded_io::Read, mut toggle_led: impl FnMut())
                 log::warn!("UART RX Error: {:?}", e)
             }
         }
-        
     }
 }
 
@@ -161,7 +160,6 @@ fn read_polling<PIN: embedded_io::Read + embedded_io::ReadReady>(
             // toggle the LED
             toggle_led();
 
-            
             match r {
                 Ok(_) => {
                     // process the read byte
@@ -184,7 +182,9 @@ fn read_polling<PIN: embedded_io::Read + embedded_io::ReadReady>(
         }
 
         // print a message every 5 seconds
-        let mut secs_since_start = esp_hal::time::current_time().duration_since_epoch().to_secs();
+        let mut secs_since_start = esp_hal::time::current_time()
+            .duration_since_epoch()
+            .to_secs();
         if secs_since_start >= last_print_time + 5 {
             last_print_time = secs_since_start;
             log::info!("Hello from the print task!");
@@ -202,7 +202,7 @@ where
         Level::High => RGB::new(0, 0, 2),
         Level::Low => RGB::new(0, 0, 0),
     };
-    led.write([color].into_iter()).unwrap()
+    led.write([color]).unwrap()
 }
 #[cfg(not(feature = "smart-led"))]
 fn led_write(led: &mut AnyOutput, level: Level) {

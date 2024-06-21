@@ -104,7 +104,7 @@ where
         Level::High => RGB::new(0, 0, 2),
         Level::Low => RGB::new(0, 0, 0),
     };
-    led.write([color].into_iter()).unwrap()
+    led.write([color]).unwrap()
 }
 #[cfg(not(feature = "smart-led"))]
 fn led_write(led: &mut AnyOutput, level: Level) {

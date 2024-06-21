@@ -39,7 +39,7 @@ jobs:
       - run: cargo build -p sml-rs-serialport-example
 
   build_esp_examples:
-    name: Build ESP32-C3 Examples
+    name: ESP Examples
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -51,7 +51,7 @@ jobs:
         action:
           - command: build
             args: --release
-          - command: build (all-features)
+          - command: build
             args: --release --all-features
           - command: fmt
             args: --all -- --check --color always
