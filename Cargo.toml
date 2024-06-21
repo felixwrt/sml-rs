@@ -3,8 +3,8 @@ members = [".", "examples/serialport"]
 
 [package]
 name = "sml-rs"
-version = "0.3.0"
-authors = ["Felix Wirth <felix@wirth.one>"]
+version = "0.4.0"
+authors = ["Felix Wirth <me@felixwrt.dev>"]
 description = "Smart Message Language (SML) parser written in Rust"
 repository = "https://github.com/felixwrt/sml-rs"
 license = "MIT OR Apache-2.0"

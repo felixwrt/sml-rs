@@ -1,7 +1,7 @@
 [package]
 name = "sml-rs-serialport-example"
 version = "0.1.0"
-authors = ["Felix Wirth <felix@wirth.one>"]
+authors = ["Felix Wirth <me@felixwrt.dev>"]
 description = "Example of using `sml-rs` with `serialport`"
 repository = "https://github.com/felixwrt/sml-rs"
 license = "MIT OR Apache-2.0"
