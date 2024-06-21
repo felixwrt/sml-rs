@@ -51,6 +51,8 @@ jobs:
         action:
           - command: build
             args: --release
+          - command: build (all-features)
+            args: --release --all-features
           - command: fmt
             args: --all -- --check --color always
           - command: clippy

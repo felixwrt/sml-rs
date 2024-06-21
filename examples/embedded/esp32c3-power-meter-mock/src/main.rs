@@ -2,22 +2,28 @@
 #![no_main]
 
 use esp_backtrace as _;
+#[cfg(not(feature = "smart-led"))]
+use esp_hal::gpio::AnyOutput;
 use esp_hal::{
     clock::ClockControl,
     delay::Delay,
-    gpio::Io,
+    gpio::{Io, Level},
     peripherals::Peripherals,
     prelude::*,
-    rmt::Rmt,
     system::SystemControl,
     uart::{
         config::{Config, StopBits},
         TxRxPins, Uart,
     },
 };
-use esp_hal_smartled::{smartLedBuffer, SmartLedsAdapter};
 use hex_literal::hex;
-use smart_leds::{SmartLedsWrite, RGB};
+
+#[cfg(feature = "smart-led")]
+use esp_hal::rmt::Rmt;
+#[cfg(feature = "smart-led")]
+use esp_hal_smartled::{smartLedBuffer, SmartLedsAdapter};
+#[cfg(feature = "smart-led")]
+use smart_leds::RGB;
 
 use embedded_io::Write;
 
@@ -38,20 +44,36 @@ fn main() -> ! {
     let clocks = ClockControl::max(system.clock_control).freeze();
     let delay = Delay::new(&clocks);
     let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
-    let rmt = Rmt::new(peripherals.RMT, 80.MHz(), &clocks, None).unwrap();
 
-    // RGB LED
-    let rmt_buffer = smartLedBuffer!(1);
-    // Using pin 8 for the smart LED, which is the right pin for the ESP32-C3-DevKitC-02.
-    // see https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/hw-reference/esp32c3/user-guide-devkitc-02.html
-    let led_pin = io.pins.gpio8;
-    let mut led = SmartLedsAdapter::new(rmt.channel0, led_pin, rmt_buffer, &clocks);
-
-    // UART PORT
+    // -----------------------------------------------------------------------
+    // Pin configuration - adapt to your board
+    // -----------------------------------------------------------------------
+    let led_pin = io.pins.gpio18;
     let tx_pin = io.pins.gpio9;
-    let rx_pin = io.pins.gpio3;
-    let pins = TxRxPins::new_tx_rx(tx_pin, rx_pin);
+    // rx is unused, but needs to be provided for UART
+    let rx_pin = io.pins.gpio10;
+    // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
 
+    // Init logging
+    esp_println::logger::init_logger_from_env();
+
+    // LED Configuration
+    let mut led;
+    #[cfg(feature = "smart-led")]
+    {
+        let rmt = Rmt::new(peripherals.RMT, 80.MHz(), &clocks, None).unwrap();
+        let rmt_buffer = smartLedBuffer!(1);
+        led = SmartLedsAdapter::new(rmt.channel0, led_pin, rmt_buffer, &clocks);
+    }
+    #[cfg(not(feature = "smart-led"))]
+    {
+        led = AnyOutput::new(led_pin, Level::High);
+    }
+
+    // UART Configuration
+    let pins = TxRxPins::new_tx_rx(tx_pin, rx_pin);
     let uart_config = Config::default()
         .baudrate(9600)
         .parity_none()
@@ -59,16 +81,33 @@ fn main() -> ! {
     let mut uart1 =
         Uart::new_with_config(peripherals.UART1, uart_config, Some(pins), &clocks, None);
 
-    esp_println::logger::init_logger_from_env();
-
-    uart1.write(TEST_DATA[0]).unwrap();
+    // Main Loop
     let mut data_iter = TEST_DATA.iter().cycle();
     loop {
         let data = data_iter.next().unwrap();
         log::info!("Sending data!");
-        led.write([RGB::new(0, 0, 2)].into_iter()).unwrap();
+        led_write(&mut led, Level::High);
+
         uart1.write(data).unwrap();
-        led.write([RGB::new(0, 0, 0)].into_iter()).unwrap();
+
+        led_write(&mut led, Level::Low);
         delay.delay(1000.millis());
     }
+}
+
+#[cfg(feature = "smart-led")]
+fn led_write<S>(led: &mut S, level: Level)
+where
+    S: smart_leds::SmartLedsWrite<Color = RGB<u8>>,
+    S::Error: core::fmt::Debug,
+{
+    let color = match level {
+        Level::High => RGB::new(0, 0, 2),
+        Level::Low => RGB::new(0, 0, 0),
+    };
+    led.write([color].into_iter()).unwrap()
+}
+#[cfg(not(feature = "smart-led"))]
+fn led_write(led: &mut AnyOutput, level: Level) {
+    led.set_level(level)
 }
