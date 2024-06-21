@@ -32,7 +32,6 @@ use sml_rs::{transport::Decoder, util::ArrayBuf};
 fn main() -> ! {
     let peripherals = Peripherals::take();
     let system = SystemControl::new(peripherals.SYSTEM);
-
     let clocks = ClockControl::max(system.clock_control).freeze();
     let delay = Delay::new(&clocks);
     let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
@@ -113,23 +112,31 @@ fn read_blocking(pin: &mut impl embedded_io::Read, mut toggle_led: impl FnMut())
     loop {
         // read byte from the pin
         let mut b = 0u8;
-        pin.read(slice::from_mut(&mut b)).unwrap();
+        let r = pin.read(slice::from_mut(&mut b));
 
         // toggle the LED
         toggle_led();
 
-        // process the read byte
-        match decoder.push_byte(b) {
-            Ok(None) => {
-                continue;
-            }
-            Ok(Some(bytes)) => {
-                log::info!("Got data: {bytes:?}")
+        match r {
+            Ok(_) => {
+                // process the read byte
+                match decoder.push_byte(b) {
+                    Ok(None) => {
+                        continue;
+                    }
+                    Ok(Some(bytes)) => {
+                        log::info!("Got data: {bytes:?}")
+                    }
+                    Err(e) => {
+                        log::error!("Error receiving data: {e}")
+                    }
+                }
             }
             Err(e) => {
-                log::error!("Error receiving data: {e}")
+                log::warn!("UART RX Error: {:?}", e)
             }
         }
+        
     }
 }
 
@@ -149,21 +156,29 @@ fn read_polling<PIN: embedded_io::Read + embedded_io::ReadReady>(
         if pin.read_ready().unwrap() {
             // read byte from the pin
             let mut b = 0u8;
-            pin.read(slice::from_mut(&mut b)).unwrap();
+            let r = pin.read(slice::from_mut(&mut b));
 
             // toggle the LED
             toggle_led();
 
-            // process the read byte
-            match decoder.push_byte(b) {
-                Ok(None) => {
-                    continue;
-                }
-                Ok(Some(bytes)) => {
-                    log::info!("Got data: {bytes:?}")
+            
+            match r {
+                Ok(_) => {
+                    // process the read byte
+                    match decoder.push_byte(b) {
+                        Ok(None) => {
+                            continue;
+                        }
+                        Ok(Some(bytes)) => {
+                            log::info!("Got data: {bytes:?}")
+                        }
+                        Err(e) => {
+                            log::error!("Error receiving data: {e}")
+                        }
+                    }
                 }
                 Err(e) => {
-                    log::error!("Error receiving data: {e}")
+                    log::warn!("UART RX Error: {:?}", e)
                 }
             }
         }
