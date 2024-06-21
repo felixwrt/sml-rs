@@ -13,6 +13,7 @@
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
 //! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
 //! - **`nb`** - Enables non-blocking APIs using the `nb` crate.
+//! - **`serde`** - Implements `Serialize` and `Deserialize` on most error types.
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]

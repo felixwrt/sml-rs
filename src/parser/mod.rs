@@ -100,9 +100,7 @@
 //! })
 //! ```
 //!
-//! ## Serialize/Deserialize Error messages
-//! The error messages 'ParseError', 'TlfParseError' and 'DecodeErr' can be serialized/deserialized with the
-//! feature flag "serde".
+//!
 
 use core::{
     fmt::{self, Debug},
