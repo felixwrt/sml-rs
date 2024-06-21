@@ -1,9 +1,11 @@
 [package]
 name = "esp32c3-sml-reader-async"
 version = "0.1.0"
-authors = ["Felix Wirth <felix@wirth.one>"]
+authors = ["Felix Wirth <me@felixwrt.dev>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
+
+[workspace]
 
 [dependencies]
 embassy-executor = { version = "0.5.0", features = ["task-arena-size-40960"] }

@@ -3,7 +3,17 @@
 
 use esp_backtrace as _;
 use esp_hal::{
-    clock::ClockControl, delay::Delay, gpio::Io, peripherals::Peripherals, prelude::*, rmt::Rmt, system::SystemControl, uart::{config::{Config, StopBits}, TxRxPins, Uart}
+    clock::ClockControl,
+    delay::Delay,
+    gpio::Io,
+    peripherals::Peripherals,
+    prelude::*,
+    rmt::Rmt,
+    system::SystemControl,
+    uart::{
+        config::{Config, StopBits},
+        TxRxPins, Uart,
+    },
 };
 use esp_hal_smartled::{smartLedBuffer, SmartLedsAdapter};
 use hex_literal::hex;
@@ -42,8 +52,12 @@ fn main() -> ! {
     let rx_pin = io.pins.gpio3;
     let pins = TxRxPins::new_tx_rx(tx_pin, rx_pin);
 
-    let uart_config = Config::default().baudrate(9600).parity_none().stop_bits(StopBits::STOP1);
-    let mut uart1 = Uart::new_with_config(peripherals.UART1, uart_config, Some(pins), &clocks, None);
+    let uart_config = Config::default()
+        .baudrate(9600)
+        .parity_none()
+        .stop_bits(StopBits::STOP1);
+    let mut uart1 =
+        Uart::new_with_config(peripherals.UART1, uart_config, Some(pins), &clocks, None);
 
     esp_println::logger::init_logger_from_env();
 

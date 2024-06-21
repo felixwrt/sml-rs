@@ -1,9 +1,11 @@
 [package]
 name = "esp32c3-sml-reader"
 version = "0.1.0"
-authors = ["Felix Wirth <felix@wirth.one>"]
+authors = ["Felix Wirth <me@felixwrt.dev>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
+
+[workspace]
 
 [dependencies]
 embedded-io = "0.6.1"
@@ -34,4 +36,5 @@ opt-level = 's'
 overflow-checks = false
 
 [patch.crates-io]
-esp-hal ={ path = "../esp-hal/esp-hal" }
+# TODO: remove once https://github.com/esp-rs/esp-hal/pull/1702 is merged and released
+esp-hal = { git = "https://github.com/felixwrt/esp-hal.git", rev = "c7bdd3519ace4e392b7c9f38d41c5cbc96f51bc8" }
