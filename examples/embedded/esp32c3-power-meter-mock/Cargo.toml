@@ -21,13 +21,14 @@ esp-println = { version = "0.9.1", features = ["esp32c3", "log"] }
 hex-literal = "0.4.1"
 log = { version = "0.4.21" }
 smart-leds = { version = "0.4.0", optional = true }
+
+[features]
+smart-led = ["dep:smart-leds", "dep:esp-hal-smartled"]
+
 [profile.dev]
 # Rust debug is too slow.
 # For debug builds always builds with some optimization
 opt-level = "s"
-
-[features]
-smart-led = ["dep:smart-leds", "dep:esp-hal-smartled"]
 
 [profile.release]
 codegen-units = 1 # LLVM can perform better optimizations using a single thread
