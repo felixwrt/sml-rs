@@ -1,0 +1,37 @@
+[package]
+name = "esp32c3-power-meter-mock"
+version = "0.1.0"
+authors = ["Felix Wirth <felix@wirth.one>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace]
+
+
+[dependencies]
+embedded-io = "0.6.1"
+esp-backtrace = { version = "0.12.0", features = [
+    "esp32c3",
+    "exception-handler",
+    "panic-handler",
+    "println",
+] }
+esp-hal = { version = "0.18.0", features = ["embedded-io", "esp32c3"] }
+esp-hal-smartled = { version = "0.11.0", features = ["esp32c3"] }
+esp-println = { version = "0.9.1", features = ["esp32c3", "log"] }
+hex-literal = "0.4.1"
+log = { version = "0.4.21" }
+smart-leds = "0.4.0"
+[profile.dev]
+# Rust debug is too slow.
+# For debug builds always builds with some optimization
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1 # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+lto = 'fat'
+opt-level = 's'
+overflow-checks = false
