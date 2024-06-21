@@ -2,10 +2,14 @@
 
 use core::fmt;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use super::{DecodeErr, Decoder};
 use crate::util::{Buffer, ByteSource, ByteSourceErr};
 
 /// Error type used by the `DecoderReader`
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, PartialEq)]
 pub enum ReadDecodedError<IoErr> {
     /// Error while decoding the data (e.g. checksum mismatch)

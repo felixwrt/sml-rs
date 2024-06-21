@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Embedded examples for the ESP32-C3 (#37)
+- Added `serde` feature which implements `Serialize` and `Deserialize` on most error types (#33)
 
 ## [0.4.0] - 2024-06-04
 

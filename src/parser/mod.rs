@@ -107,6 +107,9 @@ use core::{
     ops::Deref,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use tlf::TypeLengthField;
 
 pub mod common;
@@ -122,6 +125,7 @@ pub use tlf::TlfParseError;
 pub use octet_string::OctetStr;
 
 /// Error type used by the parser
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError {
     /// There are additional bytes in the input while the parser expects EOF

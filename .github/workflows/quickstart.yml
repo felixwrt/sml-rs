@@ -28,6 +28,7 @@ jobs:
       - run: cargo test --no-default-features --features=embedded_hal
       - run: cargo test --no-default-features --features=embedded_hal,alloc
       - run: cargo test --no-default-features --features=embedded_hal,alloc,std
+      - run: cargo test --no-default-features --features=embedded_hal,alloc,std,serde
 
   build_examples:
     name: Build Examples
