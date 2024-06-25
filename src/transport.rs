@@ -1039,4 +1039,14 @@ mod decode_tests {
 
         test_parse_input::<Vec<u8>>(&bytes, exp);
     }
+
+    #[test]
+    #[ignore = "not supported yet"]
+    fn padding_exceeding_buffer_size() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12345600 1b1b1b1b 1a01f4c8");
+        let exp_bytes = hex!("12345678 123456");
+        let exp = &[Ok(exp_bytes.as_slice())];
+
+        test_parse_input::<ArrayBuf<7>>(&bytes, exp);
+    }
 }
