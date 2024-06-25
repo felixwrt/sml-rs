@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 use core::borrow::Borrow;
 
-use crate::{transport::{DecodeErr, DecoderInner, ReadDecodedError}, util::{Buffer, Eof, SliceBuf}};
+use crate::{transport::{DecodeErr, NonOwningDecoder, ReadDecodedError}, util::{Buffer, Eof, SliceBuf}};
 
 
 // GOAL:
@@ -24,7 +24,7 @@ use crate::{transport::{DecodeErr, DecoderInner, ReadDecodedError}, util::{Buffe
 #[cfg(feature = "std")]
 pub struct IoReader<R: std::io::Read> {
     reader: R,
-    decoder: DecoderInner,
+    decoder: NonOwningDecoder,
 }
 
 #[cfg(feature = "std")]
@@ -32,7 +32,7 @@ impl<R: std::io::Read> IoReader<R> {
     pub fn new(reader: R) -> Self {
         Self {
             reader,
-            decoder: DecoderInner::new(),
+            decoder: NonOwningDecoder::new(),
         }
     }
 
@@ -98,7 +98,7 @@ impl<R: std::io::Read> IoReader<R> {
 #[cfg(feature = "embedded-io")]
 pub struct EIoReader<R: embedded_io::Read> {
     reader: R,
-    decoder: DecoderInner,
+    decoder: NonOwningDecoder,
 }
 
 #[cfg(feature = "embedded-io")]
@@ -172,7 +172,7 @@ impl<R: embedded_io::Read> EIoReader<R> {
 #[cfg(feature = "embedded-io-async")]
 pub struct EIoAsyncReader<R: embedded_io_async::Read> {
     reader: R,
-    decoder: DecoderInner,
+    decoder: NonOwningDecoder,
 }
 
 
@@ -186,7 +186,7 @@ impl<R: embedded_io_async::Read> EIoAsyncReader<R> {
 
 pub struct IterReader<I: Iterator<Item = u8>> {
     iter: I,
-    decoder: DecoderInner
+    decoder: NonOwningDecoder
 }
 
 impl<I: Iterator<Item = u8>> IterReader<I> {
