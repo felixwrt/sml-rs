@@ -15,11 +15,15 @@ default = ["std"]
 std = ["alloc"]
 alloc = []
 embedded_hal = ["nb", "embedded-hal"]
+embedded-io = ["dep:embedded-io"]
+embedded-io-async = ["dep:embedded-io-async"]
 serde = ["dep:serde"]
 
 [dependencies]
 crc = "3.0.0"
 embedded-hal = { version = "0.2.7", optional = true }
+embedded-io = { version = "0.6.1", optional = true }
+embedded-io-async = { version = "0.6.1", optional = true }
 nb = { version = "1.1.0", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
