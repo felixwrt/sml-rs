@@ -306,7 +306,10 @@ enum DecodeState {
     },
     ParsingNormal,
     ParsingEscChars(u8),
-    ParsingEscPayload(u8),
+    ParsingEscPayload {
+        step: u8,
+        payload: [u8; 4],
+    },
     Done,
 }
 
@@ -476,22 +479,32 @@ impl NonOwningDecoder {
                     // this is the fourth 0x1b byte, so we're seeing an escape sequence.
                     // continue by parsing the escape sequence's payload.
 
-                    self.state = ParsingEscPayload(0);
+                    self.state = ParsingEscPayload {
+                        step: 0,
+                        payload: Default::default(),
+                    };
                 } else {
                     self.state = ParsingEscChars(n + 1);
                 }
             }
-            ParsingEscPayload(n) => {
-                self.push(buf, b)?;
-                if n < 3 {
-                    self.state = ParsingEscPayload(n + 1);
+            ParsingEscPayload { step, mut payload } => {
+                payload[step as usize] = b;
+                if step < 3 {
+                    self.state = ParsingEscPayload {
+                        step: step + 1,
+                        payload,
+                    };
                 } else {
                     // last 4 elements in self.buf are the escape sequence payload
-                    let payload = &buf[buf.len() - 4..buf.len()];
                     if payload == [0x1b, 0x1b, 0x1b, 0x1b] {
                         // escape sequence in user data
 
-                        self.crc.update(payload);
+                        self.crc.update(&payload);
+
+                        // push escape sequence bytes
+                        for b in payload {
+                            self.push(buf, b)?;
+                        }
 
                         // nothing to do here as the input has already been added to the buffer (see above)
                         self.state = ParsingNormal;
@@ -529,7 +542,7 @@ impl NonOwningDecoder {
 
                         // check if padding is larger than the message length
                         let padding_too_large =
-                            num_padding_bytes > 3 || (num_padding_bytes as usize + 4) > buf.len();
+                            num_padding_bytes > 3 || (num_padding_bytes as usize) > buf.len();
 
                         if read_crc != calculated_crc || misaligned || padding_too_large {
                             self.reset(buf);
@@ -541,7 +554,7 @@ impl NonOwningDecoder {
                         }
 
                         // subtract padding bytes and escape payload length from buffer length
-                        buf.truncate(buf.len() - num_padding_bytes as usize - 4);
+                        buf.truncate(buf.len() - num_padding_bytes as usize);
 
                         self.set_done();
 
@@ -573,16 +586,23 @@ impl NonOwningDecoder {
                             && payload[bytes_until_alignment] == 0x1a
                         {
                             self.crc.update(&payload[..bytes_until_alignment]);
-                            self.state = ParsingEscPayload(4 - bytes_until_alignment as u8);
+                            // push bytes that are in payload but belong to the message
+                            for _ in 0..bytes_until_alignment {
+                                self.push(buf, 0x1b)?;
+                            }
+                            // shift the remaining bytes to the beginning of `payload`
+                            payload.copy_within(bytes_until_alignment.., 0);
+                            self.state = ParsingEscPayload {
+                                step: 4 - bytes_until_alignment as u8,
+                                payload,
+                            };
                             return Ok(false);
                         }
 
                         // invalid escape sequence
 
-                        // unwrap is safe here because payload is guaranteed to have size 4
-                        let esc_bytes: [u8; 4] = payload.try_into().unwrap();
                         self.reset(buf);
-                        return Err(DecodeErr::InvalidEsc(esc_bytes));
+                        return Err(DecodeErr::InvalidEsc(payload));
                     }
                 }
             }
@@ -880,15 +900,18 @@ mod decode_tests {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
         let exp = &[Ok(hex!("12345678").as_slice())];
 
-        test_parse_input::<ArrayBuf<8>>(&bytes, exp);
+        test_parse_input::<ArrayBuf<4>>(&bytes, exp);
     }
 
     #[test]
     fn out_of_memory() {
         let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b1b 1a00b87b");
-        let exp = &[Err(DecodeErr::OutOfMemory)];
+        let exp = &[
+            Err(DecodeErr::OutOfMemory),
+            Err(DecodeErr::DiscardedBytes(8)),
+        ];
 
-        test_parse_input::<ArrayBuf<7>>(&bytes, exp);
+        test_parse_input::<ArrayBuf<3>>(&bytes, exp);
     }
 
     #[test]
@@ -900,7 +923,7 @@ mod decode_tests {
             num_padding_bytes: 0,
         })];
 
-        test_parse_input::<ArrayBuf<8>>(&bytes, exp);
+        test_parse_input::<ArrayBuf<4>>(&bytes, exp);
     }
 
     #[test]
