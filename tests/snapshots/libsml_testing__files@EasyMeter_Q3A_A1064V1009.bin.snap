@@ -16,6 +16,7 @@ Err(
         ),
         end_esc_misaligned: false,
         num_padding_bytes: 3,
+        invalid_padding_bytes: false,
     },
 )
 Ok(
@@ -242,6 +243,7 @@ Err(
         ),
         end_esc_misaligned: true,
         num_padding_bytes: 3,
+        invalid_padding_bytes: false,
     },
 )
 Err(
@@ -252,6 +254,7 @@ Err(
         ),
         end_esc_misaligned: true,
         num_padding_bytes: 3,
+        invalid_padding_bytes: false,
     },
 )
 Ok(
@@ -475,4 +478,3 @@ Err(
         146,
     ),
 )
-

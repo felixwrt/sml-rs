@@ -286,6 +286,8 @@ pub enum DecodeErr {
         end_esc_misaligned: bool,
         /// the number of padding bytes.
         num_padding_bytes: u8,
+        /// whether some padding bytes weren't equal to zero
+        invalid_padding_bytes: bool,
     },
 }
 
@@ -399,9 +401,13 @@ impl<B: Buffer> Decoder<B> {
 }
 
 pub(crate) struct NonOwningDecoder {
+    // the number of bytes that were read out of the byte source
     raw_msg_len: usize,
     crc: crc::Digest<'static, u16>,
     state: DecodeState,
+    // the number of zero bytes that weren't written into the buffer
+    // immediately because they could be padding bytes
+    zero_cache: u8,
 }
 
 impl Default for NonOwningDecoder {
@@ -413,6 +419,7 @@ impl Default for NonOwningDecoder {
                 num_discarded_bytes: 0,
                 num_init_seq_bytes: 0,
             },
+            zero_cache: 0,
         }
     }
 }
@@ -445,7 +452,6 @@ impl NonOwningDecoder {
                     let num_discarded_bytes = *num_discarded_bytes;
                     self.state = ParsingNormal;
                     self.raw_msg_len = 8;
-                    assert_eq!(buf.len(), 0);
                     self.crc = CRC_X25.digest();
                     self.crc
                         .update(&[0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01]);
@@ -514,6 +520,7 @@ impl NonOwningDecoder {
                         // ignore everything that has previously been read and start reading a new transmission
                         let ignored_bytes = self.raw_msg_len - 8;
                         self.raw_msg_len = 8;
+                        self.zero_cache = 0;
                         buf.clear();
                         self.crc = CRC_X25.digest();
                         self.crc
@@ -538,23 +545,36 @@ impl NonOwningDecoder {
                         };
 
                         // check alignment (end marker needs to have 4-byte alignment)
-                        let misaligned = buf.len() % 4 != 0;
+                        let misaligned = self.raw_msg_len % 4 != 0;
 
                         // check if padding is larger than the message length
-                        let padding_too_large =
-                            num_padding_bytes > 3 || (num_padding_bytes as usize) > buf.len();
+                        let padding_too_large = num_padding_bytes > 3;
+                        // hint: start esc + end esc = 16 bytes
+                        let padding_larger_than_msg_size =
+                            self.raw_msg_len < (num_padding_bytes as usize) + 16;
 
-                        if read_crc != calculated_crc || misaligned || padding_too_large {
+                        // check whether padding bytes are correct
+                        let invalid_padding_bytes = num_padding_bytes > self.zero_cache;
+
+                        if read_crc != calculated_crc
+                            || misaligned
+                            || padding_too_large
+                            || padding_larger_than_msg_size
+                            || invalid_padding_bytes
+                        {
                             self.reset(buf);
                             return Err(DecodeErr::InvalidMessage {
                                 checksum_mismatch: (read_crc, calculated_crc),
                                 end_esc_misaligned: misaligned,
                                 num_padding_bytes,
+                                invalid_padding_bytes,
                             });
                         }
 
-                        // subtract padding bytes and escape payload length from buffer length
-                        buf.truncate(buf.len() - num_padding_bytes as usize);
+                        // remove padding bytes
+                        self.zero_cache -= num_padding_bytes;
+
+                        self.flush(buf)?;
 
                         self.set_done();
 
@@ -580,7 +600,7 @@ impl NonOwningDecoder {
                         // If that's the case, simply reset the parser state by 1-3 steps. This
                         // will parse the 0x1b bytes in the message as regular bytes and check
                         // for the end escape code at the right position.
-                        let bytes_until_alignment = (4 - (buf.len() % 4)) % 4;
+                        let bytes_until_alignment = (4 - (self.raw_msg_len % 4)) % 4;
                         if bytes_until_alignment > 0
                             && payload[..bytes_until_alignment].iter().all(|x| *x == 0x1b)
                             && payload[bytes_until_alignment] == 0x1a
@@ -642,10 +662,37 @@ impl NonOwningDecoder {
         };
         buf.clear();
         self.raw_msg_len = 0;
+        self.zero_cache = 0;
         num_discarded
     }
 
+    // pushes bytes from the `zero_cache` into the output buffer
+    fn flush(&mut self, buf: &mut impl Buffer) -> Result<(), DecodeErr> {
+        for _ in 0..self.zero_cache {
+            self.push_inner(buf, 0)?;
+        }
+        self.zero_cache = 0;
+        Ok(())
+    }
+
     fn push(&mut self, buf: &mut impl Buffer, b: u8) -> Result<(), DecodeErr> {
+        if b == 0 {
+            if self.zero_cache <= 3 {
+                self.zero_cache += 1;
+            } else {
+                // directly push into the output buffer if there are already 3
+                // zero bytes in the cache. Padding cannot be larger than three
+                // and this makes sure that the zero_cache cannot grow infinitely.
+                self.push_inner(buf, b)?;
+            }
+        } else {
+            self.flush(buf)?;
+            self.push_inner(buf, b)?;
+        }
+        Ok(())
+    }
+
+    fn push_inner(&mut self, buf: &mut impl Buffer, b: u8) -> Result<(), DecodeErr> {
         if buf.push(b).is_err() {
             self.reset(buf);
             return Err(DecodeErr::OutOfMemory);
@@ -921,6 +968,7 @@ mod decode_tests {
             checksum_mismatch: (0xFFb8, 0x7bb8),
             end_esc_misaligned: false,
             num_padding_bytes: 0,
+            invalid_padding_bytes: false,
         })];
 
         test_parse_input::<ArrayBuf<4>>(&bytes, exp);
@@ -933,6 +981,7 @@ mod decode_tests {
             checksum_mismatch: (0xb613, 0xb613),
             end_esc_misaligned: true,
             num_padding_bytes: 0,
+            invalid_padding_bytes: false,
         })];
 
         test_parse_input::<ArrayBuf<16>>(&bytes, exp);
@@ -945,6 +994,7 @@ mod decode_tests {
             checksum_mismatch: (0x50f9, 0x50f9),
             end_esc_misaligned: false,
             num_padding_bytes: 4,
+            invalid_padding_bytes: true,
         })];
 
         test_parse_input::<ArrayBuf<16>>(&bytes, exp);
@@ -957,6 +1007,7 @@ mod decode_tests {
             checksum_mismatch: (0xf44f, 0xf44f),
             end_esc_misaligned: false,
             num_padding_bytes: 1,
+            invalid_padding_bytes: true,
         })];
 
         test_parse_input::<ArrayBuf<16>>(&bytes, exp);
@@ -995,8 +1046,8 @@ mod decode_tests {
 
     #[test]
     fn incomplete_esc_sequence() {
-        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b00 12345678 1b1b1b1b 1a030A07");
-        let exp = &[Ok(hex!("12345678 1b1b1b00 12").as_slice())];
+        let bytes = hex!("1b1b1b1b 01010101 12345678 1b1b1b00 12345678 1b1b1b1b 1a009135");
+        let exp = &[Ok(hex!("12345678 1b1b1b00 12345678").as_slice())];
 
         test_parse_input::<ArrayBuf<128>>(&bytes, exp);
     }
@@ -1064,12 +1115,122 @@ mod decode_tests {
     }
 
     #[test]
-    #[ignore = "not supported yet"]
     fn padding_exceeding_buffer_size() {
         let bytes = hex!("1b1b1b1b 01010101 12345678 12345600 1b1b1b1b 1a01f4c8");
         let exp_bytes = hex!("12345678 123456");
         let exp = &[Ok(exp_bytes.as_slice())];
 
         test_parse_input::<ArrayBuf<7>>(&bytes, exp);
+    }
+
+    #[test]
+    fn invalid_padding_bytes_1() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12345601 1b1b1b1b 1a012157");
+        let exp = &[Err(DecodeErr::InvalidMessage {
+            checksum_mismatch: (0x5721, 0x5721),
+            end_esc_misaligned: false,
+            num_padding_bytes: 1,
+            invalid_padding_bytes: true,
+        })];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn invalid_padding_bytes_2() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12000100 1b1b1b1b 1a03297e");
+        let exp = &[Err(DecodeErr::InvalidMessage {
+            checksum_mismatch: (0x7e29, 0x7e29),
+            end_esc_misaligned: false,
+            num_padding_bytes: 3,
+            invalid_padding_bytes: true,
+        })];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn invalid_padding_bytes_3() {
+        let bytes = hex!("1b1b1b1b 01010101 12345678 12ff0000 1b1b1b1b 1a03a743");
+        let exp = &[Err(DecodeErr::InvalidMessage {
+            checksum_mismatch: (0x43a7, 0x43a7),
+            end_esc_misaligned: false,
+            num_padding_bytes: 3,
+            invalid_padding_bytes: true,
+        })];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn another_msg_start_after_padding_1() {
+        let bytes = hex!("1b1b1b1b 01010101 120000 1b1b1b1b 01010101 87654321 1b1b1b1b 1a00423c");
+        let exp = &[
+            Err(DecodeErr::DiscardedBytes(11)),
+            Ok(hex!("87654321").as_slice()),
+        ];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn another_msg_start_after_padding_2() {
+        let bytes = hex!("1b1b1b1b 01010101 120000 1b1b1b1b 01010101 1b1b1b1b 1a00c6e5");
+        let exp = &[Err(DecodeErr::DiscardedBytes(11)), Ok(hex!("").as_slice())];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn another_msg_start_after_padding_3() {
+        let bytes = hex!("1b1b1b1b 01010101 120000 1b1b1b1b 01010101 1b1b1b1b 1a014ff4");
+        let exp = &[
+            Err(DecodeErr::DiscardedBytes(11)),
+            Err(InvalidMessage {
+                checksum_mismatch: (0xf44f, 0xf44f),
+                end_esc_misaligned: false,
+                num_padding_bytes: 1,
+                invalid_padding_bytes: true,
+            }),
+        ];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn msg_end_with_zeroes_and_padding() {
+        let bytes = hex!("1b1b1b1b 01010101 12000000 1b1b1b1b 1a01e1b1");
+        let exp = &[Ok(hex!("120000").as_slice())];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
+    }
+
+    #[test]
+    fn many_zeroes_in_msg() {
+        let bytes = hex!(
+            "1b1b1b1b 01010101 12345678"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "1b1b1b1b 1a00f14a"
+        );
+        let exp_bytes = hex!(
+            "12345678"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+            "00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000"
+        );
+        let exp = &[Ok(exp_bytes.as_slice())];
+        test_parse_input::<ArrayBuf<1024>>(&bytes, exp);
+    }
+
+    #[test]
+    fn eof_after_zero() {
+        let bytes = hex!("1b1b1b1b 01010101 12340000");
+        let exp = &[Err(DecodeErr::DiscardedBytes(12))];
+        test_parse_input::<ArrayBuf<12>>(&bytes, exp);
     }
 }
