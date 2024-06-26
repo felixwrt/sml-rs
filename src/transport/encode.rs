@@ -261,7 +261,7 @@ mod tests {
             exp_encoded_bytes,
             &encode::<crate::util::ArrayBuf<N>>(bytes).expect("ran out of memory"),
         );
-        
+
         // test that: encode_streaming(bytes).collect() == exp_encoded_bytes
         compare_encoded_bytes(
             exp_encoded_bytes,
