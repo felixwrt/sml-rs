@@ -25,8 +25,8 @@ pub trait Buffer: Default + Deref<Target = [u8]> + private::Sealed {
     /// Returns `Err` if the vector is full and could not be extended.
     fn push(&mut self, b: u8) -> Result<(), OutOfMemory>;
 
-    /// Shortens the vector, keeping the first len elements and dropping the rest.
-    fn truncate(&mut self, len: usize);
+    // /// Shortens the vector, keeping the first len elements and dropping the rest.
+    // fn truncate(&mut self, len: usize);
 
     /// Clears the vector, removing all values.
     fn clear(&mut self);
@@ -53,9 +53,9 @@ impl Buffer for VecBuf {
         }
     }
 
-    fn truncate(&mut self, len: usize) {
-        VecBuf::truncate(self, len);
-    }
+    // fn truncate(&mut self, len: usize) {
+    //     VecBuf::truncate(self, len);
+    // }
 
     fn clear(&mut self) {
         VecBuf::clear(self);
@@ -74,6 +74,65 @@ impl Buffer for VecBuf {
 
 #[cfg(feature = "alloc")]
 impl private::Sealed for VecBuf {}
+
+/// Byte buffer backed by a slice.
+pub(crate) struct SliceBuf<'a> {
+    buffer: &'a mut [u8],
+    num_elements: usize,
+}
+
+impl<'a> SliceBuf<'a> {
+    /// Returns a SliceBuf containing no elements
+    pub fn new(buf: &'a mut [u8]) -> Self {
+        Self { buffer: buf, num_elements: 0 }
+    }
+}
+
+// TODO: remove this, doesn't really make sense
+impl<'a> Default for SliceBuf<'a> {
+    fn default() -> Self {
+        Self { buffer: &mut [], num_elements: 0 }
+    }
+}
+
+impl<'a> Buffer for SliceBuf<'a> {
+    fn push(&mut self, b: u8) -> Result<(), OutOfMemory> {
+        if self.num_elements == self.buffer.len() {
+            Err(OutOfMemory)
+        } else {
+            self.buffer[self.num_elements] = b;
+            self.num_elements += 1;
+            Ok(())
+        }
+    }
+
+    // fn truncate(&mut self, len: usize) {
+    //     self.num_elements = self.num_elements.min(len);
+    // }
+
+    fn clear(&mut self) {
+        self.num_elements = 0;
+    }
+
+    fn extend_from_slice(&mut self, other: &[u8]) -> Result<(), OutOfMemory> {
+        if self.num_elements + other.len() > self.buffer.len() {
+            return Err(OutOfMemory);
+        }
+        self.buffer[self.num_elements..][..other.len()].copy_from_slice(other);
+        self.num_elements += other.len();
+        Ok(())
+    }
+}
+
+impl<'a> Deref for SliceBuf<'a> {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &self.buffer[0..self.num_elements]
+    }
+}
+
+impl<'a> private::Sealed for SliceBuf<'a> {}
 
 /// Byte buffer backed by an array.
 pub struct ArrayBuf<const N: usize> {
@@ -131,9 +190,9 @@ impl<const N: usize> Buffer for ArrayBuf<N> {
         }
     }
 
-    fn truncate(&mut self, len: usize) {
-        self.num_elements = self.num_elements.min(len);
-    }
+    // fn truncate(&mut self, len: usize) {
+    //     self.num_elements = self.num_elements.min(len);
+    // }
 
     fn clear(&mut self) {
         self.num_elements = 0;
@@ -397,19 +456,19 @@ mod test_arraybuf {
         assert_eq!(buf.push(30), Err(OutOfMemory));
         assert_eq!(buf.len(), 5);
         assert_eq!(&*buf, &[0, 1, 2, 10, 20]);
-        buf.truncate(1000);
-        assert_eq!(&*buf, &[0, 1, 2, 10, 20]);
-        buf.truncate(1);
-        assert_eq!(&*buf, &[0]);
-        buf.truncate(0);
-        assert_eq!(&*buf, &[]);
-        assert_eq!(buf.extend_from_slice(&[7, 6, 5, 4, 3]), Ok(()));
-        assert_eq!(&*buf, &[7, 6, 5, 4, 3]);
-        buf.truncate(1);
-        assert_eq!(&*buf, &[7]);
-        assert_eq!(buf.extend_from_slice(&[10, 11]), Ok(()));
-        assert_eq!(&*buf, &[7, 10, 11]);
-        assert_eq!(buf.extend_from_slice(&[25, 26, 27]), Err(OutOfMemory));
+        // buf.truncate(1000);
+        // assert_eq!(&*buf, &[0, 1, 2, 10, 20]);
+        // buf.truncate(1);
+        // assert_eq!(&*buf, &[0]);
+        // buf.truncate(0);
+        // assert_eq!(&*buf, &[]);
+        // assert_eq!(buf.extend_from_slice(&[7, 6, 5, 4, 3]), Ok(()));
+        // assert_eq!(&*buf, &[7, 6, 5, 4, 3]);
+        // buf.truncate(1);
+        // assert_eq!(&*buf, &[7]);
+        // assert_eq!(buf.extend_from_slice(&[10, 11]), Ok(()));
+        // assert_eq!(&*buf, &[7, 10, 11]);
+        // assert_eq!(buf.extend_from_slice(&[25, 26, 27]), Err(OutOfMemory));
         buf.clear();
         assert_eq!(&*buf, &[]);
     }
@@ -441,20 +500,20 @@ mod test_arraybuf {
 
     #[test]
     fn test_eq() {
-        let mut buf_a: ArrayBuf<5> = (0..3).collect();
+        let buf_a: ArrayBuf<5> = (0..3).collect();
         let mut buf_b: ArrayBuf<5> = (0..3).collect();
         assert_eq!(buf_a, buf_b);
         buf_b.push(123).unwrap();
         assert_ne!(buf_a, buf_b);
         buf_b.push(199).unwrap();
         assert_ne!(buf_a, buf_b);
-        buf_a.truncate(3);
-        buf_b.truncate(3);
-        assert_eq!(buf_a, buf_b);
-        buf_a.clear();
-        assert_ne!(buf_a, buf_b);
-        buf_b.clear();
-        assert_eq!(buf_a, buf_b);
+        // buf_a.truncate(3);
+        // buf_b.truncate(3);
+        // assert_eq!(buf_a, buf_b);
+        // buf_a.clear();
+        // assert_ne!(buf_a, buf_b);
+        // buf_b.clear();
+        // assert_eq!(buf_a, buf_b);
     }
 
     #[test]
