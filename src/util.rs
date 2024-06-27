@@ -245,28 +245,28 @@ impl ByteSourceErr for std::io::Error {
 impl private::Sealed for std::io::Error {}
 
 /// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
-#[cfg(feature = "embedded_hal")]
+#[cfg(feature = "embedded-hal-02")]
 pub struct EhByteSource<R, E>
 where
-    R: embedded_hal::serial::Read<u8, Error = E>,
+    R: embedded_hal_02::serial::Read<u8, Error = E>,
 {
     inner: R,
 }
 
-#[cfg(feature = "embedded_hal")]
+#[cfg(feature = "embedded-hal-02")]
 impl<R, E> EhByteSource<R, E>
 where
-    R: embedded_hal::serial::Read<u8, Error = E>,
+    R: embedded_hal_02::serial::Read<u8, Error = E>,
 {
     pub(crate) fn new(reader: R) -> Self {
         EhByteSource { inner: reader }
     }
 }
 
-#[cfg(feature = "embedded_hal")]
+#[cfg(feature = "embedded-hal-02")]
 impl<R, E> ByteSource for EhByteSource<R, E>
 where
-    R: embedded_hal::serial::Read<u8, Error = E>,
+    R: embedded_hal_02::serial::Read<u8, Error = E>,
 {
     type ReadError = nb::Error<E>;
 
@@ -275,10 +275,13 @@ where
     }
 }
 
-#[cfg(feature = "embedded_hal")]
-impl<R, E> private::Sealed for EhByteSource<R, E> where R: embedded_hal::serial::Read<u8, Error = E> {}
+#[cfg(feature = "embedded-hal-02")]
+impl<R, E> private::Sealed for EhByteSource<R, E> where
+    R: embedded_hal_02::serial::Read<u8, Error = E>
+{
+}
 
-#[cfg(feature = "embedded_hal")]
+#[cfg(feature = "embedded-hal-02")]
 impl<E> ByteSourceErr for nb::Error<E> {
     fn kind(&self) -> ErrKind {
         match self {
@@ -288,7 +291,7 @@ impl<E> ByteSourceErr for nb::Error<E> {
     }
 }
 
-#[cfg(feature = "embedded_hal")]
+#[cfg(feature = "embedded-hal-02")]
 impl<E> private::Sealed for nb::Error<E> {}
 
 /// Error type indicating that the end of the input has been reached
