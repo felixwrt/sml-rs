@@ -6,7 +6,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::{DecodeErr, Decoder};
-use crate::util::{Buffer, ByteSource, ByteSourceErr};
+use crate::util::{Buffer, ByteSource, ByteSourceErr, ErrKind};
 
 /// Error type used by the `DecoderReader`
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -72,12 +72,12 @@ where
                     Err(e) => return Err(ReadDecodedError::DecodeErr(e)),
                 },
                 Err(e) => {
-                    assert!(!(e.is_eof() && e.is_would_block()));
-                    let discarded_bytes = if !e.is_would_block() {
-                        // reset the decoder
-                        self.decoder.reset()
-                    } else {
-                        0
+                    let discarded_bytes = match e.kind() {
+                        ErrKind::Eof | ErrKind::Other => {
+                            // reset the decoder and return how many bytes were discarded
+                            self.decoder.reset()
+                        }
+                        ErrKind::WouldBlock => 0,
                     };
                     // return the error
                     return Err(ReadDecodedError::IoErr(e, discarded_bytes));
@@ -181,12 +181,12 @@ mod decoder_reader_tests {
     }
 
     impl ByteSourceErr for TestReaderErr {
-        fn is_eof(&self) -> bool {
-            matches!(self, TestReaderErr::Eof)
-        }
-
-        fn is_would_block(&self) -> bool {
-            matches!(self, TestReaderErr::WouldBlock)
+        fn kind(&self) -> ErrKind {
+            match self {
+                TestReaderErr::Eof => ErrKind::Eof,
+                TestReaderErr::Other => ErrKind::Other,
+                TestReaderErr::WouldBlock => ErrKind::WouldBlock,
+            }
         }
     }
 
