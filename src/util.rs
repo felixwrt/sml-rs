@@ -182,7 +182,7 @@ pub trait ByteSourceErr: private::Sealed {
 
 /// Wraps types that implement `std::io::Read` and implements `ByteSource`
 #[cfg(feature = "std")]
-pub struct IoReader<R>
+pub struct IoByteSource<R>
 where
     R: std::io::Read,
 {
@@ -190,17 +190,17 @@ where
 }
 
 #[cfg(feature = "std")]
-impl<R> IoReader<R>
+impl<R> IoByteSource<R>
 where
     R: std::io::Read,
 {
     pub(crate) fn new(reader: R) -> Self {
-        IoReader { inner: reader }
+        IoByteSource { inner: reader }
     }
 }
 
 #[cfg(feature = "std")]
-impl<R> ByteSource for IoReader<R>
+impl<R> ByteSource for IoByteSource<R>
 where
     R: std::io::Read,
 {
@@ -214,7 +214,7 @@ where
 }
 
 #[cfg(feature = "std")]
-impl<R> private::Sealed for IoReader<R> where R: std::io::Read {}
+impl<R> private::Sealed for IoByteSource<R> where R: std::io::Read {}
 
 #[cfg(feature = "std")]
 impl ByteSourceErr for std::io::Error {
@@ -232,7 +232,7 @@ impl private::Sealed for std::io::Error {}
 
 /// Wraps types that implement `embedded_hal::serial::Read<...>` and implements `ByteSource`
 #[cfg(feature = "embedded_hal")]
-pub struct EhReader<R, E>
+pub struct EhByteSource<R, E>
 where
     R: embedded_hal::serial::Read<u8, Error = E>,
 {
@@ -240,17 +240,17 @@ where
 }
 
 #[cfg(feature = "embedded_hal")]
-impl<R, E> EhReader<R, E>
+impl<R, E> EhByteSource<R, E>
 where
     R: embedded_hal::serial::Read<u8, Error = E>,
 {
     pub(crate) fn new(reader: R) -> Self {
-        EhReader { inner: reader }
+        EhByteSource { inner: reader }
     }
 }
 
 #[cfg(feature = "embedded_hal")]
-impl<R, E> ByteSource for EhReader<R, E>
+impl<R, E> ByteSource for EhByteSource<R, E>
 where
     R: embedded_hal::serial::Read<u8, Error = E>,
 {
@@ -262,7 +262,7 @@ where
 }
 
 #[cfg(feature = "embedded_hal")]
-impl<R, E> private::Sealed for EhReader<R, E> where R: embedded_hal::serial::Read<u8, Error = E> {}
+impl<R, E> private::Sealed for EhByteSource<R, E> where R: embedded_hal::serial::Read<u8, Error = E> {}
 
 #[cfg(feature = "embedded_hal")]
 impl<E> ByteSourceErr for nb::Error<E> {
@@ -295,21 +295,21 @@ impl ByteSourceErr for Eof {
 impl private::Sealed for Eof {}
 
 /// Wraps byte slices and implements `ByteSource`
-pub struct SliceReader<'i> {
+pub struct SliceByteSource<'i> {
     inner: &'i [u8],
     idx: usize,
 }
 
-impl<'i> SliceReader<'i> {
+impl<'i> SliceByteSource<'i> {
     pub(crate) fn new(slice: &'i [u8]) -> Self {
-        SliceReader {
+        SliceByteSource {
             inner: slice,
             idx: 0,
         }
     }
 }
 
-impl<'i> ByteSource for SliceReader<'i> {
+impl<'i> ByteSource for SliceByteSource<'i> {
     type ReadError = Eof;
 
     fn read_byte(&mut self) -> Result<u8, Self::ReadError> {
@@ -322,10 +322,10 @@ impl<'i> ByteSource for SliceReader<'i> {
     }
 }
 
-impl<'i> private::Sealed for SliceReader<'i> {}
+impl<'i> private::Sealed for SliceByteSource<'i> {}
 
 /// Wraps byte iterators and implements `ByteSource`
-pub struct IterReader<I, B>
+pub struct IterByteSource<I, B>
 where
     I: Iterator<Item = B>,
     B: Borrow<u8>,
@@ -333,17 +333,17 @@ where
     iter: I,
 }
 
-impl<I, B> IterReader<I, B>
+impl<I, B> IterByteSource<I, B>
 where
     I: Iterator<Item = B>,
     B: Borrow<u8>,
 {
     pub(crate) fn new(iter: I) -> Self {
-        IterReader { iter }
+        IterByteSource { iter }
     }
 }
 
-impl<I, B> ByteSource for IterReader<I, B>
+impl<I, B> ByteSource for IterByteSource<I, B>
 where
     I: Iterator<Item = B>,
     B: Borrow<u8>,
@@ -358,7 +358,7 @@ where
     }
 }
 
-impl<I, B> private::Sealed for IterReader<I, B>
+impl<I, B> private::Sealed for IterByteSource<I, B>
 where
     I: Iterator<Item = B>,
     B: Borrow<u8>,
