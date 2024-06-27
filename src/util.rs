@@ -172,12 +172,26 @@ pub trait ByteSource: private::Sealed {
 
 /// Helper trait implemented for Error types of `ByteSource`
 pub trait ByteSourceErr: private::Sealed {
+    /// Returns whether the error is end of file (EOF), "would block" or something else
+    fn kind(&self) -> ErrKind;
+
     /// Returns whether the error is an end of file (EOF) error
-    fn is_eof(&self) -> bool;
+    fn is_eof(&self) -> bool {
+        matches!(self.kind(), ErrKind::Eof)
+    }
 
     /// Returns whether the error is "would block", which means that reading
     /// can be successfull again later
-    fn is_would_block(&self) -> bool;
+    fn is_would_block(&self) -> bool {
+        matches!(self.kind(), ErrKind::WouldBlock)
+    }
+}
+
+#[allow(missing_docs)]
+pub enum ErrKind {
+    Eof,
+    WouldBlock,
+    Other,
 }
 
 /// Wraps types that implement `std::io::Read` and implements `ByteSource`
@@ -218,12 +232,12 @@ impl<R> private::Sealed for IoByteSource<R> where R: std::io::Read {}
 
 #[cfg(feature = "std")]
 impl ByteSourceErr for std::io::Error {
-    fn is_eof(&self) -> bool {
-        matches!(self.kind(), std::io::ErrorKind::UnexpectedEof)
-    }
-
-    fn is_would_block(&self) -> bool {
-        false
+    fn kind(&self) -> ErrKind {
+        match self.kind() {
+            std::io::ErrorKind::UnexpectedEof => ErrKind::Eof,
+            std::io::ErrorKind::WouldBlock => ErrKind::WouldBlock,
+            _ => ErrKind::Other,
+        }
     }
 }
 
@@ -266,12 +280,11 @@ impl<R, E> private::Sealed for EhByteSource<R, E> where R: embedded_hal::serial:
 
 #[cfg(feature = "embedded_hal")]
 impl<E> ByteSourceErr for nb::Error<E> {
-    fn is_eof(&self) -> bool {
-        false
-    }
-
-    fn is_would_block(&self) -> bool {
-        matches!(self, nb::Error::WouldBlock)
+    fn kind(&self) -> ErrKind {
+        match self {
+            nb::Error::WouldBlock => ErrKind::WouldBlock,
+            _ => ErrKind::Other,
+        }
     }
 }
 
@@ -283,12 +296,8 @@ impl<E> private::Sealed for nb::Error<E> {}
 pub struct Eof;
 
 impl ByteSourceErr for Eof {
-    fn is_eof(&self) -> bool {
-        true
-    }
-
-    fn is_would_block(&self) -> bool {
-        false
+    fn kind(&self) -> ErrKind {
+        ErrKind::Eof
     }
 }
 
