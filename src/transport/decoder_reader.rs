@@ -113,7 +113,7 @@ where
     ///
     /// Using `nb::Result` allows this method to be awaited using the `nb::block!` macro.
     ///
-    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
+    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded-hal-02"` features.*
     #[cfg(feature = "nb")]
     pub fn read_nb(&mut self) -> nb::Result<&[u8], ReadDecodedError<R::ReadError>> {
         self.read().map_err(|e| match e {
@@ -130,7 +130,7 @@ where
     ///
     /// Using `nb::Result` allows this method to be awaited using the `nb::block!` macro.
     ///
-    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
+    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded-hal-02"` features.*
     #[cfg(feature = "nb")]
     pub fn next_nb(&mut self) -> nb::Result<Option<&[u8]>, ReadDecodedError<R::ReadError>> {
         match self.read_nb() {

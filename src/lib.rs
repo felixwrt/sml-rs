@@ -11,7 +11,7 @@
 //! # Feature flags
 //! - **`std`** (default) — Remove this feature to make the library `no_std` compatible.
 //! - **`alloc`** (default) — Implementations using allocations (`alloc::Vec` et al.).
-//! - **`embedded_hal`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
+//! - **`embedded-hal-02`** — Allows using pins implementing `embedded_hal::serial::Read` in [`SmlReader`](SmlReader::from_eh_reader).
 //! - **`nb`** - Enables non-blocking APIs using the `nb` crate.
 //! - **`serde`** - Implements `Serialize` and `Deserialize` on most error types.
 //!
@@ -279,7 +279,7 @@ impl DummySmlReader {
 
     /// Build an `SmlReader` from a type implementing `embedded_hal::serial::Read<u8>`.
     ///
-    /// *This function is available only if sml-rs is built with the `"embedded-hal"` feature.*
+    /// *This function is available only if sml-rs is built with the `"embedded-hal-02"` feature.*
     ///
     /// # Examples
     ///
@@ -288,7 +288,7 @@ impl DummySmlReader {
     /// // usually provided by hardware abstraction layers (HALs) for specific chips
     /// // let pin = ...;
     /// # struct Pin;
-    /// # impl embedded_hal::serial::Read<u8> for Pin {
+    /// # impl embedded_hal_02::serial::Read<u8> for Pin {
     /// #     type Error = ();
     /// #     fn read(&mut self) -> nb::Result<u8, Self::Error> { Ok(123) }
     /// # }
@@ -296,10 +296,10 @@ impl DummySmlReader {
     ///
     /// let reader = SmlReader::from_eh_reader(pin);
     /// ```
-    #[cfg(feature = "embedded_hal")]
+    #[cfg(feature = "embedded-hal-02")]
     pub fn from_eh_reader<R, E>(reader: R) -> SmlReader<util::EhByteSource<R, E>, DefaultBuffer>
     where
-        R: embedded_hal::serial::Read<u8, Error = E>,
+        R: embedded_hal_02::serial::Read<u8, Error = E>,
     {
         SmlReader {
             decoder: DecoderReader::new(util::EhByteSource::new(reader)),
@@ -429,7 +429,7 @@ where
     ///
     /// Using `nb::Result` allows this method to be awaited using the `nb::block!` macro.
     ///
-    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
+    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded-hal-02"` features.*
     #[cfg(feature = "nb")]
     pub fn read_nb<'i, T>(&'i mut self) -> nb::Result<T, T::Error>
     where
@@ -463,7 +463,7 @@ where
     ///
     /// Using `nb::Result` allows this method to be awaited using the `nb::block!` macro.
     ///
-    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded_hal"` features.*
+    /// *This function is available only if sml-rs is built with the `"nb"` or `"embedded-hal-02"` features.*
     #[cfg(feature = "nb")]
     pub fn next_nb<'i, T>(&'i mut self) -> nb::Result<Option<T>, T::Error>
     where
@@ -518,7 +518,7 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
 
     /// Build an `SmlReader` from a type implementing `embedded_hal::serial::Read<u8>`.
     ///
-    /// *This function is available only if sml-rs is built with the `"embedded-hal"` feature.*
+    /// *This function is available only if sml-rs is built with the `"embedded-hal-02"` feature.*
     ///
     /// # Examples
     ///
@@ -527,7 +527,7 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     /// // usually provided by hardware abstraction layers (HALs) for specific chips
     /// // let pin = ...;
     /// # struct Pin;
-    /// # impl embedded_hal::serial::Read<u8> for Pin {
+    /// # impl embedded_hal_02::serial::Read<u8> for Pin {
     /// #     type Error = ();
     /// #     fn read(&mut self) -> nb::Result<u8, Self::Error> { Ok(123) }
     /// # }
@@ -535,8 +535,8 @@ impl<Buf: Buffer> SmlReaderBuilder<Buf> {
     ///
     /// let reader = SmlReader::with_static_buffer::<1024>().from_eh_reader(pin);
     /// ```
-    #[cfg(feature = "embedded_hal")]
-    pub fn from_eh_reader<R: embedded_hal::serial::Read<u8, Error = E>, E>(
+    #[cfg(feature = "embedded-hal-02")]
+    pub fn from_eh_reader<R: embedded_hal_02::serial::Read<u8, Error = E>, E>(
         self,
         reader: R,
     ) -> SmlReader<util::EhByteSource<R, E>, Buf> {
@@ -697,11 +697,11 @@ fn test_smlreader_construction() {
 }
 
 #[test]
-#[cfg(feature = "embedded_hal")]
+#[cfg(feature = "embedded-hal-02")]
 fn test_smlreader_eh_construction() {
     // dummy struct implementing `Read`
     struct Pin;
-    impl embedded_hal::serial::Read<u8> for Pin {
+    impl embedded_hal_02::serial::Read<u8> for Pin {
         type Error = i16;
 
         fn read(&mut self) -> nb::Result<u8, Self::Error> {
