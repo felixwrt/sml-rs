@@ -14,10 +14,10 @@ use esp_hal::{
     peripherals::{Peripherals, UART1},
     prelude::*,
     system::SystemControl,
-    timer::timg::TimerGroup,
+    timer::{timg::TimerGroup, ErasedTimer, OneShotTimer},
     uart::{
         config::{Config, StopBits},
-        TxRxPins, Uart, UartRx,
+        Uart, UartRx,
     },
     Async,
 };
@@ -31,13 +31,26 @@ use smart_leds::RGB;
 
 use sml_rs::{transport::Decoder, util::ArrayBuf};
 
+macro_rules! mk_static {
+    ($t:ty,$val:expr) => {{
+        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        #[deny(unused_attributes)]
+        let x = STATIC_CELL.uninit().write(($val));
+        x
+    }};
+}
+
 #[main]
 async fn main(spawner: Spawner) {
     let peripherals = Peripherals::take();
     let system = SystemControl::new(peripherals.SYSTEM);
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
-    let timg0 = TimerGroup::new_async(peripherals.TIMG0, &clocks);
     let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
+
+    let timg0 = TimerGroup::new(peripherals.TIMG0, &clocks, None);
+    let timer0 = OneShotTimer::new(timg0.timer0.into());
+    let timers = [timer0];
+    let timers = mk_static!([OneShotTimer<ErasedTimer>; 1], timers);
 
     // -----------------------------------------------------------------------
     // Pin configuration - adapt to your board
@@ -67,19 +80,19 @@ async fn main(spawner: Spawner) {
     }
 
     // UART Configuration
-    let pins = TxRxPins::new_tx_rx(tx_pin, rx_pin);
     let uart_config = Config::default()
         .baudrate(9600)
         .parity_none()
-        .stop_bits(StopBits::STOP1);
-    let mut uart1 =
-        Uart::new_async_with_config(peripherals.UART1, uart_config, Some(pins), &clocks);
-    uart1.set_rx_fifo_full_threshold(0).unwrap();
+        .stop_bits(StopBits::STOP1)
+        .rx_fifo_full_threshold(0);
+    let uart1 =
+        Uart::new_async_with_config(peripherals.UART1, uart_config, &clocks, tx_pin, rx_pin)
+            .unwrap();
     let (_tx, rx) = uart1.split();
 
     // Init embassy
     log::info!("Initializing embassy...");
-    esp_hal_embassy::init(&clocks, timg0);
+    esp_hal_embassy::init(&clocks, timers);
 
     // Test LED
     log::info!("Testing LED...");

@@ -9,15 +9,15 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 embedded-io = "0.6.1"
-esp-backtrace = { version = "0.12.0", features = [
+esp-backtrace = { version = "0.13.0", features = [
     "esp32c3",
     "exception-handler",
     "panic-handler",
     "println",
 ] }
-esp-hal = { version = "0.18.0", features = ["embedded-io", "esp32c3"] }
-esp-hal-smartled = { version = "0.11.0", features = ["esp32c3"], optional = true}
-esp-println = { version = "0.9.1", features = ["esp32c3", "log"] }
+esp-hal = { version = "0.19.0", features = ["embedded-io", "esp32c3"] }
+esp-hal-smartled = { version = "0.12.0", features = ["esp32c3"], optional = true}
+esp-println = { version = "0.10.0", features = ["esp32c3", "log"] }
 log = { version = "0.4.21" }
 smart-leds = { version = "0.4.0", optional = true }
 sml-rs = { version = "0.4.0", default-features = false }
@@ -39,8 +39,3 @@ incremental = false
 lto = 'fat'
 opt-level = 's'
 overflow-checks = false
-
-[patch.crates-io]
-# Needed for `embedded_io::ReadReady` impl on `Uart(Rx)`
-# TODO: remove once a new version of esp-hal is released (see #39)
-esp-hal = { git = "https://github.com/esp-rs/esp-hal.git", rev = "9691141feddf7fff73fd5d734a99d213ae9966eb" }

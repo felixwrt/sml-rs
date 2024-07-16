@@ -42,13 +42,13 @@ cargo install espflash
 Flash and run the example:
 
 ```
-cargo run --relase
+cargo run --release
 ```
 
 When using a smart RGB LED:
 
 ```
-cargo run --relase --features smart-led
+cargo run --release --features smart-led
 ```
 
 ### Polling mode
@@ -65,13 +65,13 @@ Note: also take a look at the [`esp32c3-sml-reader-async`](../esp32c3-sml-reader
 The polling mode can be activated using the `polling` feature:
 
 ```
-cargo run --relase --features polling
+cargo run --release --features polling
 ```
 
 Or, when using a smart RGB LED:
 
 ```
-cargo run --relase --features smart-led,polling
+cargo run --release --features smart-led,polling
 ```
 
 [1]: https://github.com/felixwrt/sml-rs
