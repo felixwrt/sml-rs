@@ -13,7 +13,7 @@ use esp_hal::{
     system::SystemControl,
     uart::{
         config::{Config, StopBits},
-        TxRxPins, Uart,
+        Uart,
     },
 };
 use hex_literal::hex;
@@ -72,13 +72,19 @@ fn main() -> ! {
     }
 
     // UART Configuration
-    let pins = TxRxPins::new_tx_rx(tx_pin, rx_pin);
     let uart_config = Config::default()
         .baudrate(9600)
         .parity_none()
         .stop_bits(StopBits::STOP1);
-    let mut uart1 =
-        Uart::new_with_config(peripherals.UART1, uart_config, Some(pins), &clocks, None);
+    let mut uart1 = Uart::new_with_config(
+        peripherals.UART1,
+        uart_config,
+        &clocks,
+        None,
+        tx_pin,
+        rx_pin,
+    )
+    .unwrap();
 
     // Main Loop
     let mut data_iter = TEST_DATA.iter().cycle();
