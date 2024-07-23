@@ -353,3 +353,348 @@ impl ::core::fmt::Debug for Time {
 
 /// SML signature type
 pub type Signature<'i> = OctetStr<'i>;
+
+/// Procedere parameter value
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub enum ProcParValue {
+    /// value
+    Value = 0x01,
+    /// Period entry
+    PeriodEntry = 0x02,
+    /// Tupel Entry
+    TupelEntry = 0x03,
+    /// sml time
+    Time = 0x04,
+    /// list entry
+    ListEntry = 0x05,
+}
+
+impl<'i> SmlParseTlf<'i> for ProcParValue {
+    fn check_tlf(_tlf: &TypeLengthField) -> bool {
+        false
+    }
+
+    fn parse_with_tlf(_input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        Err(ParseError::NotSupported)
+    }
+}
+
+/// SML tree
+///
+/// SML_Tree' can be used to build up individual parameters (leaves or nodes) with their children (for nodes)
+/// below them.
+/// Specifically, an ‘SML_Tree’ can be used to ...
+/// ... a single parameter,
+/// ... a node with an underlying list of further parameters or
+/// ... a node with a list of further sub-trees hanging below it
+/// can be mapped.
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub struct Tree<'i> {
+    /// Name
+    pub parameter_name: OctetStr<'i>,
+    /// Value
+    pub parameter_value: Option<ProcParValue>,
+    /// The child list.
+    pub child_list: Box<Option<Self>>,
+}
+
+impl<'i> SmlParseTlf<'i> for Tree<'i> {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        *tlf == TypeLengthField::new(Ty::ListOf, 3usize as u32)
+    }
+
+    fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        let (input, parameter_name) = <OctetStr<'i>>::parse(input)?;
+        let (input, parameter_value) = <Option<ProcParValue>>::parse(input)?;
+        let (input, child_list) = <Option<Tree<'i>>>::parse(input)?;
+
+        let val = Self {
+            parameter_name,
+            parameter_value,
+            child_list: Box::new(child_list),
+        };
+
+        Ok((input, val))
+    }
+}
+
+/// Application specific attention number
+///
+/// This can be variate from application to application
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub struct ApplicationSpecific<'i>(OctetStr<'i>);
+
+/// Hint numbers gives informations how the message was positive.
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub enum HintNumber<'i> {
+    /// 81 81 C7 C7 FD 00
+    ///
+    /// Ok, positive acknowledgement.
+    Positive,
+    /// 81 81 C7 C7 FD 01
+    ///
+    /// execute lagter and response will be send via Response-without-request to server address.
+    ExecuteLater,
+    /// Reserved
+    Reserved(OctetStr<'i>),
+}
+
+impl<'i> From<OctetStr<'i>> for HintNumber<'i> {
+    fn from(value: OctetStr<'i>) -> Self {
+        match value {
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0x00] => Self::Positive,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0x01] => Self::ExecuteLater,
+            reserved => Self::Reserved(reserved),
+        }
+    }
+}
+
+/// Attention error codes
+///
+/// This gives information, what kind of error occured.
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub enum AttentionErrorCode<'i> {
+    /// 81 81 C7 C7 FE 00
+    ///
+    /// Error message that cannot be assigned to any of the meanings defined below.
+    UnknownError,
+    /// 81 81 C7 C7 FE 01
+    ///
+    /// Unknown SML identifier.
+    UnknownSml,
+    /// 81 81 C7 C7 FE 02
+    ///
+    /// Insufficient authentication, user / password combination invalid.
+    InsufficientAuth,
+    /// 81 81 C7 C7 FE 03
+    ///
+    /// Destination address (‘serverId’) not available.
+    DestAddressNotAvailable,
+    /// 81 81 C7 C7 FE 04
+    ///
+    /// Request (‘reqFileId’) not available.
+    RequestNotAvailable,
+    /// 81 81 C7 C7 FE 05
+    ///
+    /// One or more destination attribute(s) cannot be described.
+    DestinationAttributesNotDescribed,
+    /// 81 81 C7 C7 FE 06
+    ///
+    /// One or more target attribute(s) cannot be read.
+    TargetAttributesNotDescribed,
+    /// 81 81 C7 C7 FE 07
+    ///
+    /// Communication with measuring point disrupted.
+    CommunicationWithMeasuringDisturbed,
+    /// 81 81 C7 C7 FE 08
+    ///
+    /// Raw data cannot be interpreted.
+    RawDataCannotInterpreted,
+    /// 81 81 C7 C7 FE 09
+    ///
+    /// Delivered value outside the permissible value range.
+    DeliveredValueOutsideValueRange,
+    /// 81 81 C7 C7 FE 0A
+    ///
+    /// Order not executed (e.g. because the supplied ‘parameter-TreePath’
+    /// points to a non-existent element).
+    OrderNotExecuted,
+    /// 81 81 C7 C7 FE 0B
+    ///
+    /// Checksum incorrect
+    ChecksumIncorrect,
+    /// 81 81 C7 C7 FE 0C
+    ///
+    /// Broadcast not supported
+    BroadcastNotSupported,
+    /// 81 81 C7 C7 FE 0D
+    ///
+    /// Unexpected SML message (e.g. an SML file without an open request)
+    UnexpectedSmlMessage,
+    /// 81 81 C7 C7 FE 0E
+    ///
+    /// Unknown object in the profile (the OBIS code in a profile request refers
+    /// to a data source that has not been
+    UnknownObjectInProfile,
+    /// 81 81 C7 C7 FE 0F
+    ///
+    /// Unknown object in the profile (the OBIS code in a profile request refers
+    /// to a data source that has not been recorded in the profile)
+    UnsupportedDataType,
+    /// 81 81 C7 C7 FE 10
+    ///
+    /// Optional element not supported (An element defined as OPTIONAL in SML was
+    /// received contrary to the assumption made by the application).
+    OptionalElementNotSupported,
+    /// 81 81 C7 C7 FE 11
+    ///
+    /// Requested profile does not have a single entry
+    RequestedProfileNoSingleEntry,
+    /// 81 81 C7 C7 FE 12
+    ///
+    /// For profile requests: End limit is before start limit
+    EndLimitBeforeStartLimit,
+    /// 81 81 C7 C7 FE 13
+    /// For profile requests:
+    /// There are no entries in the requested area.
+    /// At least one entry exists in other areas
+    NoEntriesInRequestedArea,
+    /// 81 81 C7 C7 FE 14
+    ///
+    /// An SML file was ended without an SML close.
+    SmlFileWasEnded,
+    /// 81 81 C7 C7 FE 15
+    ///
+    /// For profile requests: The profile cannot be output temporarily
+    /// (for example, because it is being reorganised at the time of the request or a
+    /// signature is to be calculated for the profile entry)
+    ProfileCannotBeOutputTemporarily,
+    /// Reserved
+    Reserved(OctetStr<'i>),
+}
+
+impl<'i> From<OctetStr<'i>> for AttentionErrorCode<'i> {
+    fn from(value: OctetStr<'i>) -> Self {
+        match value {
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x00] => Self::UnknownError,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x01] => Self::UnknownSml,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x02] => Self::InsufficientAuth,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x03] => Self::DestAddressNotAvailable,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x04] => Self::RequestNotAvailable,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x05] => Self::DestinationAttributesNotDescribed,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x06] => Self::TargetAttributesNotDescribed,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x07] => Self::CommunicationWithMeasuringDisturbed,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x08] => Self::RawDataCannotInterpreted,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x09] => Self::DeliveredValueOutsideValueRange,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0A] => Self::OrderNotExecuted,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0B] => Self::ChecksumIncorrect,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0C] => Self::BroadcastNotSupported,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0D] => Self::UnexpectedSmlMessage,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0E] => Self::UnknownObjectInProfile,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0F] => Self::UnsupportedDataType,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x10] => Self::OptionalElementNotSupported,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x11] => Self::RequestedProfileNoSingleEntry,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x12] => Self::EndLimitBeforeStartLimit,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x13] => Self::NoEntriesInRequestedArea,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x14] => Self::SmlFileWasEnded,
+            &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x15] => Self::ProfileCannotBeOutputTemporarily,
+            reserved => Self::Reserved(reserved),
+        }
+    }
+}
+
+impl<'i> From<AttentionErrorCode<'i>> for OctetStr<'i> {
+    fn from(value: AttentionErrorCode<'i>) -> Self {
+        match value {
+            AttentionErrorCode::UnknownError => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x00],
+            AttentionErrorCode::UnknownSml => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x01],
+            AttentionErrorCode::InsufficientAuth => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x02],
+            AttentionErrorCode::DestAddressNotAvailable => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x03],
+            AttentionErrorCode::RequestNotAvailable => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x04],
+            AttentionErrorCode::DestinationAttributesNotDescribed => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x05]
+            }
+            AttentionErrorCode::TargetAttributesNotDescribed => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x06]
+            }
+            AttentionErrorCode::CommunicationWithMeasuringDisturbed => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x07]
+            }
+            AttentionErrorCode::RawDataCannotInterpreted => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x08],
+            AttentionErrorCode::DeliveredValueOutsideValueRange => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x09]
+            }
+            AttentionErrorCode::OrderNotExecuted => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0A],
+            AttentionErrorCode::ChecksumIncorrect => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0B],
+            AttentionErrorCode::BroadcastNotSupported => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0C],
+            AttentionErrorCode::UnexpectedSmlMessage => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0D],
+            AttentionErrorCode::UnknownObjectInProfile => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0E],
+            AttentionErrorCode::UnsupportedDataType => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0F],
+            AttentionErrorCode::OptionalElementNotSupported => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x10]
+            }
+            AttentionErrorCode::RequestedProfileNoSingleEntry => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x11]
+            }
+            AttentionErrorCode::EndLimitBeforeStartLimit => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x12],
+            AttentionErrorCode::NoEntriesInRequestedArea => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x13],
+            AttentionErrorCode::SmlFileWasEnded => &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x14],
+            AttentionErrorCode::ProfileCannotBeOutputTemporarily => {
+                &[0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x15]
+            }
+            AttentionErrorCode::Reserved(r) => r,
+        }
+    }
+}
+
+/// Attention numbers
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub enum AttentionNumber<'i> {
+    /// Application specific error codes
+    ApplicationSpecific(ApplicationSpecific<'i>),
+    /// global defined hint numbers
+    HintNumber(HintNumber<'i>),
+    /// Error codes
+    AttentionErrorCode(AttentionErrorCode<'i>),
+}
+
+impl<'i> From<OctetStr<'i>> for AttentionNumber<'i> {
+    fn from(value: OctetStr<'i>) -> Self {
+        if value >= &[0x81, 0x81, 0xC7, 0xC7, 0xE0, 0x00]
+            && value <= &[0x81, 0x81, 0xC7, 0xC7, 0xFC, 0xFF]
+        {
+            Self::ApplicationSpecific(ApplicationSpecific(value))
+        } else if value >= &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0x00]
+            && value <= &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0xFF]
+        {
+            Self::HintNumber(HintNumber::from(value))
+        } else {
+            Self::AttentionErrorCode(AttentionErrorCode::from(value))
+        }
+    }
+}
+
+/// Attention response
+#[derive(PartialEq, Eq, Clone)]
+pub struct AttentionResponse<'i> {
+    /// Server id
+    pub server_id: OctetStr<'i>,
+    /// Attention number
+    pub number: AttentionNumber<'i>,
+    /// message
+    pub msg: Option<OctetStr<'i>>,
+    /// Details of the attention response
+    pub details: Option<Tree<'i>>,
+}
+
+impl<'i> SmlParseTlf<'i> for AttentionResponse<'i> {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        *tlf == TypeLengthField::new(Ty::ListOf, 4usize as u32)
+    }
+
+    fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        let (input, server_id) = <OctetStr<'i>>::parse(input)?;
+        let (input, number) = <OctetStr<'i>>::parse(input)?;
+        let (input, msg) = <Option<OctetStr<'i>>>::parse(input)?;
+        let (input, details) = <Option<Tree<'i>>>::parse(input)?;
+
+        let val = Self {
+            server_id,
+            number: AttentionNumber::from(number),
+            msg,
+            details,
+        };
+        Ok((input, val))
+    }
+}
+
+impl<'i> core::fmt::Debug for AttentionResponse<'i> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("AttentionResponse")
+            .field("server_id", &self.server_id)
+            .field("number", &self.number)
+            .field("msg", &self.msg)
+            .field("details", &self.details)
+            .finish()
+    }
+}
