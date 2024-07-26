@@ -355,6 +355,7 @@ impl ::core::fmt::Debug for Time {
 pub type Signature<'i> = OctetStr<'i>;
 
 /// Procedere parameter value
+/// Not supported now.
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub enum ProcParValue {
     /// value
@@ -370,6 +371,19 @@ pub enum ProcParValue {
 }
 
 impl<'i> SmlParseTlf<'i> for ProcParValue {
+    fn check_tlf(_tlf: &TypeLengthField) -> bool {
+        false
+    }
+
+    fn parse_with_tlf(_input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        Err(ParseError::NotSupported)
+    }
+}
+
+/// Child trees are not supported now.
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub struct UnsupportedTree();
+impl<'i> SmlParseTlf<'i> for UnsupportedTree {
     fn check_tlf(_tlf: &TypeLengthField) -> bool {
         false
     }
@@ -395,7 +409,7 @@ pub struct Tree<'i> {
     /// Value
     pub parameter_value: Option<ProcParValue>,
     /// The child list.
-    pub child_list: Box<Option<Self>>,
+    pub child_list: Option<UnsupportedTree>,
 }
 
 impl<'i> SmlParseTlf<'i> for Tree<'i> {
@@ -406,12 +420,12 @@ impl<'i> SmlParseTlf<'i> for Tree<'i> {
     fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
         let (input, parameter_name) = <OctetStr<'i>>::parse(input)?;
         let (input, parameter_value) = <Option<ProcParValue>>::parse(input)?;
-        let (input, child_list) = <Option<Tree<'i>>>::parse(input)?;
+        let (input, child_list) = <Option<UnsupportedTree>>::parse(input)?;
 
         let val = Self {
             parameter_name,
             parameter_value,
-            child_list: Box::new(child_list),
+            child_list,
         };
 
         Ok((input, val))

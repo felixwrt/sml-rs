@@ -5,7 +5,9 @@
 use crate::util::CRC_X25;
 
 use super::{
-    common::{AttentionResponse, CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
+    common::{
+        AttentionResponse, CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time,
+    },
     octet_string::OctetStr,
     tlf::{self, Ty, TypeLengthField},
     OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,

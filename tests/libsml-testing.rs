@@ -126,7 +126,7 @@ mod test_attention_response {
                     details: Some(Tree {
                         parameter_name: &[0x01, 0x00, 0x5E, 0x31, 0x00, 0x07, 0x00, 0x01, 0x00],
                         parameter_value: None,
-                        child_list: Box::new(None),
+                        child_list: None,
                     }),
                 }),
             },
@@ -189,7 +189,7 @@ mod test_attention_response {
                     details: Some(Tree {
                         parameter_name: &[0x01, 0x00, 0x5E, 0x31, 0x00, 0x07, 0x00, 0x01, 0x00],
                         parameter_value: None,
-                        child_list: Box::new(None),
+                        child_list: None,
                     }),
                 }),
             },
