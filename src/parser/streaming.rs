@@ -5,7 +5,9 @@
 use crate::util::CRC_X25;
 
 use super::{
-    common::{CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
+    common::{
+        AttentionResponse, CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time,
+    },
     octet_string::OctetStr,
     tlf::{self, Ty, TypeLengthField},
     OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,
@@ -174,6 +176,8 @@ pub enum MessageBody<'i> {
     CloseResponse(CloseResponse<'i>),
     /// Start of the `SML_GetList.Res` message
     GetListResponse(GetListResponseStart<'i>),
+    /// Start of the `Attention.Res` message
+    AttentionResponse(AttentionResponse<'i>),
 }
 
 impl<'i> core::fmt::Debug for MessageBody<'i> {
@@ -182,6 +186,7 @@ impl<'i> core::fmt::Debug for MessageBody<'i> {
             Self::OpenResponse(arg0) => arg0.fmt(f),
             Self::CloseResponse(arg0) => arg0.fmt(f),
             Self::GetListResponse(arg0) => arg0.fmt(f),
+            Self::AttentionResponse(arg0) => arg0.fmt(f),
         }
     }
 }
@@ -205,6 +210,10 @@ impl<'i> SmlParseTlf<'i> for MessageBody<'i> {
             0x00000701 => {
                 let (input, x) = <GetListResponseStart<'i>>::parse(input)?;
                 Ok((input, MessageBody::GetListResponse(x)))
+            }
+            0x0000FF01 => {
+                let (input, x) = <AttentionResponse<'i>>::parse(input)?;
+                Ok((input, MessageBody::AttentionResponse(x)))
             }
             _ => Err(ParseError::UnexpectedVariant),
         }

@@ -72,3 +72,146 @@ fn test_files() {
         insta::assert_snapshot!(s);
     });
 }
+
+#[cfg(test)]
+mod test_attention_response {
+    use sml_rs::parser::{
+        common::{
+            AttentionErrorCode, AttentionNumber, AttentionResponse, CloseResponse, HintNumber,
+            OpenResponse, Time, Tree,
+        },
+        streaming::{self, MessageBody, MessageStart, ParseEvent},
+    };
+
+    #[test]
+    fn attention_response_order_not_executed() {
+        let bytes = vec![
+            0x1B, 0x1B, 0x1B, 0x1B, 0x01, 0x01, 0x01, 0x01, 0x76, 0x02, 0x01, 0x62, 0x00, 0x62,
+            0x00, 0x72, 0x63, 0x01, 0x01, 0x76, 0x01, 0x07, 0x43, 0x4C, 0x4E, 0x49, 0x44, 0x31,
+            0x0A, 0x51, 0x00, 0x00, 0x00, 0x00, 0x66, 0x9F, 0x41, 0xA7, 0x0B, 0x0A, 0x01, 0x4C,
+            0x47, 0x5A, 0x00, 0x03, 0xA9, 0xC6, 0x26, 0x72, 0x62, 0x01, 0x65, 0x00, 0x08, 0x5A,
+            0xE0, 0x01, 0x63, 0x31, 0x66, 0x00, 0x76, 0x02, 0x02, 0x62, 0x00, 0x62, 0x00, 0x72,
+            0x63, 0xFF, 0x01, 0x74, 0x0B, 0x0A, 0x01, 0x4C, 0x47, 0x5A, 0x00, 0x03, 0xA9, 0xC6,
+            0x26, 0x07, 0x81, 0x81, 0xC7, 0xC7, 0xFE, 0x0A, 0x01, 0x73, 0x0A, 0x01, 0x00, 0x5E,
+            0x31, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, 0x01, 0x63, 0x5C, 0xF4, 0x00, 0x76, 0x02,
+            0x03, 0x62, 0x00, 0x62, 0x00, 0x72, 0x63, 0x02, 0x01, 0x71, 0x01, 0x63, 0xD5, 0x35,
+            0x00, 0x00, 0x1B, 0x1B, 0x1B, 0x1B, 0x1A, 0x01, 0xC4, 0x75,
+        ];
+        let mut decoder =
+            sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
+        let expected_response = vec![
+            MessageStart {
+                transaction_id: &[1],
+                group_no: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::OpenResponse(OpenResponse {
+                    client_id: Some(&[67, 76, 78, 73, 68, 49]),
+                    req_file_id: &[81, 0, 0, 0, 0, 102, 159, 65, 167],
+                    codepage: None,
+                    server_id: &[10, 1, 76, 71, 90, 0, 3, 169, 198, 38],
+                    ref_time: Some(Time::SecIndex(547552)),
+                    sml_version: None,
+                }),
+            },
+            MessageStart {
+                transaction_id: &[2],
+                group_no: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::AttentionResponse(AttentionResponse {
+                    server_id: &[10, 1, 76, 71, 90, 0, 3, 169, 198, 38],
+                    number: AttentionNumber::AttentionErrorCode(
+                        AttentionErrorCode::OrderNotExecuted,
+                    ),
+                    msg: None,
+                    details: Some(Tree {
+                        parameter_name: &[0x01, 0x00, 0x5E, 0x31, 0x00, 0x07, 0x00, 0x01, 0x00],
+                        parameter_value: None,
+                        child_list: None,
+                    }),
+                }),
+            },
+            MessageStart {
+                transaction_id: &[3],
+                group_no: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::CloseResponse(CloseResponse {
+                    global_signature: None,
+                }),
+            },
+        ];
+        while let Some(result) = decoder.next() {
+            let input = result.unwrap();
+            let parser = streaming::Parser::new(input);
+            for (idx, val) in parser.enumerate().into_iter() {
+                if let Ok(ParseEvent::MessageStart(val)) = val {
+                    assert_eq!(expected_response[idx], val);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn attention_response_positive() {
+        let bytes = vec![
+            0x1B, 0x1B, 0x1B, 0x1B, 0x01, 0x01, 0x01, 0x01, 0x76, 0x02, 0x01, 0x62, 0x00, 0x62,
+            0x00, 0x72, 0x63, 0x01, 0x01, 0x76, 0x01, 0x07, 0x43, 0x4C, 0x4E, 0x49, 0x44, 0x31,
+            0x0A, 0x51, 0x00, 0x00, 0x00, 0x00, 0x66, 0x9F, 0x64, 0x3C, 0x0B, 0x0A, 0x01, 0x4C,
+            0x47, 0x5A, 0x00, 0x03, 0xA9, 0xC6, 0x26, 0x72, 0x62, 0x01, 0x65, 0x00, 0x08, 0x7D,
+            0x56, 0x01, 0x63, 0xC2, 0xF2, 0x00, 0x76, 0x02, 0x02, 0x62, 0x00, 0x62, 0x00, 0x72,
+            0x63, 0xFF, 0x01, 0x74, 0x0B, 0x0A, 0x01, 0x4C, 0x47, 0x5A, 0x00, 0x03, 0xA9, 0xC6,
+            0x26, 0x07, 0x81, 0x81, 0xC7, 0xC7, 0xFD, 0x00, 0x01, 0x73, 0x0A, 0x01, 0x00, 0x5E,
+            0x31, 0x00, 0x07, 0x00, 0x01, 0x00, 0x01, 0x01, 0x63, 0x5B, 0xAF, 0x00, 0x76, 0x02,
+            0x03, 0x62, 0x00, 0x62, 0x00, 0x72, 0x63, 0x02, 0x01, 0x71, 0x01, 0x63, 0xD5, 0x35,
+            0x00, 0x00, 0x1B, 0x1B, 0x1B, 0x1B, 0x1A, 0x01, 0xAC, 0x0C,
+        ];
+        let expected_response = vec![
+            MessageStart {
+                transaction_id: &[1],
+                group_no: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::OpenResponse(OpenResponse {
+                    client_id: Some(&[67, 76, 78, 73, 68, 49]),
+                    req_file_id: &[81, 0, 0, 0, 0, 102, 159, 100, 60],
+                    codepage: None,
+                    server_id: &[10, 1, 76, 71, 90, 0, 3, 169, 198, 38],
+                    ref_time: Some(Time::SecIndex(556374)),
+                    sml_version: None,
+                }),
+            },
+            MessageStart {
+                transaction_id: &[2],
+                group_no: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::AttentionResponse(AttentionResponse {
+                    server_id: &[10, 1, 76, 71, 90, 0, 3, 169, 198, 38],
+                    number: AttentionNumber::HintNumber(HintNumber::Positive),
+                    msg: None,
+                    details: Some(Tree {
+                        parameter_name: &[0x01, 0x00, 0x5E, 0x31, 0x00, 0x07, 0x00, 0x01, 0x00],
+                        parameter_value: None,
+                        child_list: None,
+                    }),
+                }),
+            },
+            MessageStart {
+                transaction_id: &[3],
+                group_no: 0,
+                abort_on_error: 0,
+                message_body: MessageBody::CloseResponse(CloseResponse {
+                    global_signature: None,
+                }),
+            },
+        ];
+        let mut decoder =
+            sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
+        while let Some(result) = decoder.next() {
+            let input = result.unwrap();
+            let parser = streaming::Parser::new(input);
+            for (idx, val) in parser.enumerate().into_iter() {
+                if let Ok(ParseEvent::MessageStart(val)) = val {
+                    assert_eq!(expected_response[idx], val);
+                }
+            }
+        }
+    }
+}

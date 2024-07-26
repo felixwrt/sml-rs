@@ -142,6 +142,8 @@ pub enum ParseError {
     MsgEndMismatch,
     /// Got a variant id that isn't known. This means it's either invalid or not supported (yet) by the parser
     UnexpectedVariant,
+    /// Not supported
+    NotSupported,
 }
 
 impl fmt::Display for ParseError {
