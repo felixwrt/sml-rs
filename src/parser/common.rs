@@ -654,13 +654,14 @@ pub enum AttentionNumber<'i> {
 
 impl<'i> From<OctetStr<'i>> for AttentionNumber<'i> {
     fn from(value: OctetStr<'i>) -> Self {
-        if value >= &[0x81, 0x81, 0xC7, 0xC7, 0xE0, 0x00]
-            && value <= &[0x81, 0x81, 0xC7, 0xC7, 0xFC, 0xFF]
-        {
+        let lower_application_specific: &[u8] = &[0x81, 0x81, 0xC7, 0xC7, 0xE0, 0x00];
+        let upper_application_specific: &[u8] = &[0x81, 0x81, 0xC7, 0xC7, 0xFC, 0xFF];
+        let lower_hintnumber: &[u8] = &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0x00];
+        let upper_hintnumber: &[u8] = &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0xFF];
+
+        if (lower_application_specific..=upper_application_specific).contains(&value) {
             Self::ApplicationSpecific(ApplicationSpecific(value))
-        } else if value >= &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0x00]
-            && value <= &[0x81, 0x81, 0xC7, 0xC7, 0xFD, 0xFF]
-        {
+        } else if (lower_hintnumber..=upper_hintnumber).contains(&value) {
             Self::HintNumber(HintNumber::from(value))
         } else {
             Self::AttentionErrorCode(AttentionErrorCode::from(value))
