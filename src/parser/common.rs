@@ -652,6 +652,20 @@ pub enum AttentionNumber<'i> {
     AttentionErrorCode(AttentionErrorCode<'i>),
 }
 
+impl<'i> SmlParseTlf<'i> for AttentionNumber<'i> {
+    fn check_tlf(tlf: &TypeLengthField) -> bool {
+        OctetStr::check_tlf(tlf)
+    }
+
+    fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
+        let (input, octet_str) = OctetStr::parse_with_tlf(input, tlf)?;
+
+        let val = AttentionNumber::from(octet_str);
+
+        Ok((input, val))
+    }
+}
+
 impl<'i> From<OctetStr<'i>> for AttentionNumber<'i> {
     fn from(value: OctetStr<'i>) -> Self {
         let lower_application_specific: &[u8] = &[0x81, 0x81, 0xC7, 0xC7, 0xE0, 0x00];
@@ -689,13 +703,13 @@ impl<'i> SmlParseTlf<'i> for AttentionResponse<'i> {
 
     fn parse_with_tlf(input: &'i [u8], _tlf: &TypeLengthField) -> ResTy<'i, Self> {
         let (input, server_id) = <OctetStr<'i>>::parse(input)?;
-        let (input, number) = <OctetStr<'i>>::parse(input)?;
+        let (input, number) = <AttentionNumber<'i>>::parse(input)?;
         let (input, msg) = <Option<OctetStr<'i>>>::parse(input)?;
         let (input, details) = <Option<Tree<'i>>>::parse(input)?;
 
         let val = Self {
             server_id,
-            number: AttentionNumber::from(number),
+            number,
             msg,
             details,
         };
