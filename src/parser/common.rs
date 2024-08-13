@@ -324,7 +324,7 @@ impl<'i> SmlParseTlf<'i> for Time {
     fn parse_with_tlf(input: &'i [u8], tlf: &TypeLengthField) -> ResTy<'i, Self> {
         // Workaround for Holley DTZ541:
         // For the `Time` type, this meter doesn't respect the spec.
-        // Intead of a TLF of type ListOf and length 2, it directly sends an u32 integer,
+        // Instead of a TLF of type ListOf and length 2, it directly sends an u32 integer,
         // which is encoded by a TLF of Unsigned and length 4 followed by four bytes containing
         // the data.
         if *tlf == TypeLengthField::new(Ty::Unsigned, 4) {
@@ -354,7 +354,7 @@ impl ::core::fmt::Debug for Time {
 /// SML signature type
 pub type Signature<'i> = OctetStr<'i>;
 
-/// Procedere parameter value
+/// Procedure parameter value
 /// Not supported now.
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub enum ProcParValue {
@@ -362,8 +362,8 @@ pub enum ProcParValue {
     Value = 0x01,
     /// Period entry
     PeriodEntry = 0x02,
-    /// Tupel Entry
-    TupelEntry = 0x03,
+    /// Tuple Entry
+    TupleEntry = 0x03,
     /// sml time
     Time = 0x04,
     /// list entry
@@ -438,7 +438,7 @@ impl<'i> SmlParseTlf<'i> for Tree<'i> {
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub struct ApplicationSpecific<'i>(OctetStr<'i>);
 
-/// Hint numbers gives informations how the message was positive.
+/// Hint numbers gives information how the message was positive.
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub enum HintNumber<'i> {
     /// 81 81 C7 C7 FD 00
@@ -447,7 +447,7 @@ pub enum HintNumber<'i> {
     Positive,
     /// 81 81 C7 C7 FD 01
     ///
-    /// execute lagter and response will be send via Response-without-request to server address.
+    /// execute later and response will be send via Response-without-request to server address.
     ExecuteLater,
     /// Reserved
     Reserved(OctetStr<'i>),
@@ -465,7 +465,7 @@ impl<'i> From<OctetStr<'i>> for HintNumber<'i> {
 
 /// Attention error codes
 ///
-/// This gives information, what kind of error occured.
+/// This gives information, what kind of error occurred.
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub enum AttentionErrorCode<'i> {
     /// 81 81 C7 C7 FE 00
@@ -560,7 +560,7 @@ pub enum AttentionErrorCode<'i> {
     /// 81 81 C7 C7 FE 15
     ///
     /// For profile requests: The profile cannot be output temporarily
-    /// (for example, because it is being reorganised at the time of the request or a
+    /// (for example, because it is being reorganized at the time of the request or a
     /// signature is to be calculated for the profile entry)
     ProfileCannotBeOutputTemporarily,
     /// Reserved
