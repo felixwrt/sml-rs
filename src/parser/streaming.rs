@@ -176,7 +176,7 @@ pub enum MessageBody<'i> {
     CloseResponse(CloseResponse<'i>),
     /// Start of the `SML_GetList.Res` message
     GetListResponse(GetListResponseStart<'i>),
-    /// Start of the `Attention.Res` message
+    /// `Attention.Res` message
     AttentionResponse(AttentionResponse<'i>),
 }
 

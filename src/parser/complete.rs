@@ -29,7 +29,7 @@ use alloc::vec::Vec;
 use core::fmt::Debug;
 
 use super::{
-    common::{CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
+    common::{AttentionResponse, CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
     tlf::{Ty, TypeLengthField},
     OctetStr, OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,
 };
@@ -127,6 +127,8 @@ pub enum MessageBody<'i> {
     CloseResponse(CloseResponse<'i>),
     /// `SML_GetList.Res` message
     GetListResponse(GetListResponse<'i>),
+    /// `Attention.Res` message
+    AttentionResponse(AttentionResponse<'i>),
 }
 
 #[cfg(feature = "alloc")]
@@ -136,6 +138,7 @@ impl<'i> core::fmt::Debug for MessageBody<'i> {
             Self::OpenResponse(arg0) => arg0.fmt(f),
             Self::CloseResponse(arg0) => arg0.fmt(f),
             Self::GetListResponse(arg0) => arg0.fmt(f),
+            Self::AttentionResponse(arg0) => arg0.fmt(f),
         }
     }
 }
@@ -159,6 +162,10 @@ impl<'i> SmlParseTlf<'i> for MessageBody<'i> {
             0x00000701 => {
                 let (input, x) = <GetListResponse<'i>>::parse(input)?;
                 Ok((input, MessageBody::GetListResponse(x)))
+            }
+            0x0000FF01 => {
+                let (input, x) = <AttentionResponse<'i>>::parse(input)?;
+                Ok((input, MessageBody::AttentionResponse(x)))
             }
             _ => Err(ParseError::UnexpectedVariant),
         }

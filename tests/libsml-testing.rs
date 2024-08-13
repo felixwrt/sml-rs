@@ -77,10 +77,8 @@ fn test_files() {
 mod test_attention_response {
     use sml_rs::parser::{
         common::{
-            AttentionErrorCode, AttentionNumber, AttentionResponse, CloseResponse, HintNumber,
-            OpenResponse, Time, Tree,
-        },
-        streaming::{self, MessageBody, MessageStart, ParseEvent},
+            AttentionErrorCode, AttentionNumber, AttentionResponse, CloseResponse, HintNumber, OpenResponse, Time, Tree
+        }, complete::{Message, MessageBody},
     };
 
     #[test]
@@ -99,8 +97,8 @@ mod test_attention_response {
         ];
         let mut decoder =
             sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
-        let expected_response = vec![
-            MessageStart {
+        let expected_messages = vec![
+            Message {
                 transaction_id: &[1],
                 group_no: 0,
                 abort_on_error: 0,
@@ -113,7 +111,7 @@ mod test_attention_response {
                     sml_version: None,
                 }),
             },
-            MessageStart {
+            Message {
                 transaction_id: &[2],
                 group_no: 0,
                 abort_on_error: 0,
@@ -125,12 +123,10 @@ mod test_attention_response {
                     msg: None,
                     details: Some(Tree {
                         parameter_name: &[0x01, 0x00, 0x5E, 0x31, 0x00, 0x07, 0x00, 0x01, 0x00],
-                        parameter_value: None,
-                        child_list: None,
                     }),
                 }),
             },
-            MessageStart {
+            Message {
                 transaction_id: &[3],
                 group_no: 0,
                 abort_on_error: 0,
@@ -139,15 +135,9 @@ mod test_attention_response {
                 }),
             },
         ];
-        while let Some(result) = decoder.next() {
-            let input = result.unwrap();
-            let parser = streaming::Parser::new(input);
-            for (idx, val) in parser.enumerate().into_iter() {
-                if let Ok(ParseEvent::MessageStart(val)) = val {
-                    assert_eq!(expected_response[idx], val);
-                }
-            }
-        }
+        let decoded_bytes = decoder.next().unwrap().unwrap();
+        let file = sml_rs::parser::complete::parse(decoded_bytes).unwrap();
+        assert_eq!(file.messages, expected_messages);
     }
 
     #[test]
@@ -164,8 +154,10 @@ mod test_attention_response {
             0x03, 0x62, 0x00, 0x62, 0x00, 0x72, 0x63, 0x02, 0x01, 0x71, 0x01, 0x63, 0xD5, 0x35,
             0x00, 0x00, 0x1B, 0x1B, 0x1B, 0x1B, 0x1A, 0x01, 0xAC, 0x0C,
         ];
-        let expected_response = vec![
-            MessageStart {
+        let mut decoder =
+            sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
+        let expected_messages = vec![
+            Message {
                 transaction_id: &[1],
                 group_no: 0,
                 abort_on_error: 0,
@@ -178,7 +170,7 @@ mod test_attention_response {
                     sml_version: None,
                 }),
             },
-            MessageStart {
+            Message {
                 transaction_id: &[2],
                 group_no: 0,
                 abort_on_error: 0,
@@ -188,12 +180,10 @@ mod test_attention_response {
                     msg: None,
                     details: Some(Tree {
                         parameter_name: &[0x01, 0x00, 0x5E, 0x31, 0x00, 0x07, 0x00, 0x01, 0x00],
-                        parameter_value: None,
-                        child_list: None,
                     }),
                 }),
             },
-            MessageStart {
+            Message {
                 transaction_id: &[3],
                 group_no: 0,
                 abort_on_error: 0,
@@ -202,16 +192,8 @@ mod test_attention_response {
                 }),
             },
         ];
-        let mut decoder =
-            sml_rs::transport::decode_streaming::<sml_rs::util::ArrayBuf<2048>>(bytes);
-        while let Some(result) = decoder.next() {
-            let input = result.unwrap();
-            let parser = streaming::Parser::new(input);
-            for (idx, val) in parser.enumerate().into_iter() {
-                if let Ok(ParseEvent::MessageStart(val)) = val {
-                    assert_eq!(expected_response[idx], val);
-                }
-            }
-        }
+        let decoded_bytes = decoder.next().unwrap().unwrap();
+        let file = sml_rs::parser::complete::parse(decoded_bytes).unwrap();
+        assert_eq!(file.messages, expected_messages);
     }
 }

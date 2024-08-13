@@ -144,6 +144,8 @@ pub enum ParseError {
     UnexpectedVariant,
     /// Not supported
     NotSupported,
+    /// Got an invalid attention number
+    AttentionNumberReserved,
 }
 
 impl fmt::Display for ParseError {
