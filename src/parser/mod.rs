@@ -142,7 +142,8 @@ pub enum ParseError {
     MsgEndMismatch,
     /// Got a variant id that isn't known. This means it's either invalid or not supported (yet) by the parser
     UnexpectedVariant,
-    /// Not supported
+    /// The input contains elements that aren't currently supported by the parser. Feel free to open an
+    /// issue if you need anything not supported yet!
     NotSupported,
     /// Got an invalid attention number
     AttentionNumberReserved,

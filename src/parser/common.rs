@@ -371,7 +371,7 @@ impl<'i> SmlParse<'i> for Unsupported {
 /// ... a single parameter,
 /// ... a node with an underlying list of further parameters or
 /// ... a node with a list of further sub-trees hanging below it
-/// 
+///
 /// *Note: SML tree is currently only partially supported. Feel free to open an issue if you need support for more attributes.*
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub struct Tree<'i> {
@@ -389,14 +389,11 @@ impl<'i> SmlParseTlf<'i> for Tree<'i> {
         let (input, _parameter_value) = <Option<Unsupported>>::parse(input)?;
         let (input, _child_list) = <Option<Unsupported>>::parse(input)?;
 
-        let val = Self {
-            parameter_name,
-        };
+        let val = Self { parameter_name };
 
         Ok((input, val))
     }
 }
-
 
 /// Hint numbers gives information how the message was positive.
 #[derive(PartialEq, Debug, Eq, Clone)]
@@ -409,7 +406,7 @@ pub enum HintNumber {
 
 impl TryFrom<u8> for HintNumber {
     type Error = ParseError;
-    
+
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(match value {
             0x00 => Self::Positive,
@@ -504,13 +501,13 @@ impl TryFrom<u8> for AttentionErrorCode {
             0x13 => Self::NoEntriesInRequestedArea,
             0x14 => Self::SmlFileNoClose,
             0x15 => Self::ProfileCannotBeOutputTemporarily,
-            _ => return Err(ParseError::AttentionNumberReserved)
+            _ => return Err(ParseError::AttentionNumberReserved),
         })
     }
 }
 
 /// Attention number
-/// 
+///
 /// Attention numbers are a sequence of 6 bytes.
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub enum AttentionNumber {
@@ -531,15 +528,15 @@ impl<'i> SmlParseTlf<'i> for AttentionNumber {
         let (input, octet_str) = OctetStr::parse_with_tlf(input, tlf)?;
 
         let &[0x81, 0x81, 0xC7, 0xC7, x, y] = octet_str else {
-            return Err(ParseError::AttentionNumberReserved)
+            return Err(ParseError::AttentionNumberReserved);
         };
         let val = match x {
             0xE0..=0xFC => Self::ApplicationSpecific([x, y]),
             0xFD => Self::HintNumber(HintNumber::try_from(y)?),
             0xFE => Self::AttentionErrorCode(AttentionErrorCode::try_from(y)?),
-            _ => return Err(ParseError::AttentionNumberReserved)
+            _ => return Err(ParseError::AttentionNumberReserved),
         };
-        
+
         Ok((input, val))
     }
 }

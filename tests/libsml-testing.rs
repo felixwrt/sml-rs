@@ -73,12 +73,15 @@ fn test_files() {
     });
 }
 
+#[cfg(feature = "alloc")]
 #[cfg(test)]
 mod test_attention_response {
     use sml_rs::parser::{
         common::{
-            AttentionErrorCode, AttentionNumber, AttentionResponse, CloseResponse, HintNumber, OpenResponse, Time, Tree
-        }, complete::{Message, MessageBody},
+            AttentionErrorCode, AttentionNumber, AttentionResponse, CloseResponse, HintNumber,
+            OpenResponse, Time, Tree,
+        },
+        complete::{Message, MessageBody},
     };
 
     #[test]

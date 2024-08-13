@@ -29,7 +29,9 @@ use alloc::vec::Vec;
 use core::fmt::Debug;
 
 use super::{
-    common::{AttentionResponse, CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time},
+    common::{
+        AttentionResponse, CloseResponse, EndOfSmlMessage, ListEntry, OpenResponse, Signature, Time,
+    },
     tlf::{Ty, TypeLengthField},
     OctetStr, OctetStrFormatter, ParseError, ResTy, SmlParse, SmlParseTlf,
 };
